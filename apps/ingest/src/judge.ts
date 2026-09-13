@@ -20,7 +20,7 @@ const BATCH = 10
 
 const SYSTEM = `You decide whether two community event listings from different websites describe the SAME real-world event occurrence.
 
-Both listings are in Simcoe County, Ontario, on the same date. Sources copy events from each other with edited titles, so wording differences alone do not make them different. They ARE the same when the title, timing and place are consistent with one gathering. They are DIFFERENT when the venues or organisers clearly differ, the times are incompatible (not just imprecise), or one is a specific part of a larger event (a single workshop inside a festival is not the festival).
+Both listings are in Simcoe County, Ontario, and overlap in date. Sources copy events from each other with edited titles, so wording differences alone do not make them different. They ARE the same when the title, timing and place are consistent with one gathering. They are DIFFERENT when the venues or organisers clearly differ, the times are incompatible (not just imprecise), or one is a specific part of a larger event (a single workshop inside a festival is not the festival). When one listing is a multi-day run (a play with several performances, a week-long exhibition) and the other is a single date inside it, they are DIFFERENT unless the single-date listing clearly describes the whole run. A generic listing that names only a national day or holiday is not the same as a specific local ceremony unless the place matches.
 
 Be conservative: when the listings could plausibly be two separate gatherings, answer distinct with lower confidence. Give a one-sentence reason.`
 

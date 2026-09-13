@@ -1,4 +1,5 @@
 import {
+  RULES_VERSION,
   buildClusters,
   candidatePairs,
   scorePair,
@@ -101,16 +102,18 @@ export async function runDedup(db: D1Like, window: { from: string; to: string },
       cached.set(decisionKey(d.listing_a, d.listing_b), d)
     }
 
-    const sameEdges: Array<[string, string]> = []
+    const sameEdges: Array<[string, string, number?]> = []
     const newDecisions: DecisionRow[] = []
     const toJudge: JudgeInput[] = []
 
     for (const [a, b] of pairs) {
       const prior = cached.get(decisionKey(a.id, b.id))
-      // A cached verdict holds as long as neither side's content changed.
-      if (prior && prior.hash_a === a.contentHash && prior.hash_b === b.contentHash) {
+      // A cached verdict holds as long as neither side's content changed — and, for rule
+      // verdicts, as long as the rules that produced it are the current ones.
+      const fresh = prior && prior.hash_a === a.contentHash && prior.hash_b === b.contentHash
+      if (fresh && (prior.method === RULES_VERSION || !prior.method.startsWith('rule'))) {
         stats.cached++
-        if (prior.verdict === 'same') sameEdges.push([a.id, b.id])
+        if (prior.verdict === 'same') sameEdges.push([a.id, b.id, prior.score])
         continue
       }
       const score = scorePair(a, b)
@@ -121,7 +124,7 @@ export async function runDedup(db: D1Like, window: { from: string; to: string },
       }
       if (verdict === 'same') {
         stats.ruleSame++
-        sameEdges.push([a.id, b.id])
+        sameEdges.push([a.id, b.id, score.score])
       } else {
         stats.ruleDistinct++
       }
@@ -131,7 +134,7 @@ export async function runDedup(db: D1Like, window: { from: string; to: string },
         hash_a: a.contentHash,
         hash_b: b.contentHash,
         verdict,
-        method: 'rule',
+        method: RULES_VERSION,
         score: score.score,
         confidence: null,
         reasoning: null,
@@ -149,7 +152,7 @@ export async function runDedup(db: D1Like, window: { from: string; to: string },
         }
         if (v.same) {
           stats.llmSame++
-          sameEdges.push([a.id, b.id])
+          sameEdges.push([a.id, b.id, score.score])
         }
         newDecisions.push({
           listing_a: a.id,

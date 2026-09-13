@@ -168,6 +168,20 @@ describe('scorePair and verdicts', () => {
     expect(verdictByRules(scorePair(a, b))).toBe('same')
   })
 
+  it('ignores weekday and month words, which are dates rather than identity', () => {
+    expect(titleSimilarity('Women Connect - September', 'Women Connect - Sep 2026')).toBeGreaterThan(0.95)
+    expect(verdictByRules(scorePair(
+      listing({ id: 'a', sourceSlug: 'bradford-west-gwillimbury', municipalitySlug: 'bradford-west-gwillimbury', title: 'Wildcard Wednesday' }),
+      listing({ id: 'b', sourceSlug: 'orilliamatters', municipalitySlug: null, title: 'Boots and Boards: Wednesday Line Dancing at Sainte-Marie' }),
+    ))).toBe('distinct')
+  })
+
+  it('never auto-merges listings that start on different dates, even inside a span', () => {
+    const run = listing({ id: 'a', sourceSlug: 'collingwoodtoday', municipalitySlug: null, title: 'Tuesdays With Morrie', localDate: '2026-09-22', startsAtUtc: '2026-09-22T23:30:00.000Z', endsAtUtc: '2026-09-26T23:30:00.000Z' })
+    const night = listing({ id: 'b', sourceSlug: 'collingwood', municipalitySlug: 'collingwood', title: 'Theatre Collingwood presents Tuesdays With Morrie', localDate: '2026-09-24', startsAtUtc: '2026-09-24T23:30:00.000Z' })
+    expect(verdictByRules(scorePair(run, night))).not.toBe('same')
+  })
+
   it('leaves a partial title match at a matching time for the judge', () => {
     const a = listing({ id: 'a', sourceSlug: 'severn', title: 'Harvest Supper' })
     const b = listing({ id: 'b', sourceSlug: 'orilliamatters', municipalitySlug: null, title: 'Coldwater United Church Harvest Supper and Silent Auction' })
@@ -221,6 +235,22 @@ describe('buildClusters', () => {
     expect(events[0]!.id).toBe('old-cluster')
     expect(events[0]!.representativeId).toBe('severn:1')
     expect(closed).toEqual(['gone'])
+  })
+
+  it('never chains two placed municipalities together through an unplaced copy', () => {
+    const barrie = listing({ id: 'barrie:1', sourceSlug: 'barrie', municipalitySlug: 'barrie', title: 'Sunrise Ceremony' })
+    const penetang = listing({ id: 'penetanguishene:1', sourceSlug: 'penetanguishene', municipalitySlug: 'penetanguishene', title: 'National Day for Truth and Reconciliation' })
+    const copy = listing({ id: 'barrietoday:1', sourceSlug: 'barrietoday', municipalitySlug: null, title: 'National Day for Truth and Reconciliation' })
+    const { events } = buildClusters({
+      listings: [barrie, penetang, copy],
+      sameEdges: [['barrietoday:1', 'penetanguishene:1', 0.93], ['barrie:1', 'barrietoday:1', 0.81]],
+      existingClusters: [],
+      priorityOf: priority,
+    })
+    expect(events).toHaveLength(2)
+    const merged = events.find((e) => e.listingIds.includes('barrietoday:1'))!
+    expect(merged.listingIds).toEqual(['barrietoday:1', 'penetanguishene:1'])
+    expect(merged.municipalitySlug).toBe('penetanguishene')
   })
 
   it('marks a cluster inactive when all its listings are, and cancelled when any active member says so', () => {

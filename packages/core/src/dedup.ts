@@ -33,6 +33,8 @@ export interface PairScore {
 
 export const MERGE_THRESHOLD = 0.85
 export const DISTINCT_THRESHOLD = 0.45
+/** Bump when scoring changes: cached rule verdicts carry it and are recomputed when it differs. */
+export const RULES_VERSION = 'rule:v2'
 
 /* ---------- text normalisation ---------- */
 
@@ -41,6 +43,11 @@ const STOPWORDS = new Set([
   'the', 'a', 'an', 'of', 'and', '&', 'at', 'in', 'on', 'for', 'to', 'with', 'by', 'presented', 'presents',
   'annual', 'event', 'events', 'township', 'town', 'city', 'county', 'public', 'library', 'community',
   'centre', 'center', 'park', 'hall', 'free', 'am', 'pm', 'edition',
+  // Dates are not identity: "Women Connect - September" is "Women Connect - Sep 2026".
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+  'mondays', 'tuesdays', 'wednesdays', 'thursdays', 'fridays', 'saturdays', 'sundays',
+  'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
+  'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'sept', 'oct', 'nov', 'dec',
 ])
 const ORDINAL = /^\d+(st|nd|rd|th)$/
 
@@ -240,9 +247,15 @@ export function scorePair(a: Listing, b: Listing): PairScore {
   // A shared link is close to proof; otherwise the title carries most of the weight, the
   // time is the next best discriminator, and place mostly breaks ties.
   let score = 0.55 * title + 0.3 * time + 0.15 * place
+  // A title that says little in common cannot be rescued by time and place alone:
+  // "Wildcard Wednesday" and "Wednesday Line Dancing" share a weekday, not an event.
+  if (title < 0.45) score = Math.min(score, DISTINCT_THRESHOLD)
+  // Except by a shared link, which is close to proof whatever the wording.
   if (url) score = Math.max(score, 0.9)
-  // A title that says nothing in common cannot be rescued by time and place alone.
-  if (title < 0.25) score = Math.min(score, 0.3)
+  // Different start dates only meet through a multi-day span: a week-long theatre run on
+  // one site against a single performance on another. Never auto-merge those; the judge
+  // can decide whether the single day IS the event.
+  if (a.localDate !== b.localDate) score = Math.min(score, MERGE_THRESHOLD - 0.01)
   return { a: a.id, b: b.id, score: Math.min(1, score), title, time, place, url }
 }
 
@@ -281,8 +294,8 @@ export type ClusterableListing = Listing & { clusterId?: string | null }
 
 export interface ClusterInput {
   listings: ClusterableListing[]
-  /** Pairs judged the same, by listing id. */
-  sameEdges: Array<[string, string]>
+  /** Pairs judged the same, by listing id, with an optional score (higher is applied first). */
+  sameEdges: Array<[string, string, number?]>
   /** Clusters already on record in this window, for sticky ids. */
   existingClusters: Array<{ id: string; createdAt: string }>
   /** Source priority by slug; lower wins. */
@@ -315,7 +328,29 @@ export function buildClusters(input: ClusterInput): ClusterOutput {
   const uf = new UnionFind()
   const byId = new Map(input.listings.map((l) => [l.id, l]))
   for (const l of input.listings) uf.find(l.id)
-  for (const [a, b] of input.sameEdges) if (byId.has(a) && byId.has(b)) uf.union(a, b)
+
+  /*
+   * Municipality consistency, transitively. A listing with no municipality (a news-site
+   * copy typed by an organiser) may legitimately merge with a placed listing on either
+   * side of a county line — but never with both, or Barrie's and Penetanguishene's
+   * ceremonies on the same morning become one event via the copy in between. Edges are
+   * applied strongest first; one that would join two different placed municipalities is
+   * dropped.
+   */
+  const municipalityOf = new Map<string, string | null>()
+  for (const l of input.listings) municipalityOf.set(uf.find(l.id), l.municipalitySlug)
+  const edges = [...input.sameEdges].sort((x, y) => (y[2] ?? 0) - (x[2] ?? 0))
+  for (const [a, b] of edges) {
+    if (!byId.has(a) || !byId.has(b)) continue
+    const ra = uf.find(a)
+    const rb = uf.find(b)
+    if (ra === rb) continue
+    const ma = municipalityOf.get(ra) ?? null
+    const mb = municipalityOf.get(rb) ?? null
+    if (ma && mb && ma !== mb) continue
+    uf.union(a, b)
+    municipalityOf.set(uf.find(a), ma ?? mb)
+  }
 
   const groups = new Map<string, ClusterableListing[]>()
   for (const l of input.listings) {
