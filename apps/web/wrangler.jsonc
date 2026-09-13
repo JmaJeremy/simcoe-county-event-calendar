@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "scec-web",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // Kept on as a fallback origin. Declaring routes turns it off by default, which would
+  // leave the site with no reachable URL if a custom domain ever stopped resolving.
+  "workers_dev": true,
+  // Static assets are normally served by the edge without invoking the worker. The shell
+  // must go through it so the share metadata gets the serving origin substituted in;
+  // everything else (css, js, images) still bypasses the worker entirely.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/", "/index.html"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "scec",
+      // Replaced by the id from `wrangler d1 create scec` at deploy time (SCEC-25).
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}

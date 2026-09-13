@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simcoe County Events — free things to do, in one place</title>
+<meta name="description" content="Community events across Simcoe County, Ontario — fairs, markets, concerts, family days and more — gathered from every town's calendar, the county and local news, with duplicates removed. Filter by municipality and subscribe in your own calendar.">
+<meta name="theme-color" content="#8a3b12">
+<link rel="canonical" href="__ORIGIN__/">
+<!-- __ORIGIN__ is substituted by the worker with whichever host answered, so shares stay
+     correct on the workers.dev origin today and on a custom domain later. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Simcoe County Events">
+<meta property="og:locale" content="en_CA">
+<meta property="og:url" content="__ORIGIN__/">
+<meta property="og:title" content="Simcoe County Events — free things to do, in one place">
+<meta property="og:description" content="Community events across Simcoe County, Ontario, gathered from every town's calendar, the county and local news, with duplicates removed.">
+<meta property="og:image" content="__ORIGIN__/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Simcoe County Events — free things to do across the county, in one place.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Simcoe County Events — free things to do, in one place">
+<meta name="twitter:description" content="Community events across Simcoe County, Ontario, in one place.">
+<meta name="twitter:image" content="__ORIGIN__/og.png">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="wordmark">
+      <svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+        <circle cx="24" cy="19" r="8" fill="var(--accent)"/>
+        <path d="M6 38 Q24 26 42 38" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <path d="M24 4v4M9 10l3 3M39 10l-3 3M4 22h4M40 22h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <h1>Simcoe County Events</h1>
+    </div>
+    <p class="tagline">Free things to do across Simcoe County, gathered from every town's calendar, the county and local news — in one place.</p>
+    <p class="stats" id="stats">Loading…</p>
+  </header>
+
+  <div class="filters">
+    <div class="filter-row">
+      <div class="field" id="f-municipality"></div>
+      <div class="field" id="f-category"></div>
+      <label class="toggle select-toggle">
+        <span>Cost</span>
+        <select id="cost">
+          <option value="default">Free &amp; unlisted</option>
+          <option value="free">Free only</option>
+          <option value="all">Everything</option>
+        </select>
+      </label>
+      <label class="toggle"><input type="checkbox" id="show-civic"> Council meetings</label>
+      <label class="toggle" id="past-toggle"><input type="checkbox" id="show-past"> Past events</label>
+      <span class="spacer"></span>
+      <div class="viewswitch" role="group" aria-label="View">
+        <button type="button" id="view-list" aria-pressed="true">List</button>
+        <button type="button" id="view-calendar" aria-pressed="false">Calendar</button>
+      </div>
+      <button class="btn ghost" type="button" data-share aria-haspopup="dialog">Share</button>
+      <button class="btn" id="subscribe">Subscribe</button>
+    </div>
+    <div class="active-filters" id="active"></div>
+  </div>
+
+  <nav class="monthnav" id="monthnav" hidden>
+    <button type="button" id="prev-month" aria-label="Previous month">&lsaquo;</button>
+    <h2 id="month-label">&nbsp;</h2>
+    <button type="button" id="next-month" aria-label="Next month">&rsaquo;</button>
+    <button type="button" class="today-btn" id="this-month">Today</button>
+    <span class="month-count" id="month-count"></span>
+  </nav>
+
+  <main id="list"><div class="loading">Loading events…</div></main>
+  <section id="calendar" hidden></section>
+
+  <footer>
+    <p>Events are collected from public calendars and link back to where they were listed.
+       "Cost not listed" means the source did not say; confirm details with the organizer before you go.
+       Council and committee meetings live at <a href="https://civi-times.ca">Civi-Times</a>.</p>
+    <p id="sources-line"></p>
+    <p class="support">Simcoe County Events is a hobby project, free and without ads.</p>
+  </footer>
+</div>
+
+<dialog class="modal" id="day-modal" aria-labelledby="day-modal-title">
+  <div class="modal-inner">
+    <header class="modal-head">
+      <h2 id="day-modal-title"></h2>
+      <button type="button" class="modal-close" id="close-day" aria-label="Close">&times;</button>
+    </header>
+    <div class="modal-body" id="day-modal-body"></div>
+  </div>
+</dialog>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-inner">
+    <h2>Subscribe in your calendar</h2>
+    <p>Add this link to Google Calendar, Apple Calendar or Outlook and these events will appear
+       alongside everything else — updating on their own as organizers change their plans.</p>
+    <code id="ics-url"></code>
+    <div class="sheet-actions">
+      <button class="btn" id="copy-ics">Copy link</button>
+      <a class="btn ghost" id="open-ics" href="#">Open .ics</a>
+      <button class="btn ghost" id="close-sheet">Close</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/app.js"></script>
+<script type="module" src="/share.js"></script>
+</body>
+</html>

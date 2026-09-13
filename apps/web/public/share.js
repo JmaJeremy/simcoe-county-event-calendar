@@ -1,0 +1,107 @@
+/**
+ * The share dialog, used by both the event list and a single event page.
+ *
+ * Builds its own markup so the two pages — one static shell, one server-rendered — do not
+ * have to keep duplicate copies in step. Any element with data-share opens it; the link
+ * shared is that element's data-share-url, falling back to the page's canonical URL.
+ */
+
+const TITLE = document.querySelector('meta[property="og:title"]')?.content ?? document.title
+
+function canonicalUrl() {
+  const link = document.querySelector('link[rel="canonical"]')?.href
+  // The list carries its filters in the query string, so share what is actually on screen.
+  return link && !location.search ? link : location.href
+}
+
+const esc = (s) =>
+  String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+
+let dialog
+
+function build() {
+  dialog = document.createElement('dialog')
+  dialog.className = 'modal share-modal'
+  dialog.id = 'share-modal'
+  dialog.setAttribute('aria-labelledby', 'share-title')
+  dialog.innerHTML = `
+    <div class="modal-inner">
+      <header class="modal-head">
+        <h2 id="share-title">Share</h2>
+        <button type="button" class="modal-close" id="share-close" aria-label="Close">&times;</button>
+      </header>
+      <div class="modal-body">
+        <p class="share-what" id="share-what"></p>
+        <div class="share-link">
+          <input type="text" id="share-url" readonly aria-label="Link to copy">
+          <button type="button" class="btn" id="share-copy">Copy</button>
+        </div>
+        <p class="share-status" id="share-status" role="status" aria-live="polite"></p>
+        <div class="share-targets">
+          <a class="share-target" id="share-fb" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.5-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.45 2.91h-2.33V22c4.78-.76 8.44-4.92 8.44-9.94Z"/></svg>
+            <span>Facebook</span>
+          </a>
+          <a class="share-target" id="share-x" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.53 3h3.05l-6.67 7.62L21.75 21h-6.14l-4.81-6.29L5.3 21H2.25l7.13-8.15L2.25 3H8.5l4.35 5.75L17.53 3Zm-1.07 16.17h1.69L7.62 4.74H5.8l10.66 14.43Z"/></svg>
+            <span>X</span>
+          </a>
+          <a class="share-target" id="share-email">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><rect x="2.75" y="4.75" width="18.5" height="14.5" rx="2.25" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 6.5 12 12.5l8.5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Email</span>
+          </a>
+        </div>
+      </div>
+    </div>`
+  document.body.appendChild(dialog)
+
+  dialog.querySelector('#share-close').onclick = () => dialog.close()
+  // A <dialog> does not dismiss on a backdrop click by itself.
+  dialog.addEventListener('click', (ev) => {
+    if (ev.target === dialog) dialog.close()
+  })
+  dialog.addEventListener('close', () => document.body.classList.remove('modal-open'))
+  dialog.querySelector('#share-copy').onclick = copy
+  dialog.querySelector('#share-url').onclick = (ev) => ev.target.select()
+}
+
+async function copy() {
+  const input = dialog.querySelector('#share-url')
+  const status = dialog.querySelector('#share-status')
+  try {
+    await navigator.clipboard.writeText(input.value)
+    status.textContent = 'Link copied.'
+  } catch {
+    // Clipboard access needs a secure context and can be refused outright; selecting the
+    // text at least leaves the reader one keystroke from copying it themselves.
+    input.select()
+    status.textContent = 'Press ⌘C or Ctrl+C to copy.'
+  }
+  setTimeout(() => (status.textContent = ''), 2600)
+}
+
+function open(url, what) {
+  if (!dialog) build()
+  const text = what || TITLE
+
+  dialog.querySelector('#share-what').textContent = text
+  dialog.querySelector('#share-url').value = url
+  dialog.querySelector('#share-status').textContent = ''
+  dialog.querySelector('#share-fb').href =
+    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
+  dialog.querySelector('#share-x').href =
+    `https://x.com/intent/post?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+  dialog.querySelector('#share-email').href =
+    `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(`${text}\n\n${url}`)}`
+
+  document.body.classList.add('modal-open')
+  dialog.showModal()
+  dialog.querySelector('#share-url').focus({ preventScroll: true })
+}
+
+document.addEventListener('click', (ev) => {
+  const trigger = ev.target.closest('[data-share]')
+  if (!trigger) return
+  ev.preventDefault()
+  open(trigger.dataset.shareUrl || canonicalUrl(), trigger.dataset.shareText || TITLE)
+})
