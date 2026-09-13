@@ -51,7 +51,7 @@ const PER_PLACE: Array<[string, string, string]> = [
   ['Open House', 'community', 'free'],
 ]
 
-export const EVENTS = MUNICIPALITIES.flatMap((place, i) =>
+const PLACED = MUNICIPALITIES.flatMap((place, i) =>
   PER_PLACE.map(([title, category, cost], k) => ({
     id: `${place.slug}:${k}`,
     shortCode: `${place.slug.slice(0, 3)}${k}`,
@@ -81,6 +81,33 @@ export const EVENTS = MUNICIPALITIES.flatMap((place, i) =>
     active: true,
   })),
 )
+
+/**
+ * Events no municipality could be resolved for — in production these are news-site
+ * listings that name no address. They share dates with placed events so the calendar
+ * still has at most a couple of chips a day.
+ */
+const UNPLACED_EVENTS = [
+  ['Quilt Guild Meeting', 'community'],
+  ['Legion Lunch', 'community'],
+  ['Bridge Lessons', 'education'],
+].map(([title, category], k) => ({
+  ...PLACED[k]!,
+  id: `unplaced:${k}`,
+  shortCode: `unp${k}`,
+  representativeId: `unplaced:${k}`,
+  listingIds: [`unplaced:${k}`],
+  sourceSlugs: ['barrietoday'],
+  municipalitySlug: null as string | null,
+  municipalityName: null as string | null,
+  title,
+  category,
+  cost: 'free',
+  costText: null,
+}))
+
+/** Sorted the way the real API returns them: by start, so day grouping holds. */
+export const EVENTS = [...PLACED, ...UNPLACED_EVENTS].sort((a, b) => a.startsAtUtc.localeCompare(b.startsAtUtc))
 
 /** What the default view shows: no paid events, no council meetings. */
 export const VISIBLE = EVENTS.filter((e) => e.cost !== 'paid' && e.category !== 'civic-meeting')

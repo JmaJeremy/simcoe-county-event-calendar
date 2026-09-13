@@ -37,20 +37,35 @@ the row has one.
 ## 5. SPACES listings often have no municipality
 
 Village Media listings are organiser-typed free text. After reading the description for a
-community name, 65 of 2,295 listings (mostly SPACES) still have `municipalitySlug = null`.
-They are shown county-wide and treated as compatible with any municipality by dedup.
+community name, 65 of 2,295 listings (mostly SPACES) still have `municipalitySlug = null`
+— 36 events after clustering. They are treated as compatible with any municipality by
+dedup, and the site now offers them under a "Not specified" option in the municipality
+menu (`m=unspecified`, which the API turns into `municipality_slug IS NULL`).
+
+Two things worth knowing about that bucket. A news site's own town is not used as a
+default, deliberately: OrilliaMatters carries events from across the region, and a wrong
+default would both mislabel them and let dedup bridge two towns. And because the
+gazetteer can only reject what it can place, a few out-of-county listings survive there
+(a Thornbury market, a Tobermory retreat) where a placed CitySpark row would have been
+dropped.
 
 ## 6. BradfordToday is disabled
 
 `bradford.spaces.ca` answered 503 throughout research. The registry row exists with
 `enabled: false`; flip it when the host responds.
 
-## 7. The Claude judge has not run in production yet
+## 7. The Claude judge, first production run
 
-`ANTHROPIC_API_KEY` was not available when the site was first deployed, so the 54
-ambiguous pairs per run stay unmerged and are retried each run. Setting the secret is all
-that is needed; the first run with it will judge every uncached ambiguous pair (about six
-API calls of ten pairs each).
+The secret was set on 2026-09-13 and the judge ran for the first time: 49 ambiguous pairs
+in 5 calls, 27 merged, 22 kept apart, none left unresolved. Verdicts read sensibly — the
+same farmers' market from a town and a news site, the same ghost tour syndicated to three
+Village Media sites. One merge crossed dates, a three-day Wasaga Beach blues festival the
+town dated Sept 20 and CollingwoodToday dated Sept 18; that is the call the rules
+deliberately defer, and merging one festival is the answer we want, but cross-date merges
+are the shape to watch if false positives ever appear.
+
+Cost is small and self-limiting: a verdict is cached per pair per content hash, so a
+steady-state run judges only newly ambiguous pairs.
 
 ## 8. Syndicated news-site listings
 

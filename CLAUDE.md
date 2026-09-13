@@ -104,5 +104,10 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
 - **The judge is optional and cached.** Without `ANTHROPIC_API_KEY` ambiguous pairs stay
   unmerged (`unresolved` in the run stats) and are retried next run. A verdict is stored per
   pair per content hash, so the model sees each pair once.
+- **`m=unspecified` is not a municipality.** It is the sentinel for events no town could
+  be resolved for, exported as `UNPLACED` from `apps/web/src/query.ts` and repeated in
+  `public/app.js`. The query builder turns it into `municipality_slug IS NULL` and ORs it
+  with any real slugs in the same list, so the two combine. Unplaced events read
+  "Not specified" everywhere — menu, pill, card badge, calendar chip.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.
   The civi-times tests used `m` for the month; that is why the ported suite was patched.

@@ -43,6 +43,14 @@ function shiftMonth(month, delta) {
   return new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 7)
 }
 
+/**
+ * The municipality value meaning "no town resolved" — mostly news-site listings that give
+ * no address. Kept in the same `m` list as real slugs so the two combine. Must match
+ * UNPLACED in ../src/query.ts, which turns it into `municipality_slug IS NULL`.
+ */
+const UNPLACED = 'unspecified'
+const UNPLACED_LABEL = 'Not specified'
+
 const CATEGORY_LABELS = {
   arts: 'Arts & culture',
   music: 'Music',
@@ -111,7 +119,7 @@ function matchesCost(e) {
 function matchesFilters(e) {
   if (!state.showCivic && e.category === 'civic-meeting') return false
   if (!matchesCost(e)) return false
-  if (state.filters.m.size && !state.filters.m.has(e.municipalitySlug ?? '')) return false
+  if (state.filters.m.size && !state.filters.m.has(e.municipalitySlug ?? UNPLACED)) return false
   if (state.filters.cat.size && !state.filters.cat.has(e.category)) return false
   return true
 }
@@ -225,7 +233,8 @@ function growList(by) {
   if (next) next.focus({ preventScroll: true })
 }
 
-const placeName = (slug) => state.municipalities.get(slug)?.name || slug || 'Simcoe County'
+const placeName = (slug) =>
+  !slug || slug === UNPLACED ? UNPLACED_LABEL : state.municipalities.get(slug)?.name || slug
 const shortPlaceName = (slug) => state.municipalities.get(slug)?.short_name || splitPlaceName(placeName(slug)).name
 
 function costTag(e) {
@@ -623,9 +632,21 @@ function splitPlaceName(full) {
   return m ? { name: m[2], type: m[1] } : { name: full, type: '' }
 }
 
+/** County first, then the municipalities, then the events we could not place. */
+const PLACE_GROUPS = ['County', 'Municipalities', 'Other']
+
 function municipalityOptions() {
-  return optionsFor((e) => e.municipalitySlug)
+  return optionsFor((e) => e.municipalitySlug ?? UNPLACED)
     .map((o) => {
+      if (o.value === UNPLACED) {
+        return {
+          ...o,
+          label: UNPLACED_LABEL,
+          note: 'no town given',
+          search: 'not specified unspecified unknown other no town given location',
+          group: 'Other',
+        }
+      }
       const { name, type } = splitPlaceName(placeName(o.value))
       const level = state.municipalities.get(o.value)?.level
       return {
@@ -637,7 +658,7 @@ function municipalityOptions() {
       }
     })
     .sort((a, b) => {
-      if (a.group !== b.group) return a.group === 'County' ? -1 : 1
+      if (a.group !== b.group) return PLACE_GROUPS.indexOf(a.group) - PLACE_GROUPS.indexOf(b.group)
       return a.label.localeCompare(b.label)
     })
 }

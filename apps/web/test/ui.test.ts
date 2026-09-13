@@ -131,19 +131,59 @@ describeIfChrome('filter menus (real browser)', () => {
     await closeMenus()
   })
 
-  it('puts the county in its own section above the municipalities', async () => {
+  it('puts the county in its own section above the municipalities, unplaced events last', async () => {
     await page.click('#f-municipality > button')
-    expect(await visibleGroups('#f-municipality')).toEqual(['County', 'Municipalities'])
+    expect(await visibleGroups('#f-municipality')).toEqual(['County', 'Municipalities', 'Other'])
 
     const labels = await visibleOptionLabels('#f-municipality')
     // Sorted by the name people use, not by "City of" / "Township of".
     expect(labels[0]).toContain('Simcoe')
-    expect(labels.slice(1).map((l) => l.replace(/(City|Town|Township|County)$/, '').trim())).toEqual([
+    expect(labels.slice(1, -1).map((l) => l.replace(/(City|Town|Township|County)$/, '').trim())).toEqual([
       'Barrie',
       'Tay',
       'Wasaga Beach',
     ])
+    expect(labels.at(-1)).toContain('Not specified')
     await closeMenus()
+  })
+
+  describe('events with no municipality', () => {
+    const unplaced = EVENTS.filter((e) => !e.municipalitySlug)
+
+    it('offers them as their own option, tallied like any other', async () => {
+      await page.click('#f-municipality > button')
+      const tally = await page.$eval(
+        '#f-municipality input[value="unspecified"]',
+        (el) => el.closest('label')!.querySelector('.tally')!.textContent!.trim(),
+      )
+      expect(tally).toBe(String(unplaced.length))
+      await closeMenus()
+    })
+
+    it('shows only those events when it is the one filter selected', async () => {
+      await page.click('#f-municipality > button')
+      await page.click('#f-municipality input[value="unspecified"]')
+      await closeMenus()
+      // The heading carries the cost tag too, so read the link that holds just the title.
+      const titles = await page.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent!.trim()))
+      expect(titles.sort()).toEqual(unplaced.map((e) => e.title).sort())
+    })
+
+    it('combines with a real municipality rather than replacing it', async () => {
+      await page.click('#f-municipality > button')
+      await page.click('#f-municipality input[value="unspecified"]')
+      await page.click('#f-municipality input[value="tay"]')
+      await closeMenus()
+      const shown = await page.$$eval('#list .event .jur', (els) => els.map((e) => e.textContent!.trim()))
+      expect(new Set(shown)).toEqual(new Set(['Tay', 'Not specified']))
+    })
+
+    it('keeps the selection in the URL so the view can be shared', async () => {
+      await page.click('#f-municipality > button')
+      await page.click('#f-municipality input[value="unspecified"]')
+      await closeMenus()
+      expect(new URL(page.url()).searchParams.get('m')).toBe('unspecified')
+    })
   })
 
   describe('search box', () => {
@@ -179,8 +219,8 @@ describeIfChrome('filter menus (real browser)', () => {
     it('restores the full list when the term is cleared', async () => {
       await setSearch('#f-municipality', 'tay')
       await setSearch('#f-municipality', '')
-      expect((await visibleOptionLabels('#f-municipality')).length).toBe(4)
-      expect(await visibleGroups('#f-municipality')).toEqual(['County', 'Municipalities'])
+      expect((await visibleOptionLabels('#f-municipality')).length).toBe(5)
+      expect(await visibleGroups('#f-municipality')).toEqual(['County', 'Municipalities', 'Other'])
       await closeMenus()
     })
 

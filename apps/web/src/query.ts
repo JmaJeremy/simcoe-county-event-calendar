@@ -1,5 +1,12 @@
 import type { Event } from '@scec/core'
 
+/**
+ * The `m` value standing for "no municipality resolved" — mostly news-site listings that
+ * name no address. It rides the same parameter as a real slug so the two combine, and no
+ * municipality is named this. Mirrored as UNPLACED in public/app.js.
+ */
+export const UNPLACED = 'unspecified'
+
 export interface EventFilters {
   municipalities: string[]
   categories: string[]
@@ -114,7 +121,17 @@ export function buildQuery(filters: EventFilters): { sql: string; bindings: unkn
     bindings.push(...values)
   }
 
-  inClause('e.municipality_slug', filters.municipalities)
+  // "Not specified" is just another value in the `m` list, so it ORs with real slugs.
+  const places = filters.municipalities.filter((slug) => slug !== UNPLACED)
+  if (filters.municipalities.length) {
+    const terms: string[] = []
+    if (places.length) {
+      terms.push(`e.municipality_slug IN (${places.map(() => '?').join(',')})`)
+      bindings.push(...places)
+    }
+    if (places.length !== filters.municipalities.length) terms.push('e.municipality_slug IS NULL')
+    where.push(`(${terms.join(' OR ')})`)
+  }
   inClause('e.category', filters.categories)
   inClause('e.status', filters.statuses)
   if (!filters.includeCivic) where.push(`e.category <> 'civic-meeting'`)

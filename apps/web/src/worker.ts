@@ -1,5 +1,5 @@
 import { buildIcal, sourceBySlug } from '@scec/core'
-import { buildQuery, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
+import { UNPLACED, buildQuery, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 
 interface D1Statement {
   all<T>(): Promise<{ results: T[] }>
@@ -169,7 +169,12 @@ function describeFilters(url: URL, events: PublicEvent[]): string {
   const m = url.searchParams.get('m')
   if (m) {
     const names = new Map(events.map((e) => [e.municipalitySlug, e.municipalityName]))
-    parts.push(m.split(',').map((slug) => names.get(slug) ?? titleCase(slug)).join(', '))
+    parts.push(
+      m
+        .split(',')
+        .map((slug) => (slug === UNPLACED ? 'location not specified' : names.get(slug) ?? titleCase(slug)))
+        .join(', '),
+    )
   }
   const cat = url.searchParams.get('cat')
   if (cat) parts.push(cat.split(',').map(titleCase).join(', '))

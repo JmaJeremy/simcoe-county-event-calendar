@@ -7,7 +7,8 @@ listed by the township, the county and the local news site shows up once.
 
 Live: https://scec-web.thejeremy-net.workers.dev (custom domain to come)
 
-- List and month-calendar views, filtered by municipality, category and cost
+- List and month-calendar views, filtered by municipality, category and cost, including a
+  "Not specified" option for the events no town could be resolved for
 - Free events by default; paid ones are kept and labelled, one toggle away
 - Council and committee meetings are hidden by default — they live on [Civi-Times](https://civi-times.ca)
 - Every event has a short shareable page (`/e/{code}`) that says where it was listed
