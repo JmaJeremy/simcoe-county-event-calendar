@@ -45,6 +45,15 @@ interface FetchOptions {
 const isRetryable = (err: unknown): boolean =>
   !(err instanceof HttpError) || err.status >= 500 || err.status === 429
 
+/**
+ * Requests made since the last reset, attempts included. The dry-run CLI reports it per
+ * source so the Worker's subrequest budget is a measured number, not a guess.
+ */
+export const httpStats = { requests: 0 }
+export const resetHttpStats = (): void => {
+  httpStats.requests = 0
+}
+
 export async function request(url: string, options: FetchOptions = {}): Promise<string> {
   const { method = 'GET', body, headers = {}, timeoutMs = 20_000, retries = 2 } = options
 
@@ -55,6 +64,7 @@ export async function request(url: string, options: FetchOptions = {}): Promise<
       await new Promise((r) => setTimeout(r, 500 * 3 ** (attempt - 1)))
     }
     try {
+      httpStats.requests++
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), timeoutMs)
       try {

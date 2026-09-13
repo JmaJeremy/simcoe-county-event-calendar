@@ -114,6 +114,12 @@ describe('normalizeEvent', () => {
     expect(listing.municipalitySlug).toBe('tiny')
   })
 
+  it('falls back to the description for sources with no home municipality', () => {
+    const media = { ...simcoe, municipalitySlug: null }
+    const listing = normalizeEvent(media, raw({ title: 'Curated Collective Market', description: 'Welcome to the market at Georgian Mall, Barrie.' }))
+    expect(listing.municipalitySlug).toBe('barrie')
+  })
+
   it('does not let a title override a municipal calendar', () => {
     // "Meet Hospice Orillia" at the Ramara library is in Ramara.
     const listing = normalizeEvent(ramara, raw({ title: 'Meet Hospice Orillia', address: '5482 Highway 12 S' }))

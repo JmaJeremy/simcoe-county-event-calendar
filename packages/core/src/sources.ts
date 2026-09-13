@@ -85,7 +85,7 @@ export const SOURCES: Source[] = [
     name: 'City of Barrie',
     kind: 'municipal',
     municipalitySlug: 'barrie',
-    config: { platform: 'drupal-events', origin: 'https://www.barrie.ca', listPath: '/community-recreation-environment/community-events' },
+    config: { platform: 'drupal-events', origin: 'https://www.barrie.ca', listPath: '/community-recreation-environment/community-events', mode: 'fullcalendar' },
     homepage: 'https://www.barrie.ca/community-recreation-environment/community-events',
   }),
   row({
@@ -93,7 +93,7 @@ export const SOURCES: Source[] = [
     name: 'Town of Innisfil',
     kind: 'municipal',
     municipalitySlug: 'innisfil',
-    config: { platform: 'drupal-events', origin: 'https://www.innisfil.ca', listPath: '/community-recreation/events' },
+    config: { platform: 'drupal-events', origin: 'https://www.innisfil.ca', listPath: '/community-recreation/events', mode: 'rows' },
     homepage: 'https://www.innisfil.ca/community-recreation/events',
   }),
   row({
@@ -101,7 +101,7 @@ export const SOURCES: Source[] = [
     name: 'Town of Collingwood',
     kind: 'municipal',
     municipalitySlug: 'collingwood',
-    config: { platform: 'drupal-events', origin: 'https://www.collingwood.ca', listPath: '/arts-culture-heritage/community-public-events' },
+    config: { platform: 'drupal-events', origin: 'https://www.collingwood.ca', listPath: '/arts-culture-heritage/community-public-events', mode: 'rows' },
     homepage: 'https://www.collingwood.ca/arts-culture-heritage/community-public-events',
   }),
   row({
@@ -109,7 +109,7 @@ export const SOURCES: Source[] = [
     name: 'Township of Tiny',
     kind: 'municipal',
     municipalitySlug: 'tiny',
-    config: { platform: 'drupal-events', origin: 'https://www.tiny.ca', listPath: '/recreation-community/events' },
+    config: { platform: 'drupal-events', origin: 'https://www.tiny.ca', listPath: '/recreation-community/events', mode: 'fullcalendar' },
     homepage: 'https://www.tiny.ca/recreation-community/events',
   }),
   row({
@@ -117,7 +117,7 @@ export const SOURCES: Source[] = [
     name: 'Township of Clearview',
     kind: 'municipal',
     municipalitySlug: 'clearview',
-    config: { platform: 'drupal-events', origin: 'https://www.clearview.ca', listPath: '/news-events-meetings/events-calendar' },
+    config: { platform: 'drupal-events', origin: 'https://www.clearview.ca', listPath: '/news-events-meetings/events-calendar', mode: 'fullcalendar' },
     homepage: 'https://www.clearview.ca/news-events-meetings/events-calendar',
   }),
 

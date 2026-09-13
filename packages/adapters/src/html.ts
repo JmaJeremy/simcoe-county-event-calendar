@@ -22,6 +22,7 @@ export function stripTags(html: string): string {
   return decodeEntities(
     html
       .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<!--[\s\S]*?-->/g, ' ')
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/(p|div|li|h[1-6]|tr|section|article)>/gi, '\n')
       .replace(/<[^>]+>/g, ' '),

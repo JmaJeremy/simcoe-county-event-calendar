@@ -48,7 +48,7 @@ for (const source of sources) {
   for (const l of result.listings) costs[l.cost]++
   console.log(
     `${status} ${source.slug.padEnd(26)} ${source.platform.padEnd(13)} ` +
-      `${String(result.listings.length).padStart(4)} listings  ${timing}` +
+      `${String(result.listings.length).padStart(4)} listings  ${timing} ${String(result.requests).padStart(3)} req` +
       `  free ${costs.free} / paid ${costs.paid} / ? ${costs.unknown}` +
       (result.skipped.length ? `  (${result.skipped.length} skipped)` : ''),
   )
@@ -63,7 +63,8 @@ if (asJson) {
 } else {
   const all = results.flatMap((r) => r.listings)
   const failed = results.filter((r) => !r.ok)
-  console.log(`\n${all.length} listings from ${results.length - failed.length}/${results.length} sources`)
+  const requests = results.reduce((n, r) => n + r.requests, 0)
+  console.log(`\n${all.length} listings from ${results.length - failed.length}/${results.length} sources, ${requests} HTTP requests`)
 
   const byCategory = new Map<string, number>()
   for (const l of all) byCategory.set(l.category, (byCategory.get(l.category) ?? 0) + 1)

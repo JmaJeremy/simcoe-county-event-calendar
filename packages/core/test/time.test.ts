@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shiftDate, toWallString, wallTimeToUtc } from '../src/time.ts'
+import { shiftDate, toWallClock, toWallString, wallTimeToUtc } from '../src/time.ts'
 
 /**
  * Timezone handling is the quietest source of wrong answers in this project: a bug here
@@ -52,5 +52,17 @@ describe('shiftDate', () => {
   it('moves across a month boundary', () => {
     expect(shiftDate('2026-09-06', -90)).toBe('2026-06-08')
     expect(shiftDate('2026-12-31', 1)).toBe('2027-01-01')
+  })
+})
+
+describe('toWallClock', () => {
+  it('renders an instant as the local wall clock, DST-aware', () => {
+    expect(toWallClock(new Date('2026-09-17T21:30:00Z'), 'America/Toronto')).toBe('2026-09-17T17:30')
+    expect(toWallClock(new Date('2026-01-17T22:30:00Z'), 'America/Toronto')).toBe('2026-01-17T17:30')
+    expect(toWallClock(1789662600 * 1000, 'America/Toronto')).toBe('2026-09-17T12:30')
+  })
+  it('round-trips with wallTimeToUtc', () => {
+    const wall = '2026-11-01T01:30'
+    expect(toWallClock(wallTimeToUtc(wall, 'America/Toronto'), 'America/Toronto')).toBe(wall)
   })
 })

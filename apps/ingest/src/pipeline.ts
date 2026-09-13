@@ -1,4 +1,4 @@
-import { adapterFor } from '@scec/adapters'
+import { adapterFor, httpStats, resetHttpStats } from '@scec/adapters'
 import {
   normalizeAll,
   reconcile,
@@ -32,6 +32,7 @@ export interface SourceResult {
   skipped: Array<{ externalId: string; reason: string }>
   plan?: ReconcilePlan
   durationMs: number
+  requests: number
 }
 
 /**
@@ -41,7 +42,8 @@ export interface SourceResult {
  */
 export async function syncSource(source: Source, window: SyncWindow, existing?: StoredListing[]): Promise<SourceResult> {
   const startedAt = Date.now()
-  const base = { source, fetched: 0, listings: [], skipped: [], durationMs: 0 }
+  resetHttpStats()
+  const base = { source, fetched: 0, listings: [], skipped: [], durationMs: 0, requests: 0 }
 
   try {
     const raw = await adapterFor(source.platform)(source, window)
@@ -56,8 +58,9 @@ export async function syncSource(source: Source, window: SyncWindow, existing?: 
       skipped,
       plan,
       durationMs: Date.now() - startedAt,
+      requests: httpStats.requests,
     }
   } catch (err) {
-    return { ...base, ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - startedAt }
+    return { ...base, ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - startedAt, requests: httpStats.requests }
   }
 }

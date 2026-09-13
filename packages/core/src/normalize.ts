@@ -145,7 +145,8 @@ export function normalizeEvent(source: Source, event: RawEvent): Listing {
     municipalitySlug:
       resolveMunicipality(event.municipalityHint, event.address, event.venueName) ??
       source.municipalitySlug ??
-      resolveMunicipality(event.title),
+      resolveMunicipality(event.title) ??
+      resolveMunicipality(description),
 
     title,
     description,

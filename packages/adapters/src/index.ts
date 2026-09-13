@@ -1,11 +1,10 @@
 import type { Adapter, Platform } from '@scec/core'
 import { fetchCitySpark } from './cityspark.ts'
+import { fetchDrupal } from './drupal.ts'
+import { fetchEventon } from './eventon.ts'
+import { fetchSpaces } from './spaces.ts'
 import { fetchGovstack } from './govstack.ts'
 import { fetchTribe } from './tribe.ts'
-
-const notYet = (platform: Platform): Adapter => async () => {
-  throw new Error(`Adapter for platform "${platform}" is not implemented yet`)
-}
 
 /**
  * Platform -> adapter. Adding a site that runs one of these means adding a row to the
@@ -13,10 +12,10 @@ const notYet = (platform: Platform): Adapter => async () => {
  */
 export const ADAPTERS: Record<Platform, Adapter> = {
   govstack: fetchGovstack,
-  'drupal-events': notYet('drupal-events'),
-  eventon: notYet('eventon'),
+  'drupal-events': fetchDrupal,
+  eventon: fetchEventon,
   tribe: fetchTribe,
-  spaces: notYet('spaces'),
+  spaces: fetchSpaces,
   cityspark: fetchCitySpark,
 }
 
@@ -27,6 +26,9 @@ export const adapterFor = (platform: Platform): Adapter => {
 }
 
 export * from './cityspark.ts'
+export * from './drupal.ts'
+export * from './eventon.ts'
+export * from './spaces.ts'
 export * from './govstack.ts'
 export * from './tribe.ts'
 export * from './html.ts'

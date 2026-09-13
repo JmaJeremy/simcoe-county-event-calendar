@@ -58,7 +58,13 @@ export interface Municipality {
 /** Per-platform connection details. Full hostnames and origins, never bare tenant slugs. */
 export type SourceConfig =
   | { platform: 'govstack'; host: string; excludeCategories?: string[] }
-  | { platform: 'drupal-events'; origin: string; listPath: string }
+  | {
+      platform: 'drupal-events'
+      origin: string
+      listPath: string
+      /** How the site renders its events view: FullCalendar JSON in drupalSettings, or rendered rows. */
+      mode: 'fullcalendar' | 'rows'
+    }
   | { platform: 'eventon'; origin: string }
   | { platform: 'tribe'; origin: string }
   | { platform: 'spaces'; host: string }

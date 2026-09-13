@@ -90,3 +90,24 @@ export function shiftDate(date: string, days: number): string {
   d.setUTCDate(d.getUTCDate() + days)
   return d.toISOString().slice(0, 10)
 }
+
+/**
+ * The inverse of wallTimeToUtc: a true instant rendered as 'YYYY-MM-DDTHH:mm' in a zone.
+ * For sources that publish unix or UTC timestamps (EventON, CitySpark), so adapters can
+ * hand normalize the same naive local string every other platform produces.
+ */
+export function toWallClock(instant: Date | number, timeZone: string): string {
+  const date = typeof instant === 'number' ? new Date(instant) : instant
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(date)
+  const at = (type: Intl.DateTimeFormatPartTypes): string => parts.find((p) => p.type === type)?.value ?? '00'
+  const hour = String(Number(at('hour')) % 24).padStart(2, '0')
+  return `${at('year')}-${at('month')}-${at('day')}T${hour}:${at('minute')}`
+}
