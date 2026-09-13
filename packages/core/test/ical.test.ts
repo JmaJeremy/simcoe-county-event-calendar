@@ -27,6 +27,7 @@ const event = (over: Partial<Event> = {}): Event => ({
   imageUrl: null,
   url: 'https://example.invalid/event',
   status: 'scheduled',
+  active: true,
   ...over,
 })
 

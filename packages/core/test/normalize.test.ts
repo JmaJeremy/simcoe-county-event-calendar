@@ -135,6 +135,7 @@ describe('normalizeEvent', () => {
     const listing = normalizeEvent(ramara, raw({ title: 'CANCELLED - Ride Ramara' }))
     expect(listing.status).toBe('cancelled')
     expect(listing.title).toBe('Ride Ramara')
+    expect(listing.active).toBe(true)
   })
 })
 

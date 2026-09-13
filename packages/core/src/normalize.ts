@@ -171,6 +171,7 @@ export function normalizeEvent(source: Source, event: RawEvent): Listing {
     url: event.url,
 
     status: analysis.status ?? 'scheduled',
+    active: true,
     contentHash: contentHash(event),
   }
 }

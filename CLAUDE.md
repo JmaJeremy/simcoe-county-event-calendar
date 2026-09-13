@@ -42,14 +42,24 @@ the same thing; its id is the representative listing's id at creation and never 
 
 ## Things that will bite you
 
-- **Identity is the platform's id for the occurrence, never a content hash**, and for
-  recurring events the id must include the occurrence (Drupal: `nodePath@datetime`, SPACES:
-  `dataId@startDate`). See `packages/core/src/identity.ts`.
+- **Identity is the platform's id for the occurrence.** Only some platforms give one that
+  survives edits: EventON (post id), The Events Calendar (occurrence id), CitySpark
+  (`PId`), Drupal FullCalendar (`eid`). On govStack (detail slug = date+time+title), Drupal
+  rows (`path@datetime`) and SPACES (`dataId@startDate`) the id ENCODES content, so an
+  organiser editing the time retires one listing and creates another. That is why
+  reconciliation only ever flips `active` — it never infers a cancellation from a listing
+  vanishing — and why a rescheduled event on those platforms gets a new cluster and a new
+  short link. `status` comes from the source's own text. See `reconcile.ts`.
 - **`localStart` is always a naive America/Toronto wall string.** `normalize` converts it
   exactly once. Sources that publish offsets or UTC (Drupal, CitySpark, EventON) must emit
   the local form in the adapter, or times double-convert.
 - **The empty-response guard in `reconcile()` is load-bearing.** A source returning zero
   listings is far more likely to be an outage than a calendar with nothing on it.
+- **govStack hosts 403 anything that does not look like a browser.** `USER_AGENT` is a
+  Chrome string with our name and repo appended; do not "clean it up".
+- **EventON's `data-time` is not UTC.** simcoe.ca's WordPress zone is UTC+1, so the unix
+  value is five hours off there and right on adjtos.ca. The adapter reads the JSON-LD wall
+  clock instead; keep it that way.
 - **Never merge on title + time alone across different municipalities.** Two townships'
   "Farmers' Market" at 9:00 are two events. The municipality gate in dedup enforces this.
 - **Generic source categories ("Community Events") say nothing.** `classifyCategory`

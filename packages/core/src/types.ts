@@ -20,7 +20,14 @@ export type SourceKind = 'municipal' | 'county' | 'library' | 'media' | 'tourism
 
 export type MunicipalityLevel = 'county' | 'city' | 'town' | 'township'
 
-/** Lifecycle as *we* observe it. Sources rarely say "cancelled"; we infer it. */
+/**
+ * What the SOURCE says about the event, read from its text ("CANCELLED - Fall Fair") or
+ * from a moved start time on platforms whose ids survive edits. Deliberately NOT inferred
+ * from a listing disappearing: on govStack, Drupal rows and SPACES the id encodes the
+ * date, time or title, so any edit mints a new id and retires the old one — treating that
+ * as a cancellation would put a phantom "CANCELLED" beside every rescheduled fall fair.
+ * Whether a listing is still published is `active`, a separate field.
+ */
 export type EventStatus = 'scheduled' | 'rescheduled' | 'cancelled'
 
 /** Whether the source published a start time, or only a date. */
@@ -152,6 +159,8 @@ export interface Listing {
   url: string
 
   status: EventStatus
+  /** Still published by the source. False once it stops appearing; never deleted. */
+  active: boolean
   /** Covers only mutable fields; drives change detection. */
   contentHash: string
 }
@@ -192,6 +201,8 @@ export interface Event {
   url: string
 
   status: EventStatus
+  /** True while at least one listing in the cluster is still published. */
+  active: boolean
 }
 
 export interface SyncWindow {
