@@ -3,5 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "dependencies": { "@scec/core": "*", "@scec/adapters": "*" }
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
+    "@scec/adapters": "*",
+    "@scec/core": "*"
+  }
 }
