@@ -84,9 +84,9 @@ const CATEGORY_RULES: Array<[Category, RegExp]> = [
   ['arts', /\b(art|arts|gallery|galleries|theatre|theater|films?|movies?|cinema|dance|drama|craft|pottery|painting|photograph|exhibit|museum|heritage|culture|cultural|literary|author|poetry|quilt|knit|stitch|weave)\b/i],
   ['family', /\b(family|families|kids?|child|children|toddler|baby|babies|preschool|youth|teen|tween|story ?time|storytime|circle time|parent|lego|play ?group)\b/i],
   ['sports', /\b(sport|sports|hockey|soccer|baseball|basketball|skating|skate|swim|run|race|marathon|5k|10k|golf|tennis|pickleball|curling|fitness|yoga|zumba|tai chi|bike|cycling|cornhole|bowling|shinny|tournament)\b/i],
-  ['outdoors', /\b(outdoors?|hikes?|hiking|trails?|parks?|nature|gardens?|beach(es)?|camps?|camping|fishing|derby|paddle|paddling|canoe|kayak|birds?|birding|forest|conservation|earth day|trees?|rides?)\b/i],
-  ['education', /\b(workshops?|class(es)?|courses?|lectures?|talks?|seminars?|webinar|training|learn|lesson|tutorial|book club|genealogy|history|science|tech|computer|literacy|clinic|information session|info session)\b/i],
-  ['community', /\b(community|volunteers?|fundrais\w*|charity|church|legion|seniors?|social|celebrations?|festivals?|fairs?|parades?|bbq|barbecue|dinners?|breakfasts?|lunch|potluck|open house|remembrance|canada day|christmas|halloween|easter|holiday|santa|tree lighting|fireworks|ceremony|flag raising|meet and greet|drop-?in|club)\b/i],
+  ['outdoors', /\b(outdoors?|hikes?|hiking|walks?|walking|trails?|parks?|nature|gardens?|beach(es)?|camps?|camping|fishing|derby|paddle|paddling|canoe|kayak|birds?|birding|forest|conservation|earth day|trees?|rides?)\b/i],
+  ['education', /\b(workshops?|class(es)?|courses?|lectures?|talks?|seminars?|webinar|training|learn|lessons?|tutorial|book club|genealogy|history|science|tech|computer|literacy|clinic|information session|info session|for beginners|101)\b/i],
+  ['community', /\b(community|volunteers?|fundrais\w*|charity|church|legion|seniors?|social|celebrations?|festivals?|fairs?|parades?|bbq|barbecue|dinners?|breakfasts?|lunch|potluck|open house|remembrance|canada day|christmas|halloween|easter|holiday|santa|tree lighting|fireworks|ceremony|flag raising|meet and greet|drop-?in|club|bingo|euchre|cribbage|mahjong|trivia|games? night|board games|coffee|tea|social)\b/i],
 ]
 
 /**
@@ -136,8 +136,16 @@ export function normalizeEvent(source: Source, event: RawEvent): Listing {
     sourceSlug: source.slug,
     sourceKind: source.kind,
     externalId: event.externalId,
+    // Where it is, not who listed it: municipal calendars happily carry the neighbouring
+    // town's fall fair, and the copy on the neighbour's own calendar must land in the same
+    // municipality or the de-duplicator will never see the two as one event. The address
+    // wins; the source's municipality is the fallback; the title is consulted only for
+    // sources with no municipality of their own, because "Meet Hospice Orillia" at the
+    // Ramara library is in Ramara.
     municipalitySlug:
-      source.municipalitySlug ?? resolveMunicipality(event.municipalityHint, event.address, event.venueName, event.title),
+      resolveMunicipality(event.municipalityHint, event.address, event.venueName) ??
+      source.municipalitySlug ??
+      resolveMunicipality(event.title),
 
     title,
     description,

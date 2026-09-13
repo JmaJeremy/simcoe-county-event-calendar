@@ -107,6 +107,19 @@ describe('normalizeEvent', () => {
     expect(listing.municipalitySlug).toBe('tay')
   })
 
+  it('lets an address in a neighbouring town override the listing calendar', () => {
+    // Tay's calendar carries Tiny's charity tournament; it is in Tiny.
+    const tay = sourceBySlug('tay')!
+    const listing = normalizeEvent(tay, raw({ title: 'Township of Tiny Charity Pickleball Tournament', address: '32 Oliver Dr, Tiny ON L0L 2J0' }))
+    expect(listing.municipalitySlug).toBe('tiny')
+  })
+
+  it('does not let a title override a municipal calendar', () => {
+    // "Meet Hospice Orillia" at the Ramara library is in Ramara.
+    const listing = normalizeEvent(ramara, raw({ title: 'Meet Hospice Orillia', address: '5482 Highway 12 S' }))
+    expect(listing.municipalitySlug).toBe('ramara')
+  })
+
   it('drops an end that precedes the start', () => {
     const listing = normalizeEvent(ramara, raw({ localEnd: '2026-09-22T08:00' }))
     expect(listing.endsAtUtc).toBeNull()
