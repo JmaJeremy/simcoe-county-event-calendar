@@ -20,8 +20,7 @@
     {
       "binding": "DB",
       "database_name": "scec",
-      // Replaced by the id from `wrangler d1 create scec` at deploy time (SCEC-25).
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      "database_id": "2a5bb740-6719-4498-9c0d-4f8eb7b601b9"
     }
   ]
 }
