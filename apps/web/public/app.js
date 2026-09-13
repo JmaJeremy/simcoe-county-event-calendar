@@ -68,7 +68,7 @@ function readUrl() {
   state.showCivic = p.get('civic') === '1'
   state.showPast = p.get('past') === '1'
   state.view = p.get('view') === 'calendar' ? 'calendar' : 'list'
-  state.month = /^\d{4}-\d{2}$/.test(p.get('m_') || '') ? p.get('m_') : /^\d{4}-\d{2}$/.test(p.get('month') || '') ? p.get('month') : thisMonth()
+  state.month = /^\d{4}-\d{2}$/.test(p.get('month') || '') ? p.get('month') : thisMonth()
 }
 
 function writeUrl() {

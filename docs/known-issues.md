@@ -60,3 +60,12 @@ four listings with no municipality. They merge with each other and, when a town 
 the event, with the town's copy — but a generic listing ("National Day for Truth and
 Reconciliation") is compatible with every town's ceremony that morning and lands with
 whichever it scores best against. The municipality guard stops it bridging two towns.
+
+## 9. Same-source duplicates are never merged, by design
+
+Candidate pairs are only ever formed across different sources: a source's own repeats are
+separate occurrences by construction. SPACES organisers do double-post, though — the
+"Romance of the Violin" concert on BarrieToday appears once as an all-day listing and once
+at 2:30 p.m., with different post ids — and both reach the site. Merging within a source
+would risk collapsing a weekly series; a narrower rule (same source, same day, near-identical
+title, one all-day and one timed) is the likely fix.
