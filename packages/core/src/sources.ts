@@ -1,0 +1,207 @@
+import type { Source, SourceConfig, SourceKind } from './types.ts'
+
+const TZ = 'America/Toronto'
+
+/**
+ * Every calendar we ingest. This is data, not code: adding a site that runs a platform we
+ * already support means adding a row here and nothing else.
+ *
+ * Priorities decide which listing represents a cluster when several sources carry the
+ * same event: a municipality's own calendar beats the county's, which beats a library's,
+ * which beats a news site's user-submitted copy. Ties break on completeness.
+ */
+export const PRIORITY: Record<SourceKind, number> = {
+  municipal: 10,
+  county: 20,
+  library: 30,
+  tourism: 40,
+  media: 50,
+}
+
+interface Row {
+  slug: string
+  name: string
+  kind: SourceKind
+  municipalitySlug: string | null
+  config: SourceConfig
+  homepage: string
+  enabled?: boolean
+}
+
+const row = (r: Row): Source => ({
+  slug: r.slug,
+  name: r.name,
+  kind: r.kind,
+  platform: r.config.platform,
+  municipalitySlug: r.municipalitySlug,
+  priority: PRIORITY[r.kind],
+  timezone: TZ,
+  config: r.config,
+  homepage: r.homepage,
+  enabled: r.enabled ?? true,
+})
+
+/** Twelve calendars on Granicus govStack Events, served from a `calendar.` or `events.` subdomain. */
+const govstack = (slug: string, name: string, municipalitySlug: string, host: string, kind: SourceKind = 'municipal'): Source =>
+  row({
+    slug,
+    name,
+    kind,
+    municipalitySlug,
+    // Council and committee meetings are civi-times' job; skipping their calendar
+    // categories at fetch time saves a page or two per run. Anything that slips through
+    // is still tagged civic-meeting by normalization.
+    config: { platform: 'govstack', host, excludeCategories: ['Public Meeting', 'Council Meetings', 'Committee Meetings', 'Council', 'Committees'] },
+    homepage: `https://${host}/`,
+  })
+
+export const SOURCES: Source[] = [
+  // ---- County -------------------------------------------------------------------------
+  row({
+    slug: 'simcoe-county',
+    name: 'County of Simcoe',
+    kind: 'county',
+    municipalitySlug: null,
+    config: { platform: 'eventon', origin: 'https://simcoe.ca' },
+    homepage: 'https://simcoe.ca/events/',
+  }),
+
+  // ---- Municipal calendars: govStack --------------------------------------------------
+  govstack('orillia', 'City of Orillia', 'orillia', 'calendar.orillia.ca'),
+  govstack('midland', 'Town of Midland', 'midland', 'calendar.midland.ca'),
+  govstack('bradford-west-gwillimbury', 'Town of Bradford West Gwillimbury', 'bradford-west-gwillimbury', 'calendar.townofbwg.com'),
+  govstack('springwater', 'Township of Springwater', 'springwater', 'calendar.springwater.ca'),
+  govstack('oro-medonte', 'Township of Oro-Medonte', 'oro-medonte', 'events.oro-medonte.ca'),
+  govstack('severn', 'Township of Severn', 'severn', 'calendar.severn.ca'),
+  govstack('tay', 'Township of Tay', 'tay', 'events.tay.ca'),
+  govstack('ramara', 'Township of Ramara', 'ramara', 'calendar.ramara.ca'),
+  govstack('penetanguishene', 'Town of Penetanguishene', 'penetanguishene', 'calendar.penetanguishene.ca'),
+  govstack('essa', 'Township of Essa', 'essa', 'calendar.essatownship.on.ca'),
+  govstack('wasaga-beach', 'Town of Wasaga Beach', 'wasaga-beach', 'calendar.wasagabeach.com'),
+
+  // ---- Municipal calendars: Drupal (Upanup) event views -------------------------------
+  row({
+    slug: 'barrie',
+    name: 'City of Barrie',
+    kind: 'municipal',
+    municipalitySlug: 'barrie',
+    config: { platform: 'drupal-events', origin: 'https://www.barrie.ca', listPath: '/community-recreation-environment/community-events' },
+    homepage: 'https://www.barrie.ca/community-recreation-environment/community-events',
+  }),
+  row({
+    slug: 'innisfil',
+    name: 'Town of Innisfil',
+    kind: 'municipal',
+    municipalitySlug: 'innisfil',
+    config: { platform: 'drupal-events', origin: 'https://www.innisfil.ca', listPath: '/community-recreation/events' },
+    homepage: 'https://www.innisfil.ca/community-recreation/events',
+  }),
+  row({
+    slug: 'collingwood',
+    name: 'Town of Collingwood',
+    kind: 'municipal',
+    municipalitySlug: 'collingwood',
+    config: { platform: 'drupal-events', origin: 'https://www.collingwood.ca', listPath: '/arts-culture-heritage/community-public-events' },
+    homepage: 'https://www.collingwood.ca/arts-culture-heritage/community-public-events',
+  }),
+  row({
+    slug: 'tiny',
+    name: 'Township of Tiny',
+    kind: 'municipal',
+    municipalitySlug: 'tiny',
+    config: { platform: 'drupal-events', origin: 'https://www.tiny.ca', listPath: '/recreation-community/events' },
+    homepage: 'https://www.tiny.ca/recreation-community/events',
+  }),
+  row({
+    slug: 'clearview',
+    name: 'Township of Clearview',
+    kind: 'municipal',
+    municipalitySlug: 'clearview',
+    config: { platform: 'drupal-events', origin: 'https://www.clearview.ca', listPath: '/news-events-meetings/events-calendar' },
+    homepage: 'https://www.clearview.ca/news-events-meetings/events-calendar',
+  }),
+
+  // ---- Municipal calendars: WordPress -------------------------------------------------
+  row({
+    slug: 'adjala-tosorontio',
+    name: 'Township of Adjala-Tosorontio',
+    kind: 'municipal',
+    municipalitySlug: 'adjala-tosorontio',
+    config: { platform: 'eventon', origin: 'https://adjtos.ca' },
+    homepage: 'https://adjtos.ca/community/events/',
+  }),
+  row({
+    slug: 'new-tecumseth',
+    name: 'Town of New Tecumseth',
+    kind: 'municipal',
+    municipalitySlug: 'new-tecumseth',
+    config: { platform: 'tribe', origin: 'https://www.newtecumseth.ca' },
+    homepage: 'https://www.newtecumseth.ca/live-here/events/town-calendar/',
+  }),
+
+  // ---- Libraries ----------------------------------------------------------------------
+  govstack('orillia-library', 'Orillia Public Library', 'orillia', 'events.orilliapubliclibrary.ca', 'library'),
+
+  // ---- Local media: Village Media SPACES ----------------------------------------------
+  // Each *Today site fronts a `<town>.spaces.ca` instance; the news sites themselves
+  // refuse non-browser clients (403), the SPACES hosts do not.
+  row({
+    slug: 'barrietoday',
+    name: 'BarrieToday',
+    kind: 'media',
+    municipalitySlug: null,
+    config: { platform: 'spaces', host: 'barrie.spaces.ca' },
+    homepage: 'https://www.barrietoday.com/local-events',
+  }),
+  row({
+    slug: 'orilliamatters',
+    name: 'OrilliaMatters',
+    kind: 'media',
+    municipalitySlug: null,
+    config: { platform: 'spaces', host: 'orillia.spaces.ca' },
+    homepage: 'https://www.orilliamatters.com/events',
+  }),
+  row({
+    slug: 'midlandtoday',
+    name: 'MidlandToday',
+    kind: 'media',
+    municipalitySlug: null,
+    config: { platform: 'spaces', host: 'midland.spaces.ca' },
+    homepage: 'https://www.midlandtoday.ca/local-events',
+  }),
+  row({
+    slug: 'collingwoodtoday',
+    name: 'CollingwoodToday',
+    kind: 'media',
+    municipalitySlug: null,
+    config: { platform: 'spaces', host: 'collingwood.spaces.ca' },
+    homepage: 'https://www.collingwoodtoday.ca/local-events',
+  }),
+  row({
+    // Answered 503 throughout research (Sept 2026). Re-enable when it responds.
+    slug: 'bradfordtoday',
+    name: 'BradfordToday',
+    kind: 'media',
+    municipalitySlug: null,
+    config: { platform: 'spaces', host: 'bradford.spaces.ca' },
+    homepage: 'https://www.bradfordtoday.ca/local-events',
+    enabled: false,
+  }),
+
+  // ---- Local media: Metroland simcoe.com on CitySpark --------------------------------
+  row({
+    slug: 'simcoe-com',
+    name: 'Simcoe.com',
+    kind: 'media',
+    municipalitySlug: null,
+    // 75 km from downtown Barrie reaches Collingwood (~50 km) and Penetanguishene (~45 km).
+    // Out-of-county results (Gravenhurst, Newmarket, Orangeville) are dropped when the
+    // gazetteer cannot place them in a Simcoe municipality.
+    config: { platform: 'cityspark', portal: 'Simcoe', ppid: 9299, lat: 44.389, lng: -79.69, distanceKm: 75 },
+    homepage: 'https://www.simcoe.com/events/',
+  }),
+]
+
+export const sourceBySlug = (slug: string): Source | undefined => SOURCES.find((s) => s.slug === slug)
+
+export const enabledSources = (): Source[] => SOURCES.filter((s) => s.enabled)

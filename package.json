@@ -1,0 +1,25 @@
+{
+  "name": "simcoe-county-event-calendar",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p packages/core && tsc -p packages/adapters && tsc -p apps/ingest && tsc -p apps/web",
+    "ingest:dry": "node --experimental-strip-types apps/ingest/src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "puppeteer-core": "^25.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "wrangler": "^4.0.0"
+  }
+}
