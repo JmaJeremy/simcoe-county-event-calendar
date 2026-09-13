@@ -42,7 +42,7 @@ describe('drupal fullcalendar mode', () => {
     expect(orchard.allDay).toBe(true)
     // Repeating-rule instances arrive with epoch-second starts; rendered in Toronto time.
     const [epoch] = mapFullCalendar('https://x', [{ title: 'Yoga', eid: '5-R-1-I-2', url: '/e/yoga', start: 1792798200, end: 1792801800, allDay: false }], { from: '2026-10-01', to: '2026-10-31' })
-    expect(epoch).toMatchObject({ localStart: '2026-10-23T12:10', localEnd: '2026-10-23T13:10' })
+    expect(epoch).toMatchObject({ localStart: '2026-10-23T19:30', localEnd: '2026-10-23T20:30' })
     const [noEid] = mapFullCalendar('https://x', [{ title: 'T', eid: '', url: '/e/t', start: '2026-10-03T10:00:00' }], window)
     expect(noEid!.externalId).toBe('/e/t@2026-10-03T10:00')
   })
