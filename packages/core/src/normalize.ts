@@ -17,6 +17,11 @@ const NON_EVENT_PATTERNS: RegExp[] = [
   /\b(garbage|recycling|organics|yard waste|blue box|green bin)\b.*\b(pick-?up|collection|day)\b/i,
   /\b(office|facility|arena|library|landfill|transfer station) (closed|closure)\b/i,
   /^(holiday|statutory holiday)\b/i,
+  // Collingwood's events view carries council proclamations and the nightly colour of the
+  // clock tower. Civic notices, not things to attend.
+  /^proclamation\b/i,
+  /\b(clock tower|town hall|bridge) (illuminated|lit) /i,
+  /^flag[- ]raising\b.*\b(proclamation)\b/i,
 ]
 
 export function isPublicEvent(event: RawEvent): boolean {

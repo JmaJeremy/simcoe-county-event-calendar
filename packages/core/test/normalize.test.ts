@@ -147,12 +147,16 @@ describe('normalizeAll', () => {
       raw({ externalId: 'b', title: 'Stitch and Weave at the Severn Township Public Library' }),
       raw({ externalId: 'b', title: 'Stitch and Weave at the Severn Township Public Library' }),
       raw({ externalId: 'c', title: 'Broken', localStart: 'not a time' }),
+      raw({ externalId: 'd', title: 'Proclamation: World Sepsis Day' }),
+      raw({ externalId: 'e', title: 'Clock Tower Illuminated BLUE - National Coaches Week' }),
     ])
     expect(listings.map((l) => l.externalId)).toEqual(['b'])
     expect(skipped.map((s) => s.reason)).toEqual([
       'not a public event',
       'duplicate external id in batch',
       expect.stringContaining('Unrecognized date/time format'),
+      'not a public event',
+      'not a public event',
     ])
   })
 })
