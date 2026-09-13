@@ -18,10 +18,21 @@ Work is tracked in Jira project SCEC (https://autario.atlassian.net). Ticket key
 
 ```bash
 npm install
-npm test                                    # vitest, fixture-based, no network
+npm test                                    # vitest; fixtures, no network; UI suite needs system Chrome (skips otherwise)
 npm run typecheck
-node --experimental-strip-types apps/ingest/src/cli.ts [--source <slug>] [--json]   # dry run
+node --experimental-strip-types apps/ingest/src/cli.ts [--source <slug>] [--platform <p>] [--json]   # dry run, writes nothing
+
+# Full pipeline against a LOCAL D1 (ingest + dedup), then the site on top of it
+npx wrangler d1 migrations apply scec --local --config apps/ingest/wrangler.jsonc
+npx wrangler dev --config apps/ingest/wrangler.jsonc --port 8787 --var INGEST_TOKEN:dev
+curl -X POST 'http://localhost:8787/run?token=dev'                 # add &source=<slug> or &dedup=0
+npx wrangler dev --config apps/web/wrangler.jsonc --port 8788 --persist-to apps/ingest/.wrangler/state
+node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite
+node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
+
+A full run takes ~60 s and ~320 HTTP requests: 25/25 sources, ~2,300 listings, ~2,190
+events, ~2,400 candidate pairs, ~160 rule merges, ~50 ambiguous pairs for the judge.
 
 ## Architecture
 
@@ -39,6 +50,27 @@ site on a supported platform is a row in `packages/core/src/sources.ts`.
 **Listings vs events.** A `Listing` is one source's view of one occurrence, keyed
 `(source, platform id)`. An `Event` is a cluster of listings the de-duplicator judged to be
 the same thing; its id is the representative listing's id at creation and never changes.
+
+## Deployment
+
+Two Workers on the shared `scec` D1 database (id `2a5bb740-6719-4498-9c0d-4f8eb7b601b9`):
+
+```bash
+set -a; . ./.env; set +a          # CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / INGEST_TOKEN
+npx wrangler d1 migrations apply scec --remote --config apps/ingest/wrangler.jsonc
+npx wrangler deploy --config apps/ingest/wrangler.jsonc   # cron: 23 past every second hour
+npx wrangler deploy --config apps/web/wrangler.jsonc
+printf '%s' "$INGEST_TOKEN" | npx wrangler secret put INGEST_TOKEN --config apps/ingest/wrangler.jsonc
+printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY --config apps/ingest/wrangler.jsonc
+
+# Trigger a run by hand and read the summary
+curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TOKEN"
+```
+
+- Site: https://scec-web.thejeremy-net.workers.dev (no custom domain yet; `CANONICAL_HOST`
+  var enables the www redirect once one is attached)
+- Ingest: https://scec-ingest.thejeremy-net.workers.dev (token-guarded, not public)
+- `.env` is gitignored, as is `jeremy-atlassian-token.key`. Keep it that way.
 
 ## Things that will bite you
 
@@ -64,3 +96,13 @@ the same thing; its id is the representative listing's id at creation and never 
   "Farmers' Market" at 9:00 are two events. The municipality gate in dedup enforces this.
 - **Generic source categories ("Community Events") say nothing.** `classifyCategory`
   ignores them and reads the title.
+- **Dedup: a listing with no municipality must never bridge two towns.** News-site copies
+  (SPACES) often have `municipalitySlug = null`; `buildClusters` applies edges strongest-first
+  and refuses one that would join two different placed municipalities. Listings that start
+  on different dates never auto-merge (a theatre run vs one performance) — the judge decides.
+  Changing any scoring rule means bumping `RULES_VERSION` so cached rule verdicts recompute.
+- **The judge is optional and cached.** Without `ANTHROPIC_API_KEY` ambiguous pairs stay
+  unmerged (`unresolved` in the run stats) and are retried next run. A verdict is stored per
+  pair per content hash, so the model sees each pair once.
+- **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.
+  The civi-times tests used `m` for the month; that is why the ported suite was patched.

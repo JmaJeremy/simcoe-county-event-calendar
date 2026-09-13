@@ -44,3 +44,19 @@ They are shown county-wide and treated as compatible with any municipality by de
 
 `bradford.spaces.ca` answered 503 throughout research. The registry row exists with
 `enabled: false`; flip it when the host responds.
+
+## 7. The Claude judge has not run in production yet
+
+`ANTHROPIC_API_KEY` was not available when the site was first deployed, so the 54
+ambiguous pairs per run stay unmerged and are retried each run. Setting the secret is all
+that is needed; the first run with it will judge every uncached ambiguous pair (about six
+API calls of ten pairs each).
+
+## 8. Syndicated news-site listings
+
+Village Media pushes the same organiser-submitted listing to all four SPACES instances
+(BarrieToday, OrilliaMatters, MidlandToday, CollingwoodToday), so one event can arrive as
+four listings with no municipality. They merge with each other and, when a town also lists
+the event, with the town's copy — but a generic listing ("National Day for Truth and
+Reconciliation") is compatible with every town's ceremony that morning and lands with
+whichever it scores best against. The municipality guard stops it bridging two towns.
