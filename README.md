@@ -1,11 +1,11 @@
-# Simcoe County Events
+# Out in Simcoe
 
 A public calendar of community events across Simcoe County, Ontario — the county, its 16
 member municipalities, and the cities of Barrie and Orillia — gathered from municipal, county,
 library and local-media calendars and **de-duplicated across sources**, so the same fall fair
 listed by the township, the county and the local news site shows up once.
 
-Live: https://scec-web.thejeremy-net.workers.dev (custom domain to come)
+Live: **https://outinsimcoe.ca** (`scec-web.thejeremy-net.workers.dev` still answers as a fallback)
 
 - List and month-calendar views, filtered by municipality, category and cost, including a
   "Not specified" option for the events no town could be resolved for

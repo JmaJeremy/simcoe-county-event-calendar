@@ -1,6 +1,6 @@
 {
-  "name": "Simcoe County Events",
-  "short_name": "SC Events",
+  "name": "Out in Simcoe",
+  "short_name": "Out in Simcoe",
   "description": "Free things to do across Simcoe County, in one place.",
   "start_url": "/",
   "display": "standalone",

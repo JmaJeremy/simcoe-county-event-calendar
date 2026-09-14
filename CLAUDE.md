@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## What this is
 
-A public calendar of community events across Simcoe County, Ontario — the county, its 16
+**Out in Simcoe** (outinsimcoe.ca) — a public calendar of community events across Simcoe County, Ontario — the county, its 16
 member municipalities, and the separated cities of Barrie and Orillia — aggregated from
 municipal, county, library and local-media calendars and **de-duplicated across sources**.
 TypeScript monorepo (npm workspaces) targeting Cloudflare Workers + D1, built on the same
@@ -67,8 +67,11 @@ printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY --c
 curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TOKEN"
 ```
 
-- Site: https://scec-web.thejeremy-net.workers.dev (no custom domain yet; `CANONICAL_HOST`
-  var enables the www redirect once one is attached)
+- Site: https://outinsimcoe.ca (Worker `scec-web`; `scec-web.thejeremy-net.workers.dev`
+  still answers as a fallback). `outinsimcoe.ca` and `www.outinsimcoe.ca` are custom
+  domains on the worker; `CANONICAL_HOST` in `wrangler.jsonc` names the apex, which makes
+  the worker redirect `www` to it and pin every share card, permalink and feed URL to one
+  origin no matter which host answered.
 - Ingest: https://scec-ingest.thejeremy-net.workers.dev (token-guarded, not public)
 - `.env` is gitignored, as is `jeremy-atlassian-token.key`. Keep it that way.
 
@@ -115,6 +118,9 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
 - **A typed date range replaces the "upcoming only" default** rather than narrowing it —
   see `inDateScope`. Someone who asks for last week means last week, whatever the "Past
   events" box says. `from`/`to` also ride along to the iCal feed.
+- **The iCal UID domain is not the site's domain**, and was left alone when the site was
+  named. A UID is an identity, not an address: changing it makes every subscribed calendar
+  delete and re-add every event. See the comment in `packages/core/src/ical.ts`.
 - **The mark exists in three copies**: inline in `public/index.html`, as `MARK` in
   `apps/web/src/worker.ts` (both in CSS variables) and in `scripts/brand.ts` (hardcoded
   hex, because a screenshot cannot read CSS variables). Change one, change all three, and

@@ -8,6 +8,13 @@
   // Kept on as a fallback origin. Declaring routes turns it off by default, which would
   // leave the site with no reachable URL if a custom domain ever stopped resolving.
   "workers_dev": true,
+  // The real home. Both hosts are custom domains so Cloudflare issues certificates for
+  // them; the worker then redirects www to the apex, which CANONICAL_HOST names.
+  "routes": [
+    { "pattern": "outinsimcoe.ca", "custom_domain": true },
+    { "pattern": "www.outinsimcoe.ca", "custom_domain": true }
+  ],
+  "vars": { "CANONICAL_HOST": "outinsimcoe.ca" },
   // Static assets are normally served by the edge without invoking the worker. The shell
   // must go through it so the share metadata gets the serving origin substituted in;
   // everything else (css, js, images) still bypasses the worker entirely.

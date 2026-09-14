@@ -15,7 +15,17 @@ export interface Env {
   CANONICAL_HOST?: string
 }
 
-const SITE_NAME = 'Simcoe County Events'
+const SITE_NAME = 'Out in Simcoe'
+
+/**
+ * The origin that share cards, permalinks and feed URLs should carry.
+ *
+ * Whichever host answered is the right answer until a domain exists; once CANONICAL_HOST
+ * is set, one origin has to win, or the same event acquires two addresses — one on
+ * workers.dev and one on the domain — and shares, caches and search split between them.
+ */
+const canonicalOrigin = (url: URL, env: Env): string =>
+  env.CANONICAL_HOST ? `https://${env.CANONICAL_HOST}` : url.origin
 
 const json = (data: unknown, cacheSeconds: number): Response =>
   Response.json(data, {
@@ -120,7 +130,7 @@ export default {
         const events = await queryEvents(env, url)
         const names: Record<string, string> = {}
         for (const e of events) if (e.municipalitySlug && e.municipalityName) names[e.municipalitySlug] = e.municipalityName
-        return new Response(buildIcal(events, { calendarName: describeFilters(url, events), baseUrl: url.origin, municipalityNames: names }), {
+        return new Response(buildIcal(events, { calendarName: describeFilters(url, events), baseUrl: canonicalOrigin(url, env), municipalityNames: names }), {
           headers: {
             'Content-Type': 'text/calendar; charset=utf-8',
             'Cache-Control': 'public, max-age=300, s-maxage=1800',
@@ -134,7 +144,7 @@ export default {
         const code = decodeURIComponent(url.pathname.slice('/e/'.length))
         const row = await lookupEvent(env, 'short_code', code)
         if (!row) return new Response('Event not found', { status: 404 })
-        return new Response(renderEventPage(rowToEvent(row), url.origin, listUrlFrom(url)), {
+        return new Response(renderEventPage(rowToEvent(row), canonicalOrigin(url, env), listUrlFrom(url)), {
           headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' },
         })
       }
@@ -144,7 +154,7 @@ export default {
         const id = decodeURIComponent(url.pathname.slice('/event/'.length))
         const row = await lookupEvent(env, 'id', id)
         if (!row) return new Response('Event not found', { status: 404 })
-        return Response.redirect(`${url.origin}/e/${row.short_code}`, 301)
+        return Response.redirect(`${canonicalOrigin(url, env)}/e/${row.short_code}`, 301)
       }
 
       // Share metadata needs ABSOLUTE urls, but the shell is a static file with no idea
@@ -152,7 +162,7 @@ export default {
       // and on a custom domain later.
       const asset = await env.ASSETS.fetch(request)
       if (isShell(url.pathname) && asset.ok) {
-        const html = (await asset.text()).replaceAll('__ORIGIN__', url.origin)
+        const html = (await asset.text()).replaceAll('__ORIGIN__', canonicalOrigin(url, env))
         const headers = new Headers(asset.headers)
         headers.set('Content-Type', 'text/html; charset=utf-8')
         return new Response(html, { status: asset.status, headers })

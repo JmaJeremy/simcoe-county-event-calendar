@@ -12,7 +12,12 @@ import type { Event } from './types.ts'
  * UIDs use the cluster id, which is sticky across re-clustering.
  */
 
-const PRODID = '-//scec//Simcoe County community events//EN'
+const PRODID = '-//outinsimcoe//Out in Simcoe community events//EN'
+/*
+ * Not the site's domain, and deliberately left alone when the site was named: a UID is
+ * an identity, not an address. Changing it would make every calendar that has already
+ * subscribed treat every event as brand new, deleting and re-adding the lot.
+ */
 const UID_DOMAIN = 'events.simcoe'
 
 /** RFC 5545 §3.3.11: backslash, semicolon and comma are escaped; newlines become \n. */
@@ -77,7 +82,7 @@ export interface IcalOptions {
 
 export function buildIcal(events: Event[], options: IcalOptions = {}): string {
   const {
-    calendarName = 'Simcoe County community events',
+    calendarName = 'Out in Simcoe — community events',
     baseUrl,
     refreshIntervalHours = 6,
     municipalityNames = {},

@@ -56,7 +56,7 @@ const OG = `<!doctype html><html><head><meta charset="utf-8"><style>
   .card { display: flex; align-items: center; gap: 56px; padding: 0 96px; }
   .text h1 {
     font-family: 'Fraunces', Georgia, serif; font-variation-settings: 'SOFT' 100, 'WONK' 1, 'opsz' 144;
-    font-weight: 800; font-size: 82px; margin: 0 0 18px; letter-spacing: -0.02em; line-height: 1.02;
+    font-weight: 800; font-size: 96px; margin: 0 0 20px; letter-spacing: -0.02em; line-height: 1.02;
   }
   .text p { font-size: 33px; margin: 0; color: #5d5245; line-height: 1.3; max-width: 760px; }
   .accent { color: ${ACCENT_DEEP};
@@ -67,8 +67,8 @@ const OG = `<!doctype html><html><head><meta charset="utf-8"><style>
       #2f9e44 36% 50%, #dc8a00 50% 63%, #1971c2 63% 76%, #0f7b8a 76% 88%, #5f3dc4 88% 100%); }
 </style></head><body><div class="card">
   ${mark(260, ACCENT, PAPER, SUN)}
-  <div class="text"><h1>Simcoe County <span class="accent">Events</span></h1>
-  <p>Free things to do across the county, gathered from every town's calendar and local news — in one place.</p></div>
+  <div class="text"><h1>Out in <span class="accent">Simcoe</span></h1>
+  <p>Free things to do across Simcoe County, gathered from every town's calendar, the county and local news — in one place.</p></div>
 </div><div class="bunting"></div></body></html>`
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox'] })

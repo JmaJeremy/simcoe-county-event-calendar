@@ -1,5 +1,5 @@
 /**
- * Simcoe County Events front end.
+ * Out in Simcoe front end.
  *
  * The whole upcoming dataset is a few hundred KB, so it is fetched once and every filter
  * runs in the browser — instant, with no round trip per keystroke. Filter state lives in

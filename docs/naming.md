@@ -1,6 +1,11 @@
 # Names and domains
 
-The site ships under the placeholder **Simcoe County Events** on `scec-web.thejeremy-net.workers.dev`.
+**Decided 2026-09-13: the site is Out in Simcoe, at https://outinsimcoe.ca.** Jeremy
+registered the domain; it is a custom domain on the `scec-web` worker alongside
+`www.outinsimcoe.ca`, which redirects to the apex. The workers.dev host still answers as a
+fallback. What follows is the shortlist the choice came from, kept for the record.
+
+The site previously shipped under the placeholder **Simcoe County Events** on `scec-web.thejeremy-net.workers.dev`.
 Nothing in the code depends on the name except the wordmark in `apps/web/public/index.html`,
 `SITE_NAME` in `apps/web/src/worker.ts`, the manifest, and the card that `scripts/brand.ts`
 renders — a rename is those four files and one script run.
@@ -60,9 +65,16 @@ and lose some of ours. Keeping "County" fixes that at the cost of a longer domai
 **Prefer `.ca`.** It signals a local project, it is what the municipal sites use, and it
 matches Civi-Times. Buy the matching `.com` only to keep it from someone else.
 
-## When one is chosen
+## What attaching it took (SCEC-33, done)
 
-SCEC-33 covers attaching it: register, add a Cloudflare custom domain to the `scec-web`
-Worker, set the `CANONICAL_HOST` var so the `www` host redirects, then update the wordmark,
-`SITE_NAME`, the manifest and the OG card, and re-run `brand.ts`. Short links already use
-whichever origin served them, so old `workers.dev` links keep working.
+Two custom domains on the worker (apex and `www`), `CANONICAL_HOST` set to the apex in
+`wrangler.jsonc`, then the name itself: the wordmark, `<title>` and share metadata,
+`SITE_NAME` in the worker, the manifest, the iCal product id and default calendar name,
+and the OG card re-rendered by `brand.ts`.
+
+One thing deliberately did not change: the iCal UID domain. A UID is an identity, not an
+address, and rewriting it would make every subscribed calendar delete and re-add every
+event.
+
+Old `workers.dev` links keep working, and now answer with the new name and a canonical
+link pointing at the domain, so nothing that was shared before the rename is orphaned.
