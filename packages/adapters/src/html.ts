@@ -97,3 +97,22 @@ export const slugify = (text: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60)
+
+/**
+ * The element that opens at `from`, ending at its own closing tag rather than the first
+ * one that comes along.
+ *
+ * Needed wherever the same tag nests: a Drupal event node contains `<article
+ * class="media">` for its own photo, so a non-greedy match to `</article>` stops inside
+ * the picture and takes half the event with it.
+ */
+export function sliceElement(html: string, from: number, tag: string): string {
+  const tags = new RegExp(`<${tag}\\b|</${tag}\\s*>`, 'gi')
+  tags.lastIndex = from
+  let depth = 0
+  for (let m = tags.exec(html); m; m = tags.exec(html)) {
+    depth += m[0].startsWith('</') ? -1 : 1
+    if (depth === 0) return html.slice(from, m.index + m[0].length)
+  }
+  return html.slice(from)
+}

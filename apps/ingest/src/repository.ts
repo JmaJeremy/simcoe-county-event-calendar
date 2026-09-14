@@ -1,4 +1,4 @@
-import type { Event, Listing, Municipality, Source, StoredListing } from '@scec/core'
+import type { Cost, Event, Listing, Municipality, Source, StoredListing } from '@scec/core'
 
 /**
  * D1 access for the ingester. Kept separate from reconciliation and de-duplication so
@@ -321,4 +321,118 @@ export async function recordDedupRun(
     )
     .bind(run.startedAt, run.finishedAt, run.listings, run.pairs, run.ruleSame, run.ruleDistinct, run.llmCalls, run.llmSame, run.clusters, run.error ?? null)
     .run()
+}
+
+/* ---------- detail-page enrichment ---------- */
+
+export interface EnrichmentCandidate {
+  id: string
+  sourceSlug: string
+  url: string
+  title: string
+  description: string | null
+  cost: Cost
+  costText: string | null
+  imageUrl: string | null
+  contentHash: string
+}
+
+export interface EnrichedListing {
+  id: string
+  description: string | null
+  cost: Cost
+  costText: string | null
+  imageUrl: string | null
+}
+
+/** How many times a detail page may fail before the queue gives up on it. */
+const MAX_DETAIL_ATTEMPTS = 3
+
+/**
+ * The next listings whose event page is worth reading: never read, or read before the
+ * list row changed. Soonest first, because an event next week matters more than one in
+ * five months, and past events not at all.
+ *
+ * Council meetings are skipped. They are hidden by default, they are free, and they are a
+ * third of some calendars — spending the budget on them would starve everything else.
+ */
+export async function loadEnrichmentCandidates(
+  db: D1Like,
+  sourceSlugs: string[],
+  limit: number,
+): Promise<EnrichmentCandidate[]> {
+  if (sourceSlugs.length === 0) return []
+  const placeholders = sourceSlugs.map(() => '?').join(',')
+  const { results } = await db
+    .prepare(
+      `SELECT id, source_slug, url, title, description, cost, cost_text, image_url, content_hash
+         FROM listings
+        WHERE active = 1
+          AND local_date >= date('now')
+          AND category <> 'civic-meeting'
+          AND source_slug IN (${placeholders})
+          AND (detail_hash IS NULL OR detail_hash <> content_hash)
+          AND detail_attempts < ?
+        ORDER BY local_date ASC
+        LIMIT ?`,
+    )
+    .bind(...sourceSlugs, MAX_DETAIL_ATTEMPTS, limit)
+    .all<Record<string, unknown>>()
+
+  return results.map((row) => ({
+    id: String(row.id),
+    sourceSlug: String(row.source_slug),
+    url: String(row.url),
+    title: String(row.title),
+    description: (row.description as string | null) ?? null,
+    cost: (row.cost as Cost) ?? 'unknown',
+    costText: (row.cost_text as string | null) ?? null,
+    imageUrl: (row.image_url as string | null) ?? null,
+    contentHash: String(row.content_hash),
+  }))
+}
+
+/** What is still queued, so a run says how much of the backlog is left. */
+export async function countEnrichmentBacklog(db: D1Like, sourceSlugs: string[]): Promise<number> {
+  if (sourceSlugs.length === 0) return 0
+  const placeholders = sourceSlugs.map(() => '?').join(',')
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS n
+         FROM listings
+        WHERE active = 1 AND local_date >= date('now') AND category <> 'civic-meeting'
+          AND source_slug IN (${placeholders})
+          AND (detail_hash IS NULL OR detail_hash <> content_hash)
+          AND detail_attempts < ?`,
+    )
+    .bind(...sourceSlugs, MAX_DETAIL_ATTEMPTS)
+    .first<{ n: number }>()
+  return row?.n ?? 0
+}
+
+/**
+ * Write back what the detail page said. `detail_hash` is set from the row's own
+ * `content_hash` rather than passed in, so it always records the version that was read,
+ * and `content_hash` itself is never touched — reconciliation owns that.
+ */
+export function enrichListingStatements(db: D1Like, updates: EnrichedListing[], now: string): D1Statement[] {
+  return updates.map((u) =>
+    db
+      .prepare(
+        `UPDATE listings
+            SET description = ?, cost = ?, cost_text = ?, image_url = ?,
+                detail_hash = content_hash, detail_at = ?, detail_attempts = 0
+          WHERE id = ?`,
+      )
+      .bind(u.description, u.cost, u.costText, u.imageUrl, now, u.id),
+  )
+}
+
+/** A page that could not be read: counted, so it leaves the queue after a few tries. */
+export function recordDetailFailureStatements(db: D1Like, ids: string[], now: string): D1Statement[] {
+  return ids.map((id) =>
+    db
+      .prepare(`UPDATE listings SET detail_attempts = detail_attempts + 1, detail_at = ? WHERE id = ?`)
+      .bind(now, id),
+  )
 }

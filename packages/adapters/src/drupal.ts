@@ -1,5 +1,5 @@
-import { toWallClock, type RawEvent, type Source, type SyncWindow } from '@scec/core'
-import { absolute, decodeEntities, textOf } from './html.ts'
+import { toWallClock, type EventDetail, type RawEvent, type Source, type SyncWindow } from '@scec/core'
+import { absolute, decodeEntities, pick, sliceElement, stripTags, textOf } from './html.ts'
 import { request } from './http.ts'
 
 /**
@@ -148,4 +148,69 @@ export async function fetchDrupal(source: Source, window: SyncWindow): Promise<R
   return config.mode === 'fullcalendar'
     ? mapFullCalendar(config.origin, parseFullCalendar(html), window, source.timezone)
     : mapRows(config.origin, parseRows(html), window)
+}
+
+/* ---------- the event's own page ---------- */
+
+/**
+ * Drupal event nodes keep their price, their poster and the untruncated text on the node
+ * page; the list view carries none of it.
+ *
+ * Everything is read from inside the <article class="node …"> element. These pages are
+ * mostly site: a header, a mega-menu, a footer of quick links. Barrie's own page is 150KB
+ * of which the event is 2.6KB, and a "$" anywhere in the other 147KB would put a price on
+ * a free concert.
+ *
+ * Field markup is Drupal's standard shape — `field--name-field-cost` wrapping a
+ * `field__label` and a `field__item` — but which fields exist differs by site: Barrie
+ * publishes Cost, Organization and Address as fields, Clearview and Tiny publish none of
+ * them. Anything missing simply stays undefined and the body text is classified instead.
+ */
+/*
+ * The event is the article in Drupal's "full" view mode. Not simply the first node on the
+ * page: Innisfil opens with a contact block and Tiny with a site-wide alert, both of them
+ * nodes too. And the slice has to be balanced, because a node containing its own photo
+ * contains a nested <article class="media">, which a lazy match to </article> would stop
+ * inside, taking half the event with it.
+ */
+const NODE_OPEN = /<article[^>]*class="[^"]*node--view-mode-full[^"]*"/i
+
+/** One field's own text, stopping at the next sibling field so it cannot run on. */
+function fieldText(node: string, name: string): string | undefined {
+  const start = node.search(new RegExp(`<div[^>]*field--name-${name}[\\s"]`, 'i'))
+  if (start < 0) return undefined
+  const rest = node.slice(start)
+  const next = rest.slice(1).search(/<div[^>]*class="[^"]*\bfield\b[^"]*field--name-/i)
+  const block = next > 0 ? rest.slice(0, next + 1) : rest
+  // The label ("Cost", "Organization") is chrome; only the item text is the answer.
+  const items = [...block.matchAll(/<div[^>]*class="[^"]*field__item[^"]*"[^>]*>([\s\S]*?)<\/div>/gi)]
+  const text = items.length
+    ? items.map((m) => stripTags(m[1]!)).join(' ')
+    : stripTags(block.replace(/<div[^>]*class="[^"]*field__label[^"]*"[^>]*>[\s\S]*?<\/div>/i, ' '))
+  const clean = text.replace(/\s+/g, ' ').trim()
+  return clean || undefined
+}
+
+export function parseDrupalDetail(html: string, origin: string): EventDetail {
+  const open = NODE_OPEN.exec(html)
+  if (!open) return {}
+  const node = sliceElement(html, open.index, 'article')
+
+  const description = [fieldText(node, 'body'), fieldText(node, 'field-comments')]
+    .filter(Boolean)
+    .join('\n\n')
+
+  const src = pick(node, /<img[^>]*\ssrc="([^"]+)"/i)
+  const imageUrl = src && !/placeholder|icon|logo|spacer/i.test(src) ? new URL(src, origin).toString() : undefined
+
+  return {
+    description: description || undefined,
+    costText: fieldText(node, 'field-cost'),
+    imageUrl,
+  }
+}
+
+export async function fetchDrupalDetail(source: Source, url: string): Promise<EventDetail> {
+  if (source.config.platform !== 'drupal-events') throw new Error(`Source ${source.slug} is not a drupal source`)
+  return parseDrupalDetail(await request(url), source.config.origin)
 }

@@ -37,41 +37,119 @@ const clean = (value: string | undefined | null): string | null => {
 
 /* ---------- cost ---------- */
 
-const FREE = /\b(free|no charge|no cost|pwyc|pay what you can|by donation|admission is free|free admission|free of charge|complimentary)\b/i
-/** "$5", "$ 12.50", "5 dollars", "tickets $", "admission: $", "registration fee". */
-const PAID =
-  /(\$\s?\d|\d+(\.\d{2})?\s?(dollars|cad)\b|\b(tickets? (required|available|on sale)|admission( fee)?:?\s?\$|registration fee|cover charge|per person|per child|per family|per ticket|\d+\s?\/\s?(person|child|adult|family))\b)/i
+/** Words that mean money is being asked for attendance, as opposed to merely mentioned. */
+const PRICE_WORD =
+  /(admission|tickets?|cost|fees?|prices?|entry|entrance|adults?|seniors?|students?|child(ren)?|youth|members?|non-?members?|drop-?in|per person|per family|at the door|in advance|registration|rates?)/i
+/** A sum of money: "$5", "$ 12.50", "$1,200", "10 dollars". */
+const MONEY = /\$\s?\d[\d,]*(\.\d{1,2})?|\b\d+(\.\d{2})?\s?(dollars|cad)\b/i
+
+/** Said plainly, about getting in: strong enough to believe on its own. */
+const FREE_ADMISSION =
+  /\b(free admission|admission is free|free of charge|free to attend|free event|free program|free drop-?in|no charge|no cost|free entry|entry is free|pwyc|pay what you can|by donation|complimentary)\b/i
+/** Just the word, anywhere: believable, but not on its own for a long page of text. */
+const FREE_WORD = /\bfree\b/i
+/** Money is being asked for, without a number attached. */
+const PAID_PHRASE =
+  /\b(tickets? (are )?(required|available|on sale)|registration fee|admission fee|cover charge|paid admission|purchase tickets?|buy tickets?)\b/i
 /** "free" inside a phrase that is not about cost. */
-const FREE_FALSE_FRIENDS = /\b(free parking|scent[- ]free|nut[- ]free|smoke[- ]free|barrier[- ]free|gluten[- ]free|hands[- ]free|free play|freestyle|free-?style|free the|duty[- ]free|free[- ]range|free[- ]standing|free[- ]roam)\b/gi
+const FREE_FALSE_FRIENDS = /\b(free parking|scent[- ]free|nut[- ]free|smoke[- ]free|barrier[- ]free|gluten[- ]free|hands[- ]free|free play|freestyle|free-?style|free the|duty[- ]free|free[- ]range|free[- ]standing|free[- ]roam|free wi-?fi|free refreshments|free coffee|free popcorn)\b/gi
 const stripFalseFriends = (text: string): string => text.replace(FREE_FALSE_FRIENDS, ' ')
 
+/** How far from a sum of money a price word still explains it. */
+const NEAR_BEFORE = 34
+const NEAR_AFTER = 26
+
 /**
- * Whether attending costs money. The source's structured flag wins; otherwise the cost
- * text, then the title and description, are read for the words people actually use.
+ * A sum of money with a price word beside it — "Adults: $50.00", "$7 per child",
+ * "Tickets $25" — and the snippet that says so.
  *
- * "Free" phrases are checked before "$" so "Free — donations welcome ($5 suggested)" stays
- * free, and an event that is both free to enter and sells food is still free.
+ * The proximity test is the whole point. A description that mentions "$20,000 raised for
+ * charity" is not a $20,000 event, and once full descriptions arrive from detail pages,
+ * incidental amounts outnumber real prices. A bare sum is left for the judge to read.
  */
-export function classifyCost(parts: {
+function priceInContext(text: string): string | undefined {
+  for (const m of text.matchAll(new RegExp(MONEY.source, 'gi'))) {
+    const before = text.slice(Math.max(0, m.index - NEAR_BEFORE), m.index)
+    const after = text.slice(m.index + m[0].length, m.index + m[0].length + NEAR_AFTER)
+    if (PRICE_WORD.test(before) || PRICE_WORD.test(after)) {
+      // The line the price is written on reads better than a window around it:
+      // "Adults: $50.00 | Seniors: $45.00", not "…theatricalrights.com Adults: $50.00".
+      const lineStart = text.lastIndexOf('\n', m.index) + 1
+      const lineBreak = text.indexOf('\n', m.index)
+      const line = text.slice(lineStart, lineBreak < 0 ? text.length : lineBreak).trim()
+      if (line && line.length <= 120) return line
+      return text.slice(Math.max(0, m.index - NEAR_BEFORE), m.index + m[0].length + NEAR_AFTER).trim()
+    }
+  }
+  return undefined
+}
+
+export type CostConfidence = 'high' | 'low'
+
+export interface CostVerdict {
+  cost: Cost
+  /** 'low' means "this is a guess worth a second opinion", not "probably wrong". */
+  confidence: CostConfidence
+  /** The words that decided it, for display and for anything asked to check the work. */
+  evidence?: string
+}
+
+const snippet = (text: string): string => text.replace(/\s+/g, ' ').trim().slice(0, 90)
+
+/**
+ * Whether attending costs money, and how sure that is.
+ *
+ * The source's own structured answer wins outright. Otherwise the text is read for the
+ * phrases people actually use, and "free" is checked before any sum, so "Free — donations
+ * welcome ($5 suggested)" stays free and an event that is free to enter but sells food
+ * still is too.
+ */
+export function assessCost(parts: {
   isFree?: boolean
   costText?: string | null
   title?: string | null
   description?: string | null
-}): Cost {
-  if (parts.isFree === true) return 'free'
+}): CostVerdict {
+  if (parts.isFree === true) return { cost: 'free', confidence: 'high' }
 
   const costText = stripFalseFriends(parts.costText?.trim() ?? '')
   if (costText) {
-    if (/^\s*(\$?\s?0(\.00)?|none|n\/a|nil)\s*$/i.test(costText)) return 'free'
-    if (FREE.test(costText)) return 'free'
-    if (PAID.test(costText)) return 'paid'
+    // A field the source labelled "Cost" is an answer, not a hint, however short.
+    if (/^\s*(\$?\s?0(\.00)?|none|n\/a|nil)\s*$/i.test(costText)) return { cost: 'free', confidence: 'high', evidence: snippet(costText) }
+    if (FREE_ADMISSION.test(costText) || FREE_WORD.test(costText)) return { cost: 'free', confidence: 'high', evidence: snippet(costText) }
+    if (MONEY.test(costText) || PAID_PHRASE.test(costText) || PRICE_WORD.test(costText)) {
+      return { cost: 'paid', confidence: 'high', evidence: snippet(costText) }
+    }
   }
-  if (parts.isFree === false) return 'paid'
+  if (parts.isFree === false) return { cost: 'paid', confidence: 'high' }
 
+  const title = stripFalseFriends(parts.title ?? '')
   const text = stripFalseFriends(`${parts.title ?? ''}\n${parts.description ?? ''}`)
-  if (FREE.test(text)) return 'free'
-  if (PAID.test(text)) return 'paid'
-  return 'unknown'
+
+  const freeMatch = FREE_ADMISSION.exec(text)
+  if (freeMatch) return { cost: 'free', confidence: 'high', evidence: snippet(freeMatch[0]) }
+
+  const priced = priceInContext(text)
+  if (priced) return { cost: 'paid', confidence: 'high', evidence: snippet(priced) }
+
+  const paidPhrase = PAID_PHRASE.exec(text)
+  if (paidPhrase) return { cost: 'paid', confidence: 'high', evidence: snippet(paidPhrase[0]) }
+
+  // A title is short enough that one word in it is about the event itself.
+  if (FREE_WORD.test(title)) return { cost: 'free', confidence: 'high', evidence: snippet(title) }
+  if (FREE_WORD.test(text)) return { cost: 'free', confidence: 'low', evidence: snippet(text.slice(Math.max(0, text.search(FREE_WORD) - 40), text.search(FREE_WORD) + 50)) }
+
+  const bare = MONEY.exec(text)
+  if (bare) {
+    // Money with nothing to say it is the price of entry: honest answer is "not stated".
+    return { cost: 'unknown', confidence: 'low', evidence: snippet(text.slice(Math.max(0, bare.index - 40), bare.index + 50)) }
+  }
+  return { cost: 'unknown', confidence: 'low' }
+}
+
+/** The verdict alone, which is what normalization stores. */
+export function classifyCost(parts: Parameters<typeof assessCost>[0]): Cost {
+  return assessCost(parts).cost
 }
 
 /* ---------- category ---------- */

@@ -1,9 +1,9 @@
-import type { Adapter, Platform } from '@scec/core'
+import type { Adapter, EventDetail, Platform, Source } from '@scec/core'
 import { fetchCitySpark } from './cityspark.ts'
-import { fetchDrupal } from './drupal.ts'
+import { fetchDrupal, fetchDrupalDetail } from './drupal.ts'
 import { fetchEventon } from './eventon.ts'
 import { fetchSpaces } from './spaces.ts'
-import { fetchGovstack } from './govstack.ts'
+import { fetchGovstack, fetchGovstackDetail } from './govstack.ts'
 import { fetchTribe } from './tribe.ts'
 
 /**
@@ -18,6 +18,21 @@ export const ADAPTERS: Record<Platform, Adapter> = {
   spaces: fetchSpaces,
   cityspark: fetchCitySpark,
 }
+
+/**
+ * Platform -> a reader for one event's own page, where there is anything worth reading.
+ *
+ * Only the two platforms that publish a truncated list row: govStack and Drupal keep the
+ * price, the poster and the rest of the text on the event page. The others already hand
+ * over everything they have in the list response, and fetching a page each would be
+ * thousands of requests for nothing.
+ */
+export const DETAIL_FETCHERS: Partial<Record<Platform, (source: Source, url: string) => Promise<EventDetail>>> = {
+  govstack: fetchGovstackDetail,
+  'drupal-events': fetchDrupalDetail,
+}
+
+export const hasDetailFetcher = (platform: Platform): boolean => platform in DETAIL_FETCHERS
 
 export const adapterFor = (platform: Platform): Adapter => {
   const adapter = ADAPTERS[platform]

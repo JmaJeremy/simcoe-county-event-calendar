@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveMunicipality } from '../src/municipalities.ts'
-import { classifyCategory, classifyCost, normalizeAll, normalizeEvent } from '../src/normalize.ts'
+import { assessCost, classifyCategory, classifyCost, normalizeAll, normalizeEvent } from '../src/normalize.ts'
 import { sourceBySlug } from '../src/sources.ts'
 import type { RawEvent } from '../src/types.ts'
 
@@ -46,6 +46,56 @@ describe('classifyCost', () => {
   })
   it('takes a structured paid flag when the text says nothing', () => {
     expect(classifyCost({ isFree: false, title: 'Concert' })).toBe('paid')
+  })
+})
+
+describe('assessCost: what is strong evidence and what is a guess', () => {
+  it('will not read a fundraising total as an admission price', () => {
+    // The event that exposed this: a giving circle whose page says the chapter expects to
+    // hand a charity "$20,000". Nothing there is the price of getting in.
+    const verdict = assessCost({
+      title: '100 Women Who Care kickoff',
+      description: 'Members vote to select one charity, which receives an expected collective donation of more than $20,000.',
+    })
+    expect(verdict.cost).toBe('unknown')
+    expect(verdict.confidence).toBe('low')
+  })
+
+  it.each([
+    ['Adults: $50.00 | Seniors: $45.00', 'Million Dollar Quartet'],
+    ['Tickets $25 at the door', 'Concert'],
+    ['$7 per child', 'Skate'],
+    ['Admission: $5', 'Dance'],
+  ])('reads %s beside a price word as paid, and keeps the words', (description, title) => {
+    const verdict = assessCost({ title, description })
+    expect(verdict.cost).toBe('paid')
+    expect(verdict.confidence).toBe('high')
+    expect(verdict.evidence).toBeTruthy()
+  })
+
+  it('believes a plain statement about admission', () => {
+    const verdict = assessCost({ description: 'This is a free program, just bring your water and indoor shoes!' })
+    expect(verdict).toMatchObject({ cost: 'free', confidence: 'high' })
+  })
+
+  it('treats a stray "free" in a long description as a guess, not an answer', () => {
+    const verdict = assessCost({
+      title: 'Fall Concert',
+      description: 'Doors at 7. There is free parking behind the hall, and the bar is open. Free snacks for members.',
+    })
+    expect(verdict.confidence).toBe('low')
+  })
+
+  it('trusts a field the source labelled Cost, however short', () => {
+    expect(assessCost({ costText: 'Free' })).toMatchObject({ cost: 'free', confidence: 'high' })
+    expect(assessCost({ costText: '$20 in advance' })).toMatchObject({ cost: 'paid', confidence: 'high' })
+  })
+
+  it('says nothing rather than guessing when the text says nothing', () => {
+    expect(assessCost({ title: 'Council Meeting', description: 'Agenda to follow.' })).toEqual({
+      cost: 'unknown',
+      confidence: 'low',
+    })
   })
 })
 

@@ -205,6 +205,22 @@ export interface Event {
   active: boolean
 }
 
+/**
+ * What a source's own event page adds to the list row it came from.
+ *
+ * Several platforms publish a truncated description in their list view and keep the
+ * price, the poster and the rest of the text on the event's own page. Everything here is
+ * optional: a detail page that says nothing new leaves the listing as it was.
+ */
+export interface EventDetail {
+  /** The full description, untruncated. */
+  description?: string
+  /** The source's own words about price, e.g. "Adults: $50.00 | Seniors: $45.00". */
+  costText?: string
+  /** An absolute URL for the event's poster or photo. */
+  imageUrl?: string
+}
+
 export interface SyncWindow {
   /** Inclusive 'YYYY-MM-DD'. */
   from: string

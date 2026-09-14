@@ -18,6 +18,20 @@ export interface Env {
 const SITE_NAME = 'Out in Simcoe'
 
 /**
+ * Whether a source's own image can be used as the share card.
+ *
+ * govStack calendars sit behind a WAF that answers 403 to anything that does not look
+ * like a browser, share crawlers included: the poster renders perfectly for a visitor and
+ * not at all for Facebook or Slack, which would turn every share of those events into a
+ * broken image. They keep the poster on the page and the site's own card in the preview.
+ */
+const shareableImage = (event: PublicEvent): string | null => {
+  if (!event.imageUrl) return null
+  const host = URL.parse?.(event.imageUrl)?.hostname ?? ''
+  return /^(calendar|events)\./i.test(host) ? null : event.imageUrl
+}
+
+/**
  * The origin that share cards, permalinks and feed URLs should carry.
  *
  * Whichever host answered is the right answer until a domain exists; once CANONICAL_HOST
@@ -242,11 +256,11 @@ function renderEventPage(event: PublicEvent, origin: string, backHref = '/'): st
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
-<meta property="og:image" content="${escapeHtml(event.imageUrl ?? `${origin}/og.png`)}">
-<meta name="twitter:card" content="${event.imageUrl ? 'summary' : 'summary_large_image'}">
+<meta property="og:image" content="${escapeHtml(shareableImage(event) ?? `${origin}/og.png`)}">
+<meta name="twitter:card" content="${shareableImage(event) ? 'summary' : 'summary_large_image'}">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
-<meta name="twitter:image" content="${escapeHtml(event.imageUrl ?? `${origin}/og.png`)}">
+<meta name="twitter:image" content="${escapeHtml(shareableImage(event) ?? `${origin}/og.png`)}">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">

@@ -1,4 +1,4 @@
-import type { RawEvent, Source, SyncWindow } from '@scec/core'
+import type { EventDetail, RawEvent, Source, SyncWindow } from '@scec/core'
 import { isoDate, monthNumber, parseClock, pick, slugify, stripTags, textOf, truncate } from './html.ts'
 import { request } from './http.ts'
 
@@ -165,4 +165,54 @@ export async function fetchGovstackDetailed(source: Source, window: SyncWindow):
     throw new Error(`${host} reported ${total} results but the list markup yielded none — the template may have changed`)
   }
   return { events: mapItems(host, items, window, excludeCategories), requests }
+}
+
+/* ---------- the event's own page ---------- */
+
+/**
+ * govStack detail pages carry what the list view leaves out: the untruncated description,
+ * where the price usually lives, and the organiser's poster.
+ *
+ * The page ships the description twice — `#text-less` is the same truncation the list
+ * shows, `#tx_more` the whole thing behind a "See more" toggle — so the second is what we
+ * want. Everything is read from inside the event's own container: these pages carry site
+ * navigation, a footer and a facility price list, and a `$` from any of those would put a
+ * price on a free event.
+ */
+const DETAIL_CONTAINER = /<div class="icrt-calendarContentDetail">([\s\S]*?)<div class="icrt-calendarContentSide/i
+
+/**
+ * The description ends where the "See more" toggle begins. Everything after that button —
+ * contact details, the website link, the list of upcoming dates, and on recreation
+ * calendars the facility's whole drop-in price list — belongs to the page, not the event.
+ * Reading past it would put "$5.00" on a free seniors' walking group.
+ */
+function descriptionFrom(container: string): string {
+  const start = container.search(/<div[^>]*id="tx_more"[^>]*>/i)
+  const fallback = container.search(/<div[^>]*id="text-less"[^>]*>/i)
+  const from = start >= 0 ? start : fallback
+  if (from < 0) return ''
+
+  const rest = container.slice(from)
+  const end = rest.search(/<button[^>]*onclick="bToggle|<span[^>]*id="tx_dots"/i)
+  return stripTags(end > 0 ? rest.slice(0, end) : rest).trim()
+}
+
+export function parseGovstackDetail(html: string, host: string): EventDetail {
+  const container = DETAIL_CONTAINER.exec(html)?.[1] ?? ''
+  if (!container) return {}
+
+  const description = descriptionFrom(container)
+
+  // The src is a path under the detail URL, and the page's own og:image is malformed
+  // ("https:///default/..."), so resolve it against the host ourselves.
+  const src = pick(container, /<img[^>]*id="event_image"[^>]*\ssrc="([^"]+)"/i)
+  const imageUrl = src ? new URL(src, `https://${host}`).toString() : undefined
+
+  return { description: description || undefined, imageUrl }
+}
+
+export async function fetchGovstackDetail(source: Source, url: string): Promise<EventDetail> {
+  if (source.config.platform !== 'govstack') throw new Error(`Source ${source.slug} is not a govstack source`)
+  return parseGovstackDetail(await request(url), source.config.host)
 }

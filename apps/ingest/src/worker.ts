@@ -1,5 +1,6 @@
 import { MUNICIPALITIES, enabledSources, type Source } from '@scec/core'
 import { noJudge, runDedup, type DedupStats, type Judge } from './dedup.ts'
+import { enrich, type EnrichStats } from './enrich.ts'
 import { claudeJudge } from './judge.ts'
 import { defaultWindow, syncSource } from './pipeline.ts'
 import {
@@ -72,6 +73,8 @@ async function ingestOne(env: Env, source: Source): Promise<SourceOutcome> {
 
 export interface IngestReport {
   sources: SourceOutcome[]
+  detail?: EnrichStats
+  detailError?: string
   dedup?: DedupStats
   dedupError?: string
 }
@@ -80,7 +83,10 @@ export function judgeFor(env: Env): Judge {
   return env.ANTHROPIC_API_KEY ? claudeJudge(env.ANTHROPIC_API_KEY) : noJudge
 }
 
-export async function ingestAll(env: Env, options: { sources?: Source[]; dedup?: boolean } = {}): Promise<IngestReport> {
+export async function ingestAll(
+  env: Env,
+  options: { sources?: Source[]; dedup?: boolean; detail?: boolean } = {},
+): Promise<IngestReport> {
   await upsertRegistry(env.DB, MUNICIPALITIES, enabledSources())
   const outcomes: SourceOutcome[] = []
   // Sequential on purpose: these are small municipal servers and nothing here is urgent.
@@ -102,6 +108,18 @@ export async function ingestAll(env: Env, options: { sources?: Source[]; dedup?:
     }
   }
   const report: IngestReport = { sources: outcomes }
+
+  // Before dedup, not after: dedup rewrites every event from its representative listing,
+  // so anything learned here reaches the site in the same run. After it, the new price
+  // would sit in `listings` for two hours with the event still saying "cost not listed".
+  if (options.detail ?? true) {
+    try {
+      report.detail = await enrich(env.DB)
+    } catch (err) {
+      report.detailError = err instanceof Error ? err.message : String(err)
+    }
+  }
+
   if (options.dedup ?? true) {
     try {
       report.dedup = await runDedup(env.DB, defaultWindow(), judgeFor(env))
@@ -116,8 +134,13 @@ export function summarize(report: IngestReport): string {
   const failed = report.sources.filter((o) => !o.ok)
   const listings = report.sources.reduce((n, o) => n + o.listings, 0)
   const d = report.dedup
+  const e = report.detail
   return (
     `ingest complete: ${report.sources.length - failed.length}/${report.sources.length} sources, ${listings} listings` +
+    (e
+      ? `; detail: ${e.fetched} pages (${e.costResolved} priced, ${e.images} posters, ${e.fuller} fuller, ${e.failed} failed, ${e.remaining} queued)`
+      : '') +
+    (report.detailError ? `; detail FAILED: ${report.detailError}` : '') +
     (d
       ? `; dedup: ${d.listings} listings into ${d.clusters} events (${d.pairs} pairs, ${d.ruleSame} rule merges, ${d.llmSame}/${d.llmCalls} llm merges, ${d.cached} cached, ${d.unresolved} unresolved)`
       : '') +
@@ -146,7 +169,11 @@ export default {
     }
     const only = url.searchParams.get('source')
     const sources = only ? enabledSources().filter((s) => s.slug === only) : undefined
-    const report = await ingestAll(env, { sources, dedup: url.searchParams.get('dedup') !== '0' })
+    const report = await ingestAll(env, {
+      sources,
+      dedup: url.searchParams.get('dedup') !== '0',
+      detail: url.searchParams.get('detail') !== '0',
+    })
     return Response.json({ summary: summarize(report), ...report })
   },
 }
