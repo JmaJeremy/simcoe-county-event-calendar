@@ -80,7 +80,7 @@ function readUrl() {
   state.showPast = p.get('past') === '1'
   state.view = p.get('view') === 'calendar' ? 'calendar' : 'list'
   state.month = /^\d{4}-\d{2}$/.test(p.get('month') || '') ? p.get('month') : thisMonth()
-  const date = (key) => (/^\d{4}-\d{2}-\d{2}$/.test(p.get(key) || '') ? p.get(key) : '')
+  const date = (key) => (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(p.get(key) || '') ? p.get(key) : '')
   state.from = date('from')
   state.to = date('to')
 }
@@ -784,12 +784,35 @@ function buildDateMenu() {
 
   const from = menu.querySelector('#date-from')
   const to = menu.querySelector('#date-to')
-  from.onchange = () => setRange(from.value, to.value)
+
+  /** Hand the reader straight to the next field, with its calendar already open. */
+  const openPicker = (input) => {
+    input.focus()
+    try {
+      input.showPicker?.()
+    } catch {
+      // Needs a user gesture, and some browsers do not have it at all. Focus is enough.
+    }
+  }
+
+  from.onchange = () => {
+    setRange(from.value, to.value)
+    // Picking one end of a range is half an answer: stay open and ask for the other.
+    if (from.value && !to.value) openPicker(to)
+  }
   to.onchange = () => setRange(from.value, to.value)
+
+  // A preset or a clear is a whole answer, so it gets out of the way of the results.
   menu.querySelectorAll('[data-range]').forEach((b) => {
-    b.onclick = () => setRange(...presetRange(b.dataset.range))
+    b.onclick = () => {
+      setRange(...presetRange(b.dataset.range))
+      closeAllMenus()
+    }
   })
-  menu.querySelector('[data-clear]').onclick = () => setRange('', '')
+  menu.querySelector('[data-clear]').onclick = () => {
+    setRange('', '')
+    closeAllMenus()
+  }
 }
 
 function rebuildMenus() {
@@ -800,7 +823,7 @@ function rebuildMenus() {
     'cat',
     optionsFor((e) => e.category).map((o) => ({ ...o, label: categoryLabel(o.value) })),
   )
-  buildDateMenu()
+  if (!$('f-dates').firstChild) buildDateMenu()
 }
 
 function refresh() {
@@ -912,6 +935,53 @@ $('show-past').onchange = (e) => {
   refreshAll()
 }
 
+/* ---------- coming back from an event ---------- */
+
+/*
+ * Opening an event and pressing "All events" should land where the reader left off, not
+ * at the top of a list they have already scrolled past. The filters come back through the
+ * link itself; the position and how many pages were loaded are remembered here.
+ *
+ * Only a click on an event link records anything, so a shared or bookmarked link to the
+ * same filtered view still opens at the top. The note is used once and thrown away, and
+ * goes stale on its own in case the click opened a new tab and nobody ever came back.
+ */
+const RETURN_KEY = 'scec:return'
+const RETURN_MAX_AGE_MS = 30 * 60 * 1000
+
+document.addEventListener('click', (ev) => {
+  const link = ev.target instanceof Element ? ev.target.closest('a[href^="/e/"]') : null
+  if (!link) return
+  try {
+    sessionStorage.setItem(
+      RETURN_KEY,
+      JSON.stringify({ y: window.scrollY, limit: state.limit, query: location.search, at: Date.now() }),
+    )
+  } catch {
+    // Storage can be blocked; the reader just loses the position, not the page.
+  }
+})
+
+/** The note left by the click that took the reader to an event, if it is still good. */
+function takeReturnNote() {
+  let raw = null
+  try {
+    raw = sessionStorage.getItem(RETURN_KEY)
+    sessionStorage.removeItem(RETURN_KEY)
+  } catch {
+    return null
+  }
+  if (!raw) return null
+  try {
+    const note = JSON.parse(raw)
+    const fresh = Date.now() - (note.at ?? 0) < RETURN_MAX_AGE_MS
+    // The same filters, or it is a note about some other view entirely.
+    return fresh && note.query === location.search && typeof note.y === 'number' ? note : null
+  } catch {
+    return null
+  }
+}
+
 /* ---------- boot ---------- */
 
 async function getJson(path, { retries = 1 } = {}) {
@@ -969,6 +1039,16 @@ async function boot() {
       .join(' · ')}`
   }
   refreshAll()
+
+  const note = takeReturnNote()
+  if (note) {
+    // After refreshAll, not before: refresh() resets the page depth on every call, so an
+    // earlier assignment would be thrown away. Put the loaded pages back, then the
+    // position — the events that were on screen have to exist before they can be scrolled to.
+    state.limit = Math.max(PAGE_SIZE, note.limit || PAGE_SIZE)
+    if (state.view === 'list') renderList()
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, note.y)))
+  }
 }
 
 boot().catch(showError)

@@ -347,6 +347,28 @@ describeIfChrome('filter menus (real browser)', () => {
       expect(url.searchParams.get('to')).toBe(to)
     })
 
+    it('stays open after the first date, and hands over to the second field', async () => {
+      // Picking "from" used to rebuild the field, which tore the menu out from under the
+      // reader before they could name the other end of the range.
+      const dates = [...new Set(VISIBLE.map((e) => e.localDate))].sort()
+      await openDates()
+      await page.$eval('#date-from', (el, v) => {
+        ;(el as HTMLInputElement).value = v as string
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+      }, dates[1]!)
+      expect(await isVisible('#f-dates .menu')).toBe(true)
+      expect(await page.evaluate(() => document.activeElement?.id)).toBe('date-to')
+      await closeMenus()
+      await page.evaluate(() => (window as unknown as { __clearAll(): void }).__clearAll())
+    })
+
+    it('closes once a preset answers the whole question', async () => {
+      await openDates()
+      await page.click('#f-dates [data-range="7"]')
+      expect(await isVisible('#f-dates .menu')).toBe(false)
+      await page.evaluate(() => (window as unknown as { __clearAll(): void }).__clearAll())
+    })
+
     it('shows the range as a filter pill that clears it again', async () => {
       await openDates()
       await page.click('#f-dates [data-range="7"]')
@@ -384,6 +406,50 @@ describeIfChrome('filter menus (real browser)', () => {
       expect(ics).toContain('from=')
       expect(ics).toContain('to=')
       await page.click('#close-sheet')
+    })
+  })
+
+  describe('returning from an event', () => {
+    // The stub has no /e/ route, so leaving lands on its 404. That is enough: what is
+    // being tested is what the list remembers on the way out and restores on the way in.
+    const scrollY = () => page.evaluate(() => window.scrollY)
+
+    it('comes back to the same place, with the same pages loaded', async () => {
+      await page.goto(server.url, { waitUntil: 'networkidle0' })
+      await page.click('#load-more')
+      await page.evaluate(() => window.scrollTo(0, 900))
+      const left = await scrollY()
+      expect(left).toBeGreaterThan(0)
+
+      // Not page.click: it scrolls the element into view first, which would move the
+      // page before the click and make the test prove the opposite of what it claims.
+      // A reader clicks something already on screen, so click one of those.
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+        page.evaluate(() => {
+          const onScreen = [...document.querySelectorAll('#list .event h3 a')].find((a) => {
+            const box = a.getBoundingClientRect()
+            return box.top > 0 && box.bottom < window.innerHeight
+          })
+          ;(onScreen as HTMLAnchorElement).click()
+        }),
+      ])
+      expect(new URL(page.url()).pathname).toMatch(/^\/e\//)
+
+      // What "All events" does: back to the list at the same query.
+      await page.goto(server.url, { waitUntil: 'networkidle0' })
+      await new Promise((r) => setTimeout(r, 150))
+      expect(await scrollY()).toBeGreaterThan(left - 40)
+      // Every page that was open is open again: the cap is above what the stub has.
+      expect(await page.$$eval('#list .event', (els) => els.length)).toBe(VISIBLE.length)
+    })
+
+    it('opens at the top for anyone arriving fresh at the same view', async () => {
+      // The note is used once, so a shared link to this view is not affected by it.
+      await page.goto(server.url, { waitUntil: 'networkidle0' })
+      await new Promise((r) => setTimeout(r, 150))
+      expect(await scrollY()).toBe(0)
+      expect(await page.$$eval('#list .event', (els) => els.length)).toBe(30)
     })
   })
 

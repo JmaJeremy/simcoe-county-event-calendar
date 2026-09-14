@@ -45,10 +45,16 @@ describe('the way back from an event page', () => {
     expect(back('')).toBe('/')
   })
 
-  it('restores the filters, the view and the month', () => {
-    expect(back('?m=tay,barrie&cat=music&cost=free&civic=1&past=1&view=calendar&month=2026-10')).toBe(
-      '/?m=tay%2Cbarrie&cat=music&cost=free&civic=1&past=1&view=calendar&month=2026-10',
+  it('restores the filters, the dates, the view and the month', () => {
+    expect(
+      back('?m=tay,barrie&cat=music&cost=free&civic=1&past=1&from=2026-09-20&to=2026-09-21&view=calendar&month=2026-10'),
+    ).toBe(
+      '/?m=tay%2Cbarrie&cat=music&cost=free&civic=1&past=1&from=2026-09-20&to=2026-09-21&view=calendar&month=2026-10',
     )
+  })
+
+  it('drops a date that is not a date', () => {
+    expect(back('?from=%3Cscript%3E&to=2026-13-99&m=tay')).toBe('/?m=tay')
   })
 
   it('rebuilds rather than echoes, dropping anything it does not recognise', () => {

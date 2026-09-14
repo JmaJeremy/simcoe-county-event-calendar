@@ -218,7 +218,8 @@ a { color: inherit; }
     var(--cat-outdoors) 36% 50%, var(--cat-markets) 50% 63%, var(--cat-sports) 63% 76%,
     var(--cat-community) 76% 88%, var(--cat-education) 88% 100%);
 }
-.wordmark { display: flex; align-items: center; gap: 16px; }
+.masthead-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.wordmark { display: flex; align-items: center; gap: 16px; min-width: 0; }
 /* The mark tracks the wordmark's own clamp so the lockup holds at every width.
    The field takes the ink colour and the sun the accent, so it themes itself. */
 .mark {
@@ -326,7 +327,9 @@ a { color: inherit; }
 .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
 .toggle input { accent-color: var(--accent); }
 
-.spacer { flex: 1 1 auto; }
+/* The view switch and the two buttons travel together: pushed right when the row has
+   room, wrapping as one group rather than stranding a button on its own line. */
+.row-end { display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: nowrap; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 7px;
@@ -369,7 +372,7 @@ a { color: inherit; }
 .viewswitch button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--shadow); }
 
 /* ---- theme switch ---- */
-.themeswitch { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.themeswitch { flex: none; margin-top: 5px; display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
 .themeswitch button {
   display: inline-flex; align-items: center; justify-content: center;
   background: none; border: none; border-radius: 999px;
@@ -701,6 +704,9 @@ footer a { color: var(--ink-2); }
 
 @media (max-width: 620px) {
   .wordmark { gap: 11px; }
+  /* Reversed so the switch reads above the title instead of crowding it. */
+  .masthead-top { flex-direction: column-reverse; align-items: stretch; gap: 12px; }
+  .masthead-top .themeswitch { align-self: flex-end; margin-top: 0; }
   .masthead { padding-top: 26px; }
   .menu { position: fixed; left: 12px; right: 12px; top: auto; min-width: 0; max-width: none; }
   .modal[open] { align-items: flex-end; }
@@ -709,6 +715,8 @@ footer a { color: var(--ink-2); }
     border-radius: 18px 18px 0 0; border-bottom: none;
   }
 
+  /* Narrow enough that the group has the row to itself and may break inside it. */
+  .row-end { flex-wrap: wrap; margin-left: 0; }
   .event { grid-template-columns: 70px 1fr; gap: 12px; padding: 12px 13px; }
   .event .time { font-size: 14px; padding: 6px 3px; }
   .event h3 { font-size: 16.5px; }

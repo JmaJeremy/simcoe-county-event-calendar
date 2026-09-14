@@ -40,13 +40,24 @@
 <body>
 <div class="wrap">
   <header class="masthead">
-    <div class="wordmark">
-      <svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
-  <circle cx="24" cy="19" r="7.5" fill="var(--accent)"/>
-  <path d="M24 4.5v4M11 11l2.9 2.9M37 11l-2.9 2.9M4.5 21h4M39.5 21h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
-  <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
-      </svg>
-      <h1>Simcoe County <span class="hl">Events</span></h1>
+    <div class="masthead-top">
+      <div class="wordmark">
+        <svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+          <circle cx="24" cy="19" r="7.5" fill="var(--accent)"/>
+          <path d="M24 4.5v4M11 11l2.9 2.9M37 11l-2.9 2.9M4.5 21h4M39.5 21h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
+        </svg>
+        <h1>Simcoe County <span class="hl">Events</span></h1>
+      </div>
+      <div class="themeswitch" role="group" aria-label="Theme">
+        <button type="button" id="theme-light" aria-pressed="false" aria-label="Light theme" title="Light">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 1.5v3M12 19.5v3M3.9 3.9l2.1 2.1M18 18l2.1 2.1M1.5 12h3M19.5 12h3M3.9 20.1L6 18M18 6l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" id="theme-dark" aria-pressed="false" aria-label="Dark theme" title="Dark">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" fill="currentColor"/></svg>
+        </button>
+        <button type="button" id="theme-system" aria-pressed="true" aria-label="Follow the system theme" title="Follow system">Auto</button>
+      </div>
     </div>
     <p class="tagline">Free things to do across Simcoe County, gathered from every town's calendar, the county and local news — in one place.</p>
     <p class="stats" id="stats">Loading…</p>
@@ -67,22 +78,14 @@
       </label>
       <label class="toggle"><input type="checkbox" id="show-civic"> Council meetings</label>
       <label class="toggle" id="past-toggle"><input type="checkbox" id="show-past"> Past events</label>
-      <span class="spacer"></span>
-      <div class="viewswitch" role="group" aria-label="View">
-        <button type="button" id="view-list" aria-pressed="true">List</button>
-        <button type="button" id="view-calendar" aria-pressed="false">Calendar</button>
+      <div class="row-end">
+        <div class="viewswitch" role="group" aria-label="View">
+          <button type="button" id="view-list" aria-pressed="true">List</button>
+          <button type="button" id="view-calendar" aria-pressed="false">Calendar</button>
+        </div>
+        <button class="btn ghost" type="button" data-share aria-haspopup="dialog">Share</button>
+        <button class="btn" id="subscribe">Subscribe</button>
       </div>
-      <div class="themeswitch" role="group" aria-label="Theme">
-        <button type="button" id="theme-light" aria-pressed="false" aria-label="Light theme" title="Light">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 1.5v3M12 19.5v3M3.9 3.9l2.1 2.1M18 18l2.1 2.1M1.5 12h3M19.5 12h3M3.9 20.1L6 18M18 6l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-        <button type="button" id="theme-dark" aria-pressed="false" aria-label="Dark theme" title="Dark">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" fill="currentColor"/></svg>
-        </button>
-        <button type="button" id="theme-system" aria-pressed="true" aria-label="Follow the system theme" title="Follow system">Auto</button>
-      </div>
-      <button class="btn ghost" type="button" data-share aria-haspopup="dialog">Share</button>
-      <button class="btn" id="subscribe">Subscribe</button>
     </div>
     <div class="active-filters" id="active"></div>
   </div>

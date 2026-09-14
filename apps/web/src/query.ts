@@ -58,6 +58,12 @@ export function listUrlFrom(url: URL): string {
   for (const flag of ['civic', 'past']) {
     if (url.searchParams.get(flag) === '1') out.set(flag, '1')
   }
+  // parseFilters passes from/to through untouched, so they are re-validated here: like
+  // everything else in this function they are on their way into an href.
+  for (const end of ['from', 'to'] as const) {
+    const date = url.searchParams.get(end)
+    if (date && /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date)) out.set(end, date)
+  }
   // The view and month are the front end's own state; parseFilters knows nothing of them.
   if (url.searchParams.get('view') === 'calendar') out.set('view', 'calendar')
   const month = url.searchParams.get('month')
