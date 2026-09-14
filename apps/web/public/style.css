@@ -710,6 +710,10 @@ footer a { color: var(--ink-2); }
 /* Reserves the widget's height so the button does not jump when it appears. */
 .turnstile-widget { margin: 0 0 14px; min-height: 65px; }
 .form-error { margin: 0 0 12px; padding: 10px 13px; border-radius: 10px; background: var(--stop-bg); color: var(--stop); font-weight: 700; }
+/* Decoy text inside an obfuscated email address: in the source for harvesters, never
+   shown, read aloud or copied. display:none is what keeps it out of all three. */
+.decoy { display: none !important; }
+.email { white-space: nowrap; }
 /* Off-screen rather than display:none, which some bots know to skip. */
 .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 @media (max-width: 520px) {

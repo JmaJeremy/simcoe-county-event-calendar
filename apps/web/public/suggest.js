@@ -15,8 +15,16 @@ const submit = $('submit')
 const TURNSTILE_SITE_KEY = '0x4AAAAAAE0QZZaEVJGV6HhE'
 let widget = null
 
-const TURNSTILE_BLOCKED =
-  "The check that keeps bots out didn't load. If you use a content blocker, allow challenges.cloudflare.com — or email your suggestion to contact@outinsimcoe.ca."
+/**
+ * The site's address, assembled at runtime so it never appears whole in this file for a
+ * harvester to find. Server messages mark where it goes with {contact}.
+ */
+const CONTACT = ['contact', ['outinsimcoe', 'ca'].join('.')].join('@')
+const withContact = (message) => message.replaceAll('{contact}', CONTACT)
+
+const TURNSTILE_BLOCKED = withContact(
+  "The check that keeps bots out didn't load. If you use a content blocker, allow challenges.cloudflare.com — or email your suggestion to {contact}.",
+)
 
 /**
  * Load Turnstile and render once it says it is ready.
@@ -45,7 +53,7 @@ function renderTurnstile() {
     // The site's own switch wins; with none chosen, follow the system like the page does.
     theme: document.documentElement.dataset.theme ?? 'auto',
     'error-callback': () => {
-      showError("The bot check couldn't finish. Reload the page and try again, or email contact@outinsimcoe.ca.")
+      showError(withContact("The bot check couldn't finish. Reload the page and try again, or email {contact}."))
     },
   })
 }
@@ -102,7 +110,7 @@ form.addEventListener('submit', async (event) => {
     })
     const result = await response.json().catch(() => ({}))
     if (!response.ok || !result.ok) {
-      showError(result.error || 'Something went wrong sending that. Please try again in a moment.')
+      showError(withContact(result.error || 'Something went wrong sending that. Please try again in a moment.'))
       return
     }
     form.reset()

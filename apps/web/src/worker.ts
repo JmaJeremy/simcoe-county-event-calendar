@@ -222,8 +222,13 @@ export default {
   },
 }
 
-/** The site's inbox: gets every suggestion, and is where a thank-you's reply goes. */
+/**
+ * The site's inbox: gets every suggestion, and is where a thank-you's reply goes. Used
+ * only in mail headers — never in a response body, where it would be harvestable.
+ */
 const ADMIN_ADDRESS = 'contact@outinsimcoe.ca'
+/** Stands in for the address in response messages; see `reply` in handleSuggestion. */
+const CONTACT_PLACEHOLDER = '{contact}'
 const MAIL_FROM: EmailAddress = { email: ADMIN_ADDRESS, name: SITE_NAME }
 /** Per sender, per hour. A person suggesting a whole festival programme will not hit it. */
 const SUGGESTIONS_PER_HOUR = 5
@@ -258,10 +263,19 @@ async function sendMail(env: Env, message: Parameters<SendEmail['send']>[0]): Pr
  */
 async function handleSuggestion(request: Request, env: Env): Promise<Response> {
   const wantsJson = (request.headers.get('Accept') ?? '').includes('application/json')
+  /*
+   * Messages never carry the site's address, since anything POSTing here — bots
+   * included — reads them. They say {contact} instead: the page's script swaps in the
+   * address it assembles itself, and a scripts-off reader is pointed at the page, where
+   * the address is shown obfuscated.
+   */
   const reply = (status: number, error?: string): Response => {
     if (wantsJson) return Response.json(error ? { ok: false, error } : { ok: true }, { status, headers: { 'Cache-Control': 'no-store' } })
     if (!error) return Response.redirect(new URL('/suggest?sent=1', request.url).toString(), 303)
-    return new Response(error, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } })
+    return new Response(error.replaceAll(CONTACT_PLACEHOLDER, 'us (the address is on the suggestion page)'), {
+      status,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    })
   }
 
   if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY_BYTES) return reply(413, 'That is too long to send in one go.')
@@ -291,7 +305,7 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
   // domain's mail reputation did.
   if (!env.TURNSTILE_SECRET_KEY) {
     console.error('suggest: TURNSTILE_SECRET_KEY is not set; refusing submissions')
-    return reply(503, `The suggestion form is not accepting submissions right now. Please email ${ADMIN_ADDRESS} instead.`)
+    return reply(503, `The suggestion form is not accepting submissions right now. Please email ${CONTACT_PLACEHOLDER} instead.`)
   }
   const human = await verifyTurnstile(
     form[TURNSTILE_FIELD],
@@ -305,7 +319,7 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
     return reply(
       human.status,
       noScript
-        ? `This form needs JavaScript turned on to check that you're not a bot. Please turn it on and try again, or email ${ADMIN_ADDRESS}.`
+        ? `This form needs JavaScript turned on to check that you're not a bot. Please turn it on and try again, or email ${CONTACT_PLACEHOLDER}.`
         : human.error,
     )
   }

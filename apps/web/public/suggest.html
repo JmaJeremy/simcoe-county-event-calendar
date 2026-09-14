@@ -40,8 +40,15 @@
       Every field is optional — fill in whatever you know.</p>
 
     <noscript>
+      <!-- The address is split by hidden decoys, so it never appears whole in the source:
+           a harvester that strips the tags collects a wrong address with the decoy words
+           in it, while a person sees the real one. No mailto link, since an href would
+           give it away. With scripts on, suggest.js assembles the address instead.
+           Don't write an example address in this comment either; the test suite scans
+           served files for anything shaped like one. -->
       <p class="form-error">This form needs JavaScript, to check that you're not a bot.
-        Turn it on, or email your suggestion to <a href="mailto:contact@outinsimcoe.ca">contact@outinsimcoe.ca</a>.</p>
+        Turn it on, or email your suggestion to
+        <span class="email">contact<span class="decoy">-nospam</span>&#64;<span class="decoy">example.</span>outinsimcoe.ca</span>.</p>
     </noscript>
     <form id="suggest-form" method="post" action="/api/suggest" novalidate>
       <fieldset class="kind">

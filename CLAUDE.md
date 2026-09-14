@@ -194,6 +194,13 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   a scripts-off post is told so. The site key is public and hardcoded in `suggest.js`;
   the widget ("outinsimcoe.ca suggestion form") also allows localhost and the workers.dev
   host, so `wrangler dev --var TURNSTILE_SECRET_KEY:$TURNSTILE_SECRET_KEY` works locally.
+- **No email address is ever served whole.** Harvesters read page source, scripts and
+  responses. `suggest.html` shows the site's address split by `.decoy` spans (hidden with
+  `display: none`, so people neither see nor copy them), `suggest.js` assembles it at
+  runtime as `CONTACT`, and the worker's messages say `{contact}` for the script to fill
+  in. `ADMIN_ADDRESS` in `worker.ts` belongs in mail headers only. `test/no-email.test.ts`
+  scans every served file and the worker's replies for anything email-shaped — including
+  an example address in a comment.
 - **Never give an element the id `turnstile`.** An id becomes a global of the same name,
   so `window.turnstile` was the widget's own `<div>`: Turnstile warned "already has been
   loaded" and `render` was "not a function", and no widget ever appeared.
