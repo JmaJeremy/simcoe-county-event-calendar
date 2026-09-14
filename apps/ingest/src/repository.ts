@@ -436,3 +436,109 @@ export function recordDetailFailureStatements(db: D1Like, ids: string[], now: st
       .bind(now, id),
   )
 }
+
+/* ---------- second opinions on price ---------- */
+
+export interface CostCandidate {
+  id: string
+  title: string
+  description: string
+  sourceName: string
+  contentHash: string
+}
+
+export interface CostDecisionRow {
+  listingId: string
+  contentHash: string
+  verdict: 'free' | 'paid' | 'unclear'
+  quote: string | null
+}
+
+/** Enough words that a price could plausibly be stated in them. */
+const MIN_TEXT = 60
+
+/**
+ * Listings still unclear about price, with text worth reading and no reading on file.
+ *
+ * Sources whose event pages we read are only eligible once that reading has happened:
+ * asking about a description we already know is truncated would spend tokens on the half
+ * of the text that never mentions the price. Sources with nothing more to fetch — the
+ * news sites, the ticketing feeds — are eligible straight away.
+ */
+export async function loadCostCandidates(
+  db: D1Like,
+  enrichableSlugs: string[],
+  limit: number,
+): Promise<{ candidates: CostCandidate[]; remaining: number }> {
+  const placeholders = enrichableSlugs.length ? enrichableSlugs.map(() => '?').join(',') : "''"
+  const where = `
+       WHERE l.active = 1
+         AND l.local_date >= date('now')
+         AND l.category <> 'civic-meeting'
+         AND l.cost = 'unknown'
+         AND length(coalesce(l.description, '')) >= ?
+         AND (l.source_slug NOT IN (${placeholders}) OR l.detail_hash = l.content_hash)
+         AND NOT EXISTS (
+           SELECT 1 FROM cost_decisions d
+            WHERE d.listing_id = l.id AND d.content_hash = l.content_hash
+         )`
+
+  const { results } = await db
+    .prepare(
+      `SELECT l.id, l.title, l.description, l.content_hash, s.name AS source_name
+         FROM listings l JOIN sources s ON s.slug = l.source_slug
+         ${where}
+         ORDER BY l.local_date ASC
+         LIMIT ?`,
+    )
+    .bind(MIN_TEXT, ...enrichableSlugs, limit)
+    .all<Record<string, unknown>>()
+
+  const total = await db
+    .prepare(`SELECT COUNT(*) AS n FROM listings l ${where}`)
+    .bind(MIN_TEXT, ...enrichableSlugs)
+    .first<{ n: number }>()
+
+  return {
+    candidates: results.map((row) => ({
+      id: String(row.id),
+      title: String(row.title),
+      description: String(row.description ?? ''),
+      sourceName: String(row.source_name ?? row.id),
+      contentHash: String(row.content_hash),
+    })),
+    remaining: total?.n ?? 0,
+  }
+}
+
+/** Every reading is recorded, including the ones that decided nothing. */
+export function costDecisionStatements(
+  db: D1Like,
+  decisions: CostDecisionRow[],
+  method: string,
+  now: string,
+): D1Statement[] {
+  return decisions.map((d) =>
+    db
+      .prepare(
+        `INSERT INTO cost_decisions (listing_id, content_hash, verdict, quote, method, decided_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(listing_id, content_hash) DO UPDATE SET
+           verdict = excluded.verdict, quote = excluded.quote,
+           method = excluded.method, decided_at = excluded.decided_at`,
+      )
+      .bind(d.listingId, d.contentHash, d.verdict, d.quote, method, now),
+  )
+}
+
+/** Only ever applied to a listing that is still unclear, so nothing stated is overruled. */
+export function setListingCostStatements(
+  db: D1Like,
+  updates: Array<{ id: string; cost: Cost; costText: string }>,
+): D1Statement[] {
+  return updates.map((u) =>
+    db
+      .prepare(`UPDATE listings SET cost = ?, cost_text = ? WHERE id = ? AND cost = 'unknown'`)
+      .bind(u.cost, u.costText, u.id),
+  )
+}

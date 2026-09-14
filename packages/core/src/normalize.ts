@@ -45,7 +45,7 @@ const MONEY = /\$\s?\d[\d,]*(\.\d{1,2})?|\b\d+(\.\d{2})?\s?(dollars|cad)\b/i
 
 /** Said plainly, about getting in: strong enough to believe on its own. */
 const FREE_ADMISSION =
-  /\b(free admission|admission is free|free of charge|free to attend|free event|free program|free drop-?in|no charge|no cost|free entry|entry is free|pwyc|pay what you can|by donation|complimentary)\b/i
+  /\b(free admission|admission is free|free of charge|free to attend|free event|free program|free drop-?in|no charge|no cost|no fee|free entry|entry is free|pwyc|pay what you can|by donation|donations? (are )?(welcome|appreciated|accepted|gratefully)|free will offering|complimentary)\b/i
 /** Just the word, anywhere: believable, but not on its own for a long page of text. */
 const FREE_WORD = /\bfree\b/i
 /** Money is being asked for, without a number attached. */
@@ -83,6 +83,16 @@ function priceInContext(text: string): string | undefined {
   }
   return undefined
 }
+
+/** Whether a sum of money appears at all, wherever it came from. */
+export const containsMoney = (text: string): boolean => new RegExp(MONEY.source, 'i').test(text)
+
+/**
+ * Money being counted rather than charged: a total raised, a prize, a grant, the value of
+ * an auction lot. The phrases that most often look like a price and are not.
+ */
+export const looksLikeFundraising = (text: string): boolean =>
+  /\b(raise[ds]?|raising|proceeds|donated|donation of|grants?|prizes?|jackpot|goal|target|worth|valued at|awards?|scholarships?)\b/i.test(text)
 
 export type CostConfidence = 'high' | 'low'
 

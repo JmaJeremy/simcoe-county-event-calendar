@@ -1,6 +1,8 @@
 import { MUNICIPALITIES, enabledSources, type Source } from '@scec/core'
 import { noJudge, runDedup, type DedupStats, type Judge } from './dedup.ts'
 import { enrich, type EnrichStats } from './enrich.ts'
+import { judgeCosts, type CostPassStats } from './cost.ts'
+import { claudeCostJudge, noCostJudge, type CostJudge } from './cost-judge.ts'
 import { claudeJudge } from './judge.ts'
 import { defaultWindow, syncSource } from './pipeline.ts'
 import {
@@ -75,6 +77,8 @@ export interface IngestReport {
   sources: SourceOutcome[]
   detail?: EnrichStats
   detailError?: string
+  cost?: CostPassStats
+  costError?: string
   dedup?: DedupStats
   dedupError?: string
 }
@@ -83,9 +87,13 @@ export function judgeFor(env: Env): Judge {
   return env.ANTHROPIC_API_KEY ? claudeJudge(env.ANTHROPIC_API_KEY) : noJudge
 }
 
+export function costJudgeFor(env: Env): CostJudge {
+  return env.ANTHROPIC_API_KEY ? claudeCostJudge(env.ANTHROPIC_API_KEY) : noCostJudge
+}
+
 export async function ingestAll(
   env: Env,
-  options: { sources?: Source[]; dedup?: boolean; detail?: boolean } = {},
+  options: { sources?: Source[]; dedup?: boolean; detail?: boolean; cost?: boolean } = {},
 ): Promise<IngestReport> {
   await upsertRegistry(env.DB, MUNICIPALITIES, enabledSources())
   const outcomes: SourceOutcome[] = []
@@ -120,6 +128,16 @@ export async function ingestAll(
     }
   }
 
+  // After the detail pages, because that is where a stated price usually turns up, and
+  // before dedup for the same reason enrichment is: so the events table sees it today.
+  if (options.cost ?? true) {
+    try {
+      report.cost = await judgeCosts(env.DB, costJudgeFor(env))
+    } catch (err) {
+      report.costError = err instanceof Error ? err.message : String(err)
+    }
+  }
+
   if (options.dedup ?? true) {
     try {
       report.dedup = await runDedup(env.DB, defaultWindow(), judgeFor(env))
@@ -135,12 +153,17 @@ export function summarize(report: IngestReport): string {
   const listings = report.sources.reduce((n, o) => n + o.listings, 0)
   const d = report.dedup
   const e = report.detail
+  const c = report.cost
   return (
     `ingest complete: ${report.sources.length - failed.length}/${report.sources.length} sources, ${listings} listings` +
     (e
       ? `; detail: ${e.fetched} pages (${e.costResolved} priced, ${e.images} posters, ${e.fuller} fuller, ${e.failed} failed, ${e.remaining} queued)`
       : '') +
     (report.detailError ? `; detail FAILED: ${report.detailError}` : '') +
+    (c && (c.read || c.remaining)
+      ? `; cost: read ${c.read} (${c.free} free, ${c.paid} paid, ${c.inconclusive} unclear, ${c.unquoted} unquoted, ${c.remaining} queued)`
+      : '') +
+    (report.costError ? `; cost FAILED: ${report.costError}` : '') +
     (d
       ? `; dedup: ${d.listings} listings into ${d.clusters} events (${d.pairs} pairs, ${d.ruleSame} rule merges, ${d.llmSame}/${d.llmCalls} llm merges, ${d.cached} cached, ${d.unresolved} unresolved)`
       : '') +
@@ -173,6 +196,7 @@ export default {
       sources,
       dedup: url.searchParams.get('dedup') !== '0',
       detail: url.searchParams.get('detail') !== '0',
+      cost: url.searchParams.get('cost') !== '0',
     })
     return Response.json({ summary: summarize(report), ...report })
   },
