@@ -107,6 +107,12 @@ that matters is not how many are unknown but how many are *wrongly* unknown — 
 whose page states a price we failed to read. Both reported cases of that
 (a $50 theatre ticket, a free concert with a Cost field) are now read correctly.
 
+The queue is drained: all 675 candidates have been read, and every one of the judge's
+`paid` verdicts was checked by hand. There is exactly one — "Full ensemble AM (duns) or PM
+(djembes & full ensemble): $55 Full Day: $75" on a drumming workshop, which is an
+admission price. That direction is the one worth auditing, because a free event wrongly
+marked paid vanishes from the default view; the other 42 verdicts are free.
+
 ## 11. Posters are shown but cannot be shared
 
 govStack calendars sit behind a WAF that answers 403 to anything not presenting a browser
@@ -114,3 +120,8 @@ user agent, which includes every share crawler. Their posters render for a visit
 event page and would be a broken image in a Facebook or Slack preview, so `shareableImage`
 in the web worker keeps them out of `og:image` and the site's own card is used instead.
 Images from the news sites and CitySpark are fetchable and are used as-is.
+
+They do render for an ordinary visitor: confirmed on the live event page, 940px wide. If
+a screenshot script reports the poster as broken, check its user agent first — headless
+Chrome announces itself as HeadlessChrome and that WAF rejects it, which looks exactly
+like a hotlink block and is not one.
