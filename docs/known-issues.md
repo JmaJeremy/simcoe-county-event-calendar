@@ -84,3 +84,33 @@ separate occurrences by construction. SPACES organisers do double-post, though �
 at 2:30 p.m., with different post ids — and both reach the site. Merging within a source
 would risk collapsing a weekly series; a narrower rule (same source, same day, near-identical
 title, one all-day and one timed) is the likely fix.
+
+## 10. "Cost not listed" is still the commonest answer
+
+Measured 2026-09-14, after the detail pass had read every upcoming govStack and Drupal
+event page and the cost judge had read 675 listings:
+
+| Upcoming listings (excluding meetings) | 1,907 |
+| Free | 367 |
+| Paid | 189 |
+| Cost not listed | 1,351 |
+
+That is not a bug left to fix, it is what the sources say. Of 675 listings the judge read,
+it found a price sentence in 43. The rest genuinely never mention money: a library
+knitting circle or a township skating night does not think to say it is free, because
+everyone local already knows.
+
+Three things follow. The default view deliberately shows "cost not listed" alongside free,
+because hiding them would hide most of the calendar. The judge's ~6% hit rate is the
+ceiling for text that does not exist, not a sign the prompt needs work. And the number
+that matters is not how many are unknown but how many are *wrongly* unknown — the ones
+whose page states a price we failed to read. Both reported cases of that
+(a $50 theatre ticket, a free concert with a Cost field) are now read correctly.
+
+## 11. Posters are shown but cannot be shared
+
+govStack calendars sit behind a WAF that answers 403 to anything not presenting a browser
+user agent, which includes every share crawler. Their posters render for a visitor on the
+event page and would be a broken image in a Facebook or Slack preview, so `shareableImage`
+in the web worker keeps them out of `og:image` and the site's own card is used instead.
+Images from the news sites and CitySpark are fetchable and are used as-is.

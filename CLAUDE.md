@@ -31,8 +31,11 @@ node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
 
-A full run takes ~60 s and ~320 HTTP requests: 25/25 sources, ~2,300 listings, ~2,190
-events, ~2,400 candidate pairs, ~160 rule merges, ~50 ambiguous pairs for the judge.
+A full run takes ~90 s and ~620 HTTP requests: 25/25 sources for ~2,300 listings, then up
+to 300 event pages read for price and posters, then up to 200 unclear listings sent to the
+cost judge, then dedup over ~2,300 pairs into ~2,160 events. The subrequest ceiling is
+1,000 per invocation, so the two budgets in `enrich.ts` and `cost.ts` are what keeps the
+run inside it — raise either and check the total.
 
 ## Architecture
 
@@ -40,9 +43,16 @@ events, ~2,400 candidate pairs, ~160 rule merges, ~50 ambiguous pairs for the ju
 packages/core/       types, municipalities + gazetteer, sources registry, time, identity,
                      title/civic-meeting rules, normalize (cost, category), reconcile, dedup, ical
 packages/adapters/   one module per PLATFORM + shared http; test/fixtures are captured responses
-apps/ingest/         pipeline, D1 repository, dedup runner, cron worker, dry-run CLI, migrations
+apps/ingest/         pipeline, D1 repository, detail enrichment, cost judge, dedup runner,
+                     cron worker, dry-run CLI, migrations
 apps/web/            API + iCal + event pages worker, static front end
 ```
+
+**A run is four passes, in this order**: fetch every source (`pipeline.ts`), read event
+pages for the listings that need one (`enrich.ts`), ask the cost judge about listings
+still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load-bearing:
+dedup rewrites every event from its representative listing, so anything the middle two
+passes learn reaches the site in the same run instead of two hours later.
 
 **Adapters are per platform, sources are per site.** Six adapters cover 25 sources; adding a
 site on a supported platform is a row in `packages/core/src/sources.ts`.
@@ -125,6 +135,25 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   placeholder `events.simcoe` on the day the domain was registered, while nobody had
   subscribed. A subscribed calendar treats a changed UID as a different event, so it
   deletes every entry and re-adds a copy. See the comment in `packages/core/src/ical.ts`.
+- **Two passes are queues, not sweeps.** Reading an event page for all 1,500 govStack and
+  Drupal listings, or judging every unclear price, would blow the subrequest budget and
+  the token bill. Each run takes the next N by date and records what it did —
+  `listings.detail_hash` for pages read, the `cost_decisions` table for prices judged,
+  both keyed on the listing's `content_hash` so an edited listing comes round again and an
+  unedited one never does. Neither ever touches `content_hash` itself; reconciliation owns
+  that.
+- **Parse the event's container, never the page.** Barrie's event page is 146KB of which
+  the event is 2.6KB. A "$" from the site's own footer would price a free concert, and
+  govStack recreation pages carry the arena's drop-in rate card below the description —
+  which is why the govStack parser stops at the "See more" toggle.
+- **The cost judge is a finder, not a decider.** It returns the sentence that states the
+  price; `decideCost` then checks that sentence really appears in the listing and runs the
+  ordinary cost rules over it. Never let a model's verdict set a cost directly. The bar is
+  higher for paid than for free on purpose: a free event wrongly marked paid vanishes from
+  the view almost everyone uses.
+- **A govStack poster cannot be a share image.** Those hosts 403 anything that is not a
+  browser, crawlers included, so `shareableImage` in the web worker keeps them out of
+  `og:image` while the page still shows them to visitors.
 - **The mark exists in three copies**: inline in `public/index.html`, as `MARK` in
   `apps/web/src/worker.ts` (both in CSS variables) and in `scripts/brand.ts` (hardcoded
   hex, because a screenshot cannot read CSS variables). Change one, change all three, and
