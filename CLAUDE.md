@@ -121,9 +121,10 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
 - **A typed date range replaces the "upcoming only" default** rather than narrowing it —
   see `inDateScope`. Someone who asks for last week means last week, whatever the "Past
   events" box says. `from`/`to` also ride along to the iCal feed.
-- **The iCal UID domain is not the site's domain**, and was left alone when the site was
-  named. A UID is an identity, not an address: changing it makes every subscribed calendar
-  delete and re-add every event. See the comment in `packages/core/src/ical.ts`.
+- **Never change the iCal UID domain again.** It is `outinsimcoe.ca`, moved off the
+  placeholder `events.simcoe` on the day the domain was registered, while nobody had
+  subscribed. A subscribed calendar treats a changed UID as a different event, so it
+  deletes every entry and re-adds a copy. See the comment in `packages/core/src/ical.ts`.
 - **The mark exists in three copies**: inline in `public/index.html`, as `MARK` in
   `apps/web/src/worker.ts` (both in CSS variables) and in `scripts/brand.ts` (hardcoded
   hex, because a screenshot cannot read CSS variables). Change one, change all three, and

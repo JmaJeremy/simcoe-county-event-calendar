@@ -72,9 +72,10 @@ Two custom domains on the worker (apex and `www`), `CANONICAL_HOST` set to the a
 `SITE_NAME` in the worker, the manifest, the iCal product id and default calendar name,
 and the OG card re-rendered by `brand.ts`.
 
-One thing deliberately did not change: the iCal UID domain. A UID is an identity, not an
-address, and rewriting it would make every subscribed calendar delete and re-add every
-event.
+The iCal UID domain moved from the placeholder `events.simcoe` to `outinsimcoe.ca` the
+same day, deliberately and once. A subscribed calendar treats a changed UID as a different
+event and re-creates the lot, so the only safe moment was before anyone had subscribed.
+It should not change again.
 
 Old `workers.dev` links keep working, and now answer with the new name and a canonical
 link pointing at the domain, so nothing that was shared before the rename is orphaned.

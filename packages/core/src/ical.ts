@@ -14,11 +14,16 @@ import type { Event } from './types.ts'
 
 const PRODID = '-//outinsimcoe//Out in Simcoe community events//EN'
 /*
- * Not the site's domain, and deliberately left alone when the site was named: a UID is
- * an identity, not an address. Changing it would make every calendar that has already
- * subscribed treat every event as brand new, deleting and re-adding the lot.
+ * The right half of every event's UID. RFC 5545 §3.8.4.7 wants a globally unique value
+ * and the convention is to namespace it with a domain you control; uniqueness here really
+ * comes from the left half, which already carries the source slug.
+ *
+ * Do not change this again. A calendar that has subscribed treats a changed UID as a
+ * different event, so it deletes every entry and re-adds a copy. It was changed once,
+ * from the placeholder `events.simcoe`, on the day the domain was registered and while
+ * nobody had subscribed yet. That window is closed.
  */
-const UID_DOMAIN = 'events.simcoe'
+const UID_DOMAIN = 'outinsimcoe.ca'
 
 /** RFC 5545 §3.3.11: backslash, semicolon and comma are escaped; newlines become \n. */
 function escapeText(value: string): string {

@@ -47,7 +47,7 @@ describe('buildIcal', () => {
 
   it('uses the sticky cluster id as the UID so changes update rather than duplicate', () => {
     const lines = unfold(buildIcal([event()]))
-    expect(lines).toContain('UID:barrie:node-1@2026-09-22T19:00@events.simcoe')
+    expect(lines).toContain('UID:barrie:node-1@2026-09-22T19:00@outinsimcoe.ca')
   })
 
   it('emits UTC instants and assumes two hours when no end is published', () => {
