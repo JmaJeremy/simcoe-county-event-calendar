@@ -73,6 +73,9 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   the worker redirect `www` to it and pin every share card, permalink and feed URL to one
   origin no matter which host answered.
 - Ingest: https://scec-ingest.thejeremy-net.workers.dev (token-guarded, not public)
+- Zone settings on `outinsimcoe.ca` are Cloudflare defaults except **Always Use HTTPS**,
+  turned on when the domain was attached — without it the site answered on plain HTTP.
+  HSTS is deliberately off: it is a long-lived promise and there is no reason to make it yet.
 - `.env` is gitignored, as is `jeremy-atlassian-token.key`. Keep it that way.
 
 ## Things that will bite you
