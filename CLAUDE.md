@@ -45,7 +45,7 @@ packages/core/       types, municipalities + gazetteer, sources registry, time, 
 packages/adapters/   one module per PLATFORM + shared http; test/fixtures are captured responses
 apps/ingest/         pipeline, D1 repository, detail enrichment, cost judge, dedup runner,
                      cron worker, dry-run CLI, migrations
-apps/web/            API + iCal + event pages worker, static front end
+apps/web/            API + iCal + event pages + suggestion form worker, static front end
 ```
 
 **A run is four passes, in this order**: fetch every source (`pipeline.ts`), read event
@@ -170,5 +170,25 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   `public/app.js`. The query builder turns it into `municipality_slug IS NULL` and ORs it
   with any real slugs in the same list, so the two combine. Unplaced events read
   "Not specified" everywhere — menu, pill, card badge, calendar chip.
+- **"Upcoming" means not over yet, not dated today or later.** `hasFinished` in `app.js`
+  retires an event when its published end time passes, and nothing else may: all-day
+  events and the ~1,500 with no end time stay until their last day is over (America/Toronto).
+  Something that started on an earlier day and is still running is filed under today with
+  an "On now" tag (`listDate`), not under a heading reading "3 days ago". The calendar view
+  is untouched; "Past events" still shows everything.
+- **Suggestions are stored before they are mailed.** `POST /api/suggest` validates
+  (`src/suggest.ts`), inserts into `suggestions`, then sends two emails through the `EMAIL`
+  binding (Cloudflare Email Service), recording each outcome on the row. A mail failure
+  still answers "thanks" — the row is the record, the mail is a notification. The table's
+  migration lives in `apps/ingest/migrations/` like every other, though only the web worker
+  writes it: apply migrations **before** deploying the web worker or the form 500s.
+- **The thank-you email echoes nothing the visitor typed**, not even their name. Anyone can
+  put anyone's address in the form; an echo would let them mail their own words to a
+  stranger from outinsimcoe.ca. The admin copy has everything, with Reply-To set to the
+  suggester. Abuse limits are a honeypot field (`company`), field caps, http(s)-only links,
+  and 5 per hour per IP hash salted with the UTC date. Turnstile is the next step if spam
+  gets through.
+- **The work-in-progress tag and the copyright line are repeated** in `index.html`,
+  `suggest.html` and `WIP_TAG`/`COPYRIGHT` in `worker.ts`. Change one, change all three.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.
   The civi-times tests used `m` for the month; that is why the ported suite was patched.
