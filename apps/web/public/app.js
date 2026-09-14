@@ -137,9 +137,51 @@ function matchesFilters(e) {
 }
 
 /**
+ * The last day an event runs, as a wall date in Simcoe County's zone.
+ *
+ * An all-day span stores its end as 23:59 on the final day, so that day is already the
+ * inclusive last one — see the DTEND arithmetic in core/ical.ts, which is the other half
+ * of this convention.
+ */
+function lastLocalDate(e) {
+  if (!e.endsAtUtc) return e.localDate
+  const end = siteDateFormat.format(new Date(e.endsAtUtc))
+  return end < e.localDate ? e.localDate : end
+}
+
+/**
+ * Whether an event is still worth showing: happening now, or yet to happen.
+ *
+ * A published end time is the only thing precise enough to retire an event partway
+ * through a day, so it is the only thing allowed to. Everything else — all-day spans,
+ * and the 1,500 listings whose source never said when they finish — stays up until its
+ * last day is over. Erring that way costs a reader a wasted click; erring the other way
+ * hides an event that is still going on.
+ */
+function hasFinished(e, now = Date.now()) {
+  if (e.endsAtUtc && !e.allDay && e.timePrecision !== 'date-only') return Date.parse(e.endsAtUtc) <= now
+  return lastLocalDate(e) < todayISO()
+}
+
+/** Started and not yet over — a festival on its second day, a fair this afternoon. */
+function isOnNow(e, now = Date.now()) {
+  return Date.parse(e.startsAtUtc) <= now && !hasFinished(e, now)
+}
+
+/**
+ * The day heading an event is filed under. Its start date, except for something that
+ * began earlier and is still running: that belongs under today, because a heading
+ * reading "3 days ago" above a festival happening right now is simply wrong.
+ */
+function listDate(e) {
+  const today = todayISO()
+  return e.localDate < today && isOnNow(e) ? today : e.localDate
+}
+
+/**
  * Which dates are in scope, which is the one thing the two views disagree about.
  *
- * The list looks forward from today unless asked otherwise. The calendar is scoped by
+ * The list looks forward from now unless asked otherwise. The calendar is scoped by
  * the month on screen instead: someone who has deliberately paged back wants that month.
  */
 function inDateScope(e) {
@@ -149,7 +191,7 @@ function inDateScope(e) {
   // A range the reader typed is a deliberate statement about which days they want, so it
   // replaces the "from today onwards" default rather than being narrowed by it.
   if (state.from || state.to) return true
-  return state.showPast || e.localDate >= todayISO()
+  return state.showPast || !hasFinished(e)
 }
 
 function visibleEvents() {
@@ -164,6 +206,7 @@ function relativeDay(dateStr) {
   const days = Math.round((Date.parse(`${dateStr}T00:00:00Z`) - Date.parse(`${todayISO()}T00:00:00Z`)) / 86400000)
   if (days === 0) return 'today'
   if (days === 1) return 'tomorrow'
+  if (days === -1) return 'yesterday'
   if (days < 0) return `${Math.abs(days)} days ago`
   if (days < 7) return `in ${days} days`
   if (days < 14) return 'next week'
@@ -204,12 +247,15 @@ function renderList() {
   // Group only what is on screen, so a day heading never appears above nothing.
   const byDay = new Map()
   for (const e of shown) {
-    if (!byDay.has(e.localDate)) byDay.set(e.localDate, [])
-    byDay.get(e.localDate).push(e)
+    const date = listDate(e)
+    if (!byDay.has(date)) byDay.set(date, [])
+    byDay.get(date).push(e)
   }
 
   const parts = []
-  for (const [date, dayEvents] of byDay) {
+  // Sorted, not insertion order: a running festival sorts by its start three days ago but
+  // is filed under today, and with past events showing that would put today first.
+  for (const [date, dayEvents] of [...byDay].sort(([a], [b]) => a.localeCompare(b))) {
     const rel = relativeDay(date)
     parts.push(`<section class="day">
       <div class="day-head">
@@ -273,6 +319,9 @@ function renderEvent(e) {
   const tags = []
   if (e.status === 'cancelled') tags.push('<span class="tag cancelled">Cancelled</span>')
   if (e.status === 'rescheduled') tags.push('<span class="tag moved">Rescheduled</span>')
+  // Only for events that began on an earlier day. One that started an hour ago already
+  // sits under today with its start time showing.
+  if (e.localDate < todayISO() && isOnNow(e)) tags.push('<span class="tag onnow">On now</span>')
   tags.push(costTag(e))
   if (e.category === 'civic-meeting') tags.push('<span class="tag package">Meeting</span>')
 

@@ -32,5 +32,9 @@
   "p2-bradford": "SCEC-31",
   "p2-submit": "SCEC-32",
   "p2-domain": "SCEC-33",
-  "ui-unplaced": "SCEC-34"
+  "ui-unplaced": "SCEC-34",
+  "p2-wip-badge": "SCEC-51",
+  "p2-finished": "SCEC-52",
+  "p2-maclaren": "SCEC-49",
+  "p2-venues": "SCEC-50"
 }

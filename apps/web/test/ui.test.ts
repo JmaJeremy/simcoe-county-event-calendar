@@ -822,3 +822,112 @@ describeIfChrome('calendar view (real browser)', () => {
     expect(await visible('#list')).toBe(true)
   })
 })
+
+/**
+ * "Upcoming" means not over yet, measured against the clock rather than the date.
+ *
+ * These events are built relative to the moment the suite runs, in Simcoe County's zone,
+ * and served in place of the fixture API — so the rule is tested against a real now, not
+ * a frozen one that would pass forever while the behaviour drifted.
+ */
+describeIfChrome('finished events (real browser)', () => {
+  let browser: Browser
+  let page: Page
+  let server: Awaited<ReturnType<typeof startServer>>
+
+  const HOUR = 3_600_000
+  const now = Date.now()
+  const torontoDate = (ms: number) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms))
+  const today = torontoDate(now)
+  const yesterday = torontoDate(now - 24 * HOUR)
+  const tomorrow = torontoDate(now + 24 * HOUR)
+  const iso = (ms: number) => new Date(ms).toISOString()
+
+  const make = (title: string, fields: Record<string, unknown>) => ({
+    ...EVENTS[0]!,
+    id: `clock:${title}`,
+    shortCode: `clk${title.length}${title[0]}`,
+    title,
+    cost: 'free',
+    category: 'community',
+    municipalitySlug: 'tay',
+    endsAtUtc: null,
+    allDay: false,
+    timePrecision: 'exact',
+    ...fields,
+  })
+
+  const CLOCK_EVENTS = [
+    make('Ended an hour ago', { localDate: today, startsAtUtc: iso(now - 2 * HOUR), endsAtUtc: iso(now - HOUR) }),
+    make('Finished yesterday', { localDate: yesterday, startsAtUtc: iso(now - 26 * HOUR), endsAtUtc: iso(now - 25 * HOUR) }),
+    make('Three day festival', { localDate: yesterday, startsAtUtc: iso(now - 26 * HOUR), endsAtUtc: iso(now + 24 * HOUR) }),
+    make('No end time given', { localDate: today, startsAtUtc: iso(now - 3 * HOUR) }),
+    make('All day today', { localDate: today, startsAtUtc: iso(now - 4 * HOUR), allDay: true, timePrecision: 'date-only' }),
+    make('Ends in an hour', { localDate: today, startsAtUtc: iso(now - HOUR), endsAtUtc: iso(now + HOUR) }),
+    make('Tomorrow morning', { localDate: tomorrow, startsAtUtc: iso(now + 24 * HOUR), endsAtUtc: iso(now + 26 * HOUR) }),
+  ].sort((a, b) => String(a.startsAtUtc).localeCompare(String(b.startsAtUtc)))
+
+  beforeAll(async () => {
+    server = await startServer()
+    browser = await puppeteer.launch({ executablePath: CHROME!, headless: true, args: ['--no-sandbox'] })
+    page = await browser.newPage()
+    await page.setRequestInterception(true)
+    page.on('request', (req: HTTPRequest) => {
+      if (new URL(req.url()).pathname === '/api/events') {
+        return req.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ count: CLOCK_EVENTS.length, events: CLOCK_EVENTS }),
+        })
+      }
+      return req.continue()
+    })
+    await page.goto(server.url, { waitUntil: 'networkidle0' })
+    await page.waitForSelector('#list .event')
+  }, 60_000)
+
+  afterAll(async () => {
+    await browser?.close()
+    await server?.close()
+  })
+
+  const titles = () => page.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent!.trim()))
+
+  it('hides an event whose published end time has passed, even though it was today', async () => {
+    expect(await titles()).not.toContain('Ended an hour ago')
+    expect(await titles()).not.toContain('Finished yesterday')
+  })
+
+  it('keeps anything without an end time, or all day, until the day is over', async () => {
+    expect(await titles()).toEqual(expect.arrayContaining(['No end time given', 'All day today', 'Ends in an hour', 'Tomorrow morning']))
+  })
+
+  it('keeps something that started yesterday and is still running, filed under today', async () => {
+    const section = await page.$$eval('#list .day', (days) =>
+      days.map((d) => ({
+        rel: d.querySelector('.rel')?.textContent?.trim() ?? '',
+        titles: [...d.querySelectorAll('.event h3 a')].map((a) => a.textContent!.trim()),
+        onNow: [...d.querySelectorAll('.event')]
+          .filter((e) => e.querySelector('.tag.onnow'))
+          .map((e) => e.querySelector('h3 a')!.textContent!.trim()),
+      })),
+    )
+    const festival = section.find((d) => d.titles.includes('Three day festival'))
+    expect(festival?.rel).toBe('today')
+    expect(festival?.onNow).toEqual(['Three day festival'])
+    // Nothing under a heading from before today.
+    expect(section.map((d) => d.rel)).not.toContain('yesterday')
+  })
+
+  it('brings the finished ones back when past events are asked for', async () => {
+    await page.click('#show-past')
+    await page.waitForFunction(() => document.querySelectorAll('#list .event').length === 7)
+    expect(await titles()).toEqual(expect.arrayContaining(['Ended an hour ago', 'Finished yesterday']))
+    // Chronological even though the festival, which sorts first by its start, is filed
+    // under today rather than yesterday.
+    const rel = await page.$$eval('#list .day-head .rel', (els) => els.map((e) => e.textContent!.trim()))
+    expect(rel).toEqual(['yesterday', 'today', 'tomorrow'])
+    await page.click('#show-past')
+  })
+})
