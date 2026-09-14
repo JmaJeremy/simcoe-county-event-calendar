@@ -707,6 +707,8 @@ footer a { color: var(--ink-2); }
 .form-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
 .form-pair[hidden] { display: none; }
 .form-hint { margin: -4px 0 16px; color: var(--ink-3); font-size: 13px; }
+/* Reserves the widget's height so the button does not jump when it appears. */
+.turnstile-widget { margin: 0 0 14px; min-height: 65px; }
 .form-error { margin: 0 0 12px; padding: 10px 13px; border-radius: 10px; background: var(--stop-bg); color: var(--stop); font-weight: 700; }
 /* Off-screen rather than display:none, which some bots know to skip. */
 .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

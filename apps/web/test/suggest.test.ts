@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HONEYPOT, adminMail, thanksMail, validateSuggestion, type Suggestion } from '../src/suggest.ts'
+import { HONEYPOT, TURNSTILE_ACTION, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from '../src/suggest.ts'
 
 const valid = (form: Record<string, unknown>): Suggestion => {
   const result = validateSuggestion(form)
@@ -98,5 +98,61 @@ describe('suggestion emails', () => {
       expect(text).not.toContain(typed)
     }
     expect(text).toContain('the event you suggested')
+  })
+})
+
+describe('verifyTurnstile', () => {
+  const options = { secret: 's3cret', remoteip: '203.0.113.9', hostname: 'outinsimcoe.ca' }
+
+  /** Stands in for siteverify, recording what it was sent. */
+  const siteverify = (reply: unknown, status = 200) => {
+    const calls: URLSearchParams[] = []
+    const fetchImpl = async (_url: string, init: { body: URLSearchParams }) => {
+      calls.push(init.body)
+      return { ok: status < 400, status, json: async () => reply }
+    }
+    return { calls, fetchImpl }
+  }
+  const passing = { success: true, action: TURNSTILE_ACTION, hostname: 'outinsimcoe.ca' }
+
+  it('passes a token siteverify accepts for this action and host', async () => {
+    const { calls, fetchImpl } = siteverify(passing)
+    expect(await verifyTurnstile('tok', options, fetchImpl)).toEqual({ ok: true })
+    expect(Object.fromEntries(calls[0]!)).toEqual({ secret: 's3cret', response: 'tok', remoteip: '203.0.113.9' })
+  })
+
+  it('refuses a missing token without asking Cloudflare', async () => {
+    for (const token of [undefined, '', 42]) {
+      const { calls, fetchImpl } = siteverify(passing)
+      expect(await verifyTurnstile(token, options, fetchImpl)).toMatchObject({ ok: false, status: 400 })
+      expect(calls).toHaveLength(0)
+    }
+  })
+
+  it('refuses something too long to be a token without asking Cloudflare', async () => {
+    const { calls, fetchImpl } = siteverify(passing)
+    expect(await verifyTurnstile('x'.repeat(2049), options, fetchImpl)).toMatchObject({ ok: false })
+    expect(calls).toHaveLength(0)
+  })
+
+  it('refuses what siteverify rejects, and says so plainly when the token merely expired', async () => {
+    const { fetchImpl } = siteverify({ success: false, 'error-codes': ['timeout-or-duplicate'] })
+    const result = await verifyTurnstile('tok', options, fetchImpl)
+    expect(result).toMatchObject({ ok: false, status: 403, codes: ['timeout-or-duplicate'] })
+    expect(result.ok === false && result.error).toMatch(/expired/)
+  })
+
+  it('refuses a real token issued for another action or another site', async () => {
+    const wrongAction = siteverify({ ...passing, action: 'login' })
+    expect(await verifyTurnstile('tok', options, wrongAction.fetchImpl)).toMatchObject({ ok: false, codes: ['action-mismatch'] })
+    const wrongHost = siteverify({ ...passing, hostname: 'evil.example' })
+    expect(await verifyTurnstile('tok', options, wrongHost.fetchImpl)).toMatchObject({ ok: false, codes: ['hostname-mismatch'] })
+  })
+
+  it('fails closed when Cloudflare cannot be reached', async () => {
+    const down = siteverify({}, 502)
+    expect(await verifyTurnstile('tok', options, down.fetchImpl)).toMatchObject({ ok: false, status: 503 })
+    const thrown = async () => { throw new Error('network') }
+    expect(await verifyTurnstile('tok', options, thrown)).toMatchObject({ ok: false, status: 503 })
   })
 })

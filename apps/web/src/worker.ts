@@ -1,6 +1,6 @@
 import { buildIcal, sourceBySlug } from '@scec/core'
 import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
-import { adminMail, thanksMail, validateSuggestion, type Suggestion } from './suggest.ts'
+import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
 
 interface D1Statement {
   all<T>(): Promise<{ results: T[] }>
@@ -31,6 +31,11 @@ export interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> }
   /** Optional so a local `wrangler dev` without it still serves the site. */
   EMAIL?: SendEmail
+  /**
+   * Secret for the Turnstile widget on /suggest. Deliberately NOT optional in behaviour:
+   * without it the form refuses every suggestion rather than accept them unchecked.
+   */
+  TURNSTILE_SECRET_KEY?: string
   /** Set once a custom domain is attached; www then redirects to it. */
   CANONICAL_HOST?: string
 }
@@ -247,8 +252,9 @@ async function sendMail(env: Env, message: Parameters<SendEmail['send']>[0]): Pr
  * is safe, so a mail failure is recorded on the row and the visitor still hears "thanks"
  * — telling them it failed would only get the same suggestion sent twice.
  *
- * Answers JSON to the page's own script and a redirect to a plain form post, so the form
- * still works with scripts off.
+ * Answers JSON to the page's own script, and a redirect or plain text to a plain form
+ * post. Turnstile needs scripts, so a post with scripts off is refused with a message
+ * saying so; the redirect path is kept for the day that changes.
  */
 async function handleSuggestion(request: Request, env: Env): Promise<Response> {
   const wantsJson = (request.headers.get('Accept') ?? '').includes('application/json')
@@ -270,16 +276,44 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
     return reply(400, 'That submission could not be read. Please try again.')
   }
 
+  // Validation first: a typo in the link should not cost a round trip to Cloudflare, and
+  // a token is single-use, so spending it on a submission that fails anyway is waste.
   const result = validateSuggestion(form)
   // A bot is thanked like anyone else and nothing is kept, so it has nothing to learn.
   if (result.ok === 'spam') return reply(200)
   if (!result.ok) return reply(400, result.error)
   const suggestion: Suggestion = result.suggestion
 
+  const ip = request.headers.get('CF-Connecting-IP')
+
+  // Fail closed. A missing email binding loses nothing, since the row is kept; a missing
+  // bot check would quietly let anything through, which nobody would notice until the
+  // domain's mail reputation did.
+  if (!env.TURNSTILE_SECRET_KEY) {
+    console.error('suggest: TURNSTILE_SECRET_KEY is not set; refusing submissions')
+    return reply(503, `The suggestion form is not accepting submissions right now. Please email ${ADMIN_ADDRESS} instead.`)
+  }
+  const human = await verifyTurnstile(
+    form[TURNSTILE_FIELD],
+    { secret: env.TURNSTILE_SECRET_KEY, remoteip: ip, hostname: new URL(request.url).hostname },
+  )
+  if (!human.ok) {
+    console.warn('suggest: turnstile refused', human.codes.join(','))
+    // No token at all from a plain form post means scripts are off, and the widget is a
+    // script. Say that, rather than asking them to wait for a check that will never load.
+    const noScript = !wantsJson && human.codes.includes('missing-input-response')
+    return reply(
+      human.status,
+      noScript
+        ? `This form needs JavaScript turned on to check that you're not a bot. Please turn it on and try again, or email ${ADMIN_ADDRESS}.`
+        : human.error,
+    )
+  }
+
   const now = new Date()
   // Salted with the day, so the hash can count one sender's hour and cannot follow them
   // from one day to the next.
-  const ipHash = await sha256(`${now.toISOString().slice(0, 10)}:${request.headers.get('CF-Connecting-IP') ?? 'unknown'}`)
+  const ipHash = await sha256(`${now.toISOString().slice(0, 10)}:${ip ?? 'unknown'}`)
   const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM suggestions WHERE ip_hash = ? AND created_at > ?')
     .bind(ipHash, new Date(now.getTime() - 3_600_000).toISOString())
     .first<{ n: number }>()

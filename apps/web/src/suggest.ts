@@ -162,3 +162,79 @@ export function thanksMail(s: Suggestion): Mail {
     ].join('\n\n'),
   }
 }
+
+/*
+ * Cloudflare Turnstile: proof the form was filled in by a person in a browser.
+ *
+ * The honeypot and the hourly limit only stop lazy bots, and this form sends mail from
+ * outinsimcoe.ca — to an address the visitor types — which makes it worth a determined
+ * one's time. Every token is checked here, server-side, before anything is stored.
+ */
+
+/** Set on the widget in public/suggest.js and required back from siteverify. */
+export const TURNSTILE_ACTION = 'suggest'
+/** The field the widget adds to the form. */
+export const TURNSTILE_FIELD = 'cf-turnstile-response'
+const SITEVERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+/** Cloudflare's own ceiling; anything longer is not a token. */
+const MAX_TOKEN = 2048
+
+export type TurnstileResult =
+  | { ok: true }
+  /** `codes` are Cloudflare's error codes, or ours in the same style, for the log. */
+  | { ok: false; status: number; error: string; codes: string[] }
+
+type FetchLike = (input: string, init: { method: string; body: URLSearchParams }) => Promise<Pick<Response, 'ok' | 'status' | 'json'>>
+
+const TRY_AGAIN = 'The check that keeps bots out did not pass. Please try sending again.'
+
+export async function verifyTurnstile(
+  token: unknown,
+  options: { secret: string; remoteip?: string | null; hostname: string },
+  fetchImpl: FetchLike = fetch,
+): Promise<TurnstileResult> {
+  if (typeof token !== 'string' || !token) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Please wait for the check above the Send button to finish, then send again.',
+      codes: ['missing-input-response'],
+    }
+  }
+  if (token.length > MAX_TOKEN) return { ok: false, status: 400, error: TRY_AGAIN, codes: ['invalid-input-response'] }
+
+  const body = new URLSearchParams({ secret: options.secret, response: token })
+  if (options.remoteip) body.set('remoteip', options.remoteip)
+
+  let outcome: { success?: boolean; action?: string; hostname?: string; 'error-codes'?: string[] }
+  try {
+    const response = await fetchImpl(SITEVERIFY, { method: 'POST', body })
+    if (!response.ok) throw new Error(`siteverify answered ${response.status}`)
+    outcome = (await response.json()) as typeof outcome
+  } catch {
+    // Cloudflare unreachable. Refuse rather than wave the submission through: an outage
+    // is exactly when nobody would notice the form had quietly stopped checking.
+    return {
+      ok: false,
+      status: 503,
+      error: "We couldn't check the form just now. Please try again in a minute.",
+      codes: ['siteverify-unreachable'],
+    }
+  }
+
+  if (!outcome.success) {
+    const codes = outcome['error-codes'] ?? []
+    const expired = codes.includes('timeout-or-duplicate')
+    return {
+      ok: false,
+      status: 403,
+      error: expired ? 'That check expired while the form was open. Please send again.' : TRY_AGAIN,
+      codes,
+    }
+  }
+  // A token is only proof for the widget and page it was issued on. Without these, one
+  // solved on another site sharing the key — or for another action — would do here too.
+  if (outcome.action !== TURNSTILE_ACTION) return { ok: false, status: 403, error: TRY_AGAIN, codes: ['action-mismatch'] }
+  if (outcome.hostname !== options.hostname) return { ok: false, status: 403, error: TRY_AGAIN, codes: ['hostname-mismatch'] }
+  return { ok: true }
+}

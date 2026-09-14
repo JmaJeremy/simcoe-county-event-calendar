@@ -186,8 +186,22 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   put anyone's address in the form; an echo would let them mail their own words to a
   stranger from outinsimcoe.ca. The admin copy has everything, with Reply-To set to the
   suggester. Abuse limits are a honeypot field (`company`), field caps, http(s)-only links,
-  and 5 per hour per IP hash salted with the UTC date. Turnstile is the next step if spam
-  gets through.
+  5 per hour per IP hash salted with the UTC date, and Turnstile.
+- **Turnstile fails closed.** The worker verifies every token with siteverify — and checks
+  that `action` is `suggest` and `hostname` is the host that served the form — after
+  validation and before the rate limit or any write. Without `TURNSTILE_SECRET_KEY`, or
+  with siteverify unreachable, the form refuses everything. So the form needs JavaScript;
+  a scripts-off post is told so. The site key is public and hardcoded in `suggest.js`;
+  the widget ("outinsimcoe.ca suggestion form") also allows localhost and the workers.dev
+  host, so `wrangler dev --var TURNSTILE_SECRET_KEY:$TURNSTILE_SECRET_KEY` works locally.
+- **Never give an element the id `turnstile`.** An id becomes a global of the same name,
+  so `window.turnstile` was the widget's own `<div>`: Turnstile warned "already has been
+  loaded" and `render` was "not a function", and no widget ever appeared.
+- **Headless browsers never get a real Turnstile token** — Cloudflare flags them as bots.
+  Test the wiring with Cloudflare's always-pass keys instead (site key
+  `1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`). Their
+  token comes back with action `test`, so expect our worker to refuse it as
+  `action-mismatch`: that refusal is the proof the whole chain ran.
 - **The work-in-progress tag and the copyright line are repeated** in `index.html`,
   `suggest.html` and `WIP_TAG`/`COPYRIGHT` in `worker.ts`. Change one, change all three.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.

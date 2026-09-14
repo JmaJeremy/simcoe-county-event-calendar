@@ -18,6 +18,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="/style.css">
+<!-- Turnstile's script is loaded by suggest.js, not here: see loadTurnstile there. -->
 </head>
 <body class="event-page suggest-page">
 <header class="topbar">
@@ -38,7 +39,10 @@
     <p class="lede">Tell us about an event that isn't here, or a website that lists events we should be reading.
       Every field is optional — fill in whatever you know.</p>
 
-    <!-- Posts as an ordinary form when scripts are off; suggest.js upgrades it. -->
+    <noscript>
+      <p class="form-error">This form needs JavaScript, to check that you're not a bot.
+        Turn it on, or email your suggestion to <a href="mailto:contact@outinsimcoe.ca">contact@outinsimcoe.ca</a>.</p>
+    </noscript>
     <form id="suggest-form" method="post" action="/api/suggest" novalidate>
       <fieldset class="kind">
         <legend>What are you suggesting?</legend>
@@ -96,6 +100,11 @@
       </div>
       <p class="form-hint">Leave an email and we'll send a quick thank-you, so you can reply if there's more to add.
         We won't use it for anything else.</p>
+
+      <!-- Cloudflare Turnstile. Usually passes on its own; occasionally asks for a click.
+           Never give this element the id "turnstile": an id becomes a global of the same
+           name, and Turnstile would find window.turnstile already taken by this div. -->
+      <div class="turnstile-widget" id="turnstile-widget"></div>
 
       <p class="form-error" id="form-error" role="alert" hidden></p>
       <div class="actions">
