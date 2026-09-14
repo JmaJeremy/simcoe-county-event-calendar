@@ -67,3 +67,31 @@ describe('the way back from an event page', () => {
     expect(href).not.toContain('<')
   })
 })
+
+describe('cost filter', () => {
+  it('keeps free and unpriced events by default', () => {
+    expect(queryFor('').sql).toContain(`e.cost <> 'paid'`)
+  })
+
+  it('narrows to free only', () => {
+    expect(queryFor('?cost=free').sql).toContain(`e.cost = 'free'`)
+  })
+
+  it('narrows to paid only', () => {
+    const { sql } = queryFor('?cost=paid')
+    expect(sql).toContain(`e.cost = 'paid'`)
+    expect(sql).not.toContain(`e.cost <> 'paid'`)
+  })
+
+  it('drops every cost clause when everything is asked for', () => {
+    expect(queryFor('?cost=all').sql).not.toContain('e.cost')
+  })
+
+  it('falls back to the default for a value it does not know', () => {
+    expect(filtersFor('?cost=cheap').cost).toBe('default')
+  })
+
+  it('carries paid back from an event page', () => {
+    expect(listUrlFrom(new URL('https://x.invalid/e/abc?cost=paid'))).toBe('/?cost=paid')
+  })
+})

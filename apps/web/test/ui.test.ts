@@ -409,6 +409,52 @@ describeIfChrome('filter menus (real browser)', () => {
     })
   })
 
+  describe('cost', () => {
+    const noteText = () => page.$eval('#costnote', (el) => el.textContent!.replace(/\s+/g, ' ').trim())
+    const setCost = async (value: string) => {
+      await page.select('#cost', value)
+      await new Promise((r) => setTimeout(r, 80))
+    }
+
+    afterAll(async () => {
+      await setCost('default')
+    })
+
+    it('says what the default view is holding back, with the way out', async () => {
+      expect(await isVisible('#costnote')).toBe(true)
+      expect(await noteText()).toMatch(/free events and events with no price listed/i)
+      expect(await noteText()).toMatch(/including paid/i)
+    })
+
+    it('shows everything when that note is clicked, and then says nothing', async () => {
+      await page.click('#cost-all')
+      expect(await page.$eval('#cost', (el) => (el as HTMLSelectElement).value)).toBe('all')
+      expect(await isVisible('#costnote')).toBe(false)
+      const shown = await page.$$eval('#list .event', (els) => els.length)
+      expect(shown).toBeGreaterThan(0)
+      expect(page.url()).toContain('cost=all')
+    })
+
+    it('offers paid only, and shows just those', async () => {
+      const options = await page.$$eval('#cost option', (els) => els.map((e) => (e as HTMLOptionElement).value))
+      expect(options).toEqual(['default', 'free', 'paid', 'all'])
+
+      await setCost('paid')
+      expect(await noteText()).toMatch(/paid events only/i)
+      const paid = EVENTS.filter((e) => e.cost === 'paid' && e.category !== 'civic-meeting')
+      const titles = await page.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent!.trim()))
+      expect(new Set(titles)).toEqual(new Set(paid.map((e) => e.title)))
+      expect(page.url()).toContain('cost=paid')
+    })
+
+    it('carries the cost into the subscribe link', async () => {
+      await setCost('paid')
+      await page.click('#subscribe')
+      expect(await page.$eval('#ics-url', (el) => el.textContent!.trim())).toContain('cost=paid')
+      await page.click('#close-sheet')
+    })
+  })
+
   describe('returning from an event', () => {
     // The stub has no /e/ route, so leaving lands on its 404. That is enough: what is
     // being tested is what the list remembers on the way out and restores on the way in.

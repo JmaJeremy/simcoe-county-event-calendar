@@ -400,6 +400,18 @@ a { color: inherit; }
 }
 .date-presets button:hover { border-color: var(--accent); color: var(--accent-deep); }
 
+/* ---- what the cost filter is hiding ----
+   The default view quietly drops paid events. Saying so, with the way out in the same
+   sentence, is the difference between a filter and a missing event. */
+.costnote {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
+  margin: 0 0 16px; padding: 10px 14px;
+  background: color-mix(in srgb, var(--sun) 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--sun) 40%, var(--line));
+  border-radius: 999px; font-size: 13.5px; color: var(--ink);
+}
+.costnote .linkish { font-size: 13.5px; }
+
 /* ---- month navigation ---- */
 .monthnav { display: flex; align-items: center; gap: 6px; margin: 0 0 16px; }
 .monthnav h2 { margin: 0 4px; min-width: 12ch; font-weight: 800; font-size: 22px; line-height: 1.2; }

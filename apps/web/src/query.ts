@@ -10,8 +10,8 @@ export const UNPLACED = 'unspecified'
 export interface EventFilters {
   municipalities: string[]
   categories: string[]
-  /** 'free' → free only; 'all' → everything; default → free + unknown. */
-  cost: 'free' | 'default' | 'all'
+  /** 'free' → free only; 'paid' → paid only; 'all' → everything; default → free + unknown. */
+  cost: 'free' | 'paid' | 'default' | 'all'
   sources: string[]
   statuses: string[]
   includeCivic: boolean
@@ -29,7 +29,7 @@ export function parseFilters(url: URL): EventFilters {
   return {
     municipalities: list('m'),
     categories: list('cat'),
-    cost: cost === 'free' || cost === 'all' ? cost : 'default',
+    cost: cost === 'free' || cost === 'paid' || cost === 'all' ? cost : 'default',
     sources: list('src'),
     statuses: list('status'),
     // Council and committee meetings are civi-times' job; hidden unless asked for.
@@ -54,7 +54,7 @@ export function listUrlFrom(url: URL): string {
   if (filters.municipalities.length) out.set('m', filters.municipalities.join(','))
   if (filters.categories.length) out.set('cat', filters.categories.join(','))
   const cost = url.searchParams.get('cost')
-  if (cost === 'free' || cost === 'all') out.set('cost', cost)
+  if (cost === 'free' || cost === 'paid' || cost === 'all') out.set('cost', cost)
   for (const flag of ['civic', 'past']) {
     if (url.searchParams.get(flag) === '1') out.set(flag, '1')
   }
@@ -169,6 +169,7 @@ export function buildQuery(filters: EventFilters): { sql: string; bindings: unkn
   inClause('e.status', filters.statuses)
   if (!filters.includeCivic) where.push(`e.category <> 'civic-meeting'`)
   if (filters.cost === 'free') where.push(`e.cost = 'free'`)
+  else if (filters.cost === 'paid') where.push(`e.cost = 'paid'`)
   else if (filters.cost === 'default') where.push(`e.cost <> 'paid'`)
 
   if (filters.sources.length) {

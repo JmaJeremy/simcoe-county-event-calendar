@@ -75,7 +75,7 @@ function readUrl() {
   const set = (key) => new Set((p.get(key) || '').split(',').filter(Boolean))
   state.filters.m = set('m')
   state.filters.cat = set('cat')
-  state.cost = ['free', 'all'].includes(p.get('cost')) ? p.get('cost') : 'default'
+  state.cost = ['free', 'paid', 'all'].includes(p.get('cost')) ? p.get('cost') : 'default'
   state.showCivic = p.get('civic') === '1'
   state.showPast = p.get('past') === '1'
   state.view = p.get('view') === 'calendar' ? 'calendar' : 'list'
@@ -123,6 +123,8 @@ function icsUrl() {
 function matchesCost(e) {
   if (state.cost === 'all') return true
   if (state.cost === 'free') return e.cost === 'free'
+  if (state.cost === 'paid') return e.cost === 'paid'
+  // The default: free, plus everything whose price the source never stated.
   return e.cost !== 'paid'
 }
 
@@ -495,6 +497,33 @@ function updateStats(rendered, matching) {
   $('stats').textContent = `${lead} · ${total} tracked across ${places} municipalities`
 }
 
+/*
+ * What the cost filter is holding back, said out loud with the way out in the same line.
+ *
+ * The default view hides paid events, which is the right default and an invisible one:
+ * an event someone knows about is simply missing, with nothing on screen to explain it.
+ * Shown above both views, because the calendar hides them just as quietly.
+ */
+const COST_NOTES = {
+  default: ['Showing free events and events with no price listed.', 'Show everything, including paid'],
+  free: ['Showing free events only.', 'Show everything'],
+  paid: ['Showing paid events only.', 'Show everything'],
+}
+
+function renderCostNote() {
+  const note = $('costnote')
+  const copy = COST_NOTES[state.cost]
+  note.hidden = !copy
+  if (!copy) return
+  const [text, action] = copy
+  note.innerHTML = `<span>${esc(text)}</span><button type="button" class="linkish" id="cost-all">${esc(action)}</button>`
+  $('cost-all').onclick = () => {
+    state.cost = 'all'
+    $('cost').value = 'all'
+    refreshAll()
+  }
+}
+
 /* ---------- filter menus ---------- */
 
 /** containerId -> which filter set it drives. */
@@ -832,6 +861,7 @@ function refresh() {
   applyView()
   syncMenus()
   syncDateMenu()
+  renderCostNote()
   renderActiveFilters()
   if (state.view === 'calendar') renderCalendar()
   else renderList()
