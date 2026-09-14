@@ -78,47 +78,99 @@
   --shadow-lift: 0 2px 4px rgba(60, 40, 16, .08), 0 12px 28px rgba(60, 40, 16, .12);
 }
 
+/*
+ * Dark, written twice on purpose.
+ *
+ * The first block is the system preference, which must not win once the reader has
+ * explicitly chosen light. The second is that explicit choice, which must win over a
+ * light system. There is no way to share one declaration block between the two
+ * selectors, so the tokens are repeated; change one, change both.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #14110f;
-    --surface: #1e1a17;
-    --surface-2: #2a2521;
-    --ink: #f4ece1;
-    --ink-2: #b9ac9c;
-    --ink-3: #887d70;
-    --line: #352e28;
-    --accent: #ff8a4c;
-    --accent-deep: #ffb083;
-    --accent-ink: #2c1205;
-    --sun: #f6c465;
-    --sun-ink: #2c1e05;
-    --hl: color-mix(in srgb, var(--accent) 22%, transparent);
-    --rel-bg: color-mix(in srgb, var(--sun) 15%, var(--surface));
-    --rel-ink: var(--sun);
-    --warn: #e0a86a;
-    --warn-bg: #2c2318;
-    --stop: #f08b86;
-    --stop-bg: #2e1a1a;
-    --speak: #8ab8e0;
-    --speak-bg: #17222e;
-    --free: #7fd39b;
-    --free-bg: #16281d;
+  :root:not([data-theme="light"]) {
+  --bg: #14110f;
+  --surface: #1e1a17;
+  --surface-2: #2a2521;
+  --ink: #f4ece1;
+  --ink-2: #b9ac9c;
+  --ink-3: #887d70;
+  --line: #352e28;
+  --accent: #ff8a4c;
+  --accent-deep: #ffb083;
+  --accent-ink: #2c1205;
+  --sun: #f6c465;
+  --sun-ink: #2c1e05;
+  --hl: color-mix(in srgb, var(--accent) 22%, transparent);
+  --rel-bg: color-mix(in srgb, var(--sun) 15%, var(--surface));
+  --rel-ink: var(--sun);
+  --warn: #e0a86a;
+  --warn-bg: #2c2318;
+  --stop: #f08b86;
+  --stop-bg: #2e1a1a;
+  --speak: #8ab8e0;
+  --speak-bg: #17222e;
+  --free: #7fd39b;
+  --free-bg: #16281d;
 
-    --cat-arts: #b69cff;
-    --cat-music: #ff8fb1;
-    --cat-family: #ffa86b;
-    --cat-outdoors: #78d98c;
-    --cat-markets: #f3c05a;
-    --cat-sports: #7ab8ef;
-    --cat-community: #6fc9d6;
-    --cat-education: #a99aff;
-    --cat-civic: #a6adb8;
-    --cat-other: #c4b191;
+  --cat-arts: #b69cff;
+  --cat-music: #ff8fb1;
+  --cat-family: #ffa86b;
+  --cat-outdoors: #78d98c;
+  --cat-markets: #f3c05a;
+  --cat-sports: #7ab8ef;
+  --cat-community: #6fc9d6;
+  --cat-education: #a99aff;
+  --cat-civic: #a6adb8;
+  --cat-other: #c4b191;
 
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .3);
-    --shadow-lift: 0 2px 4px rgba(0, 0, 0, .45), 0 12px 28px rgba(0, 0, 0, .4);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .3);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, .45), 0 12px 28px rgba(0, 0, 0, .4);
   }
 }
+
+:root[data-theme="dark"] {
+  --bg: #14110f;
+  --surface: #1e1a17;
+  --surface-2: #2a2521;
+  --ink: #f4ece1;
+  --ink-2: #b9ac9c;
+  --ink-3: #887d70;
+  --line: #352e28;
+  --accent: #ff8a4c;
+  --accent-deep: #ffb083;
+  --accent-ink: #2c1205;
+  --sun: #f6c465;
+  --sun-ink: #2c1e05;
+  --hl: color-mix(in srgb, var(--accent) 22%, transparent);
+  --rel-bg: color-mix(in srgb, var(--sun) 15%, var(--surface));
+  --rel-ink: var(--sun);
+  --warn: #e0a86a;
+  --warn-bg: #2c2318;
+  --stop: #f08b86;
+  --stop-bg: #2e1a1a;
+  --speak: #8ab8e0;
+  --speak-bg: #17222e;
+  --free: #7fd39b;
+  --free-bg: #16281d;
+
+  --cat-arts: #b69cff;
+  --cat-music: #ff8fb1;
+  --cat-family: #ffa86b;
+  --cat-outdoors: #78d98c;
+  --cat-markets: #f3c05a;
+  --cat-sports: #7ab8ef;
+  --cat-community: #6fc9d6;
+  --cat-education: #a99aff;
+  --cat-civic: #a6adb8;
+  --cat-other: #c4b191;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .3);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, .45), 0 12px 28px rgba(0, 0, 0, .4);
+}
+
+/* Form controls, scrollbars and the canvas behind the page follow the choice too. */
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 
@@ -315,6 +367,35 @@ a { color: inherit; }
   padding: 6px 15px; font: inherit; font-size: 14px; color: var(--ink-2); cursor: pointer;
 }
 .viewswitch button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--shadow); }
+
+/* ---- theme switch ---- */
+.themeswitch { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.themeswitch button {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; border-radius: 999px;
+  padding: 5px 11px; font: inherit; font-size: 13px; color: var(--ink-2); cursor: pointer;
+}
+.themeswitch button svg { width: 15px; height: 15px; display: block; }
+.themeswitch button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.themeswitch button:hover { color: var(--ink); }
+
+/* ---- date range menu ---- */
+.menu-dates { min-width: 268px; padding: 10px; gap: 12px; }
+.date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.date-row label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-3); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.date-row input {
+  background: var(--surface-2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 7px 9px; font: inherit; font-size: 13.5px; width: 100%;
+}
+.date-row input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.date-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.date-presets button {
+  background: var(--surface); color: var(--ink-2);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 11px; font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.date-presets button:hover { border-color: var(--accent); color: var(--accent-deep); }
 
 /* ---- month navigation ---- */
 .monthnav { display: flex; align-items: center; gap: 6px; margin: 0 0 16px; }

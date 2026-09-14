@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import puppeteer, { type Browser, type Page } from 'puppeteer-core'
+import puppeteer, { type Browser, type HTTPRequest, type Page } from 'puppeteer-core'
 import { EVENTS, EVENT_MONTHS, VISIBLE, startServer } from './server.ts'
 
 /**
@@ -248,6 +248,143 @@ describeIfChrome('filter menus (real browser)', () => {
   it('links plainly when nothing is filtered', async () => {
     const href = await page.$eval('#list .event h3 a', (el) => (el as HTMLAnchorElement).getAttribute('href')!)
     expect(href).not.toContain('?')
+  })
+
+  describe('theme switch', () => {
+    const theme = () => page.evaluate(() => document.documentElement.dataset.theme ?? 'system')
+    const pressed = () =>
+      page.$$eval('.themeswitch button', (els) =>
+        els.filter((e) => e.getAttribute('aria-pressed') === 'true').map((e) => e.id),
+      )
+
+    afterAll(async () => {
+      await page.click('#theme-system')
+    })
+
+    it('follows the system by default, storing nothing', async () => {
+      expect(await theme()).toBe('system')
+      expect(await pressed()).toEqual(['theme-system'])
+      expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe(null)
+    })
+
+    it('marks the element for the stylesheet when dark is chosen', async () => {
+      await page.click('#theme-dark')
+      expect(await theme()).toBe('dark')
+      expect(await pressed()).toEqual(['theme-dark'])
+    })
+
+    it('actually repaints, rather than only setting an attribute', async () => {
+      await page.click('#theme-light')
+      const light = await page.$eval('body', (el) => getComputedStyle(el).backgroundColor)
+      await page.click('#theme-dark')
+      const dark = await page.$eval('body', (el) => getComputedStyle(el).backgroundColor)
+      expect(dark).not.toBe(light)
+    })
+
+    it('survives a reload', async () => {
+      await page.click('#theme-dark')
+      await page.reload({ waitUntil: 'networkidle0' })
+      expect(await theme()).toBe('dark')
+      expect(await pressed()).toEqual(['theme-dark'])
+    })
+
+    it('is applied by the head script, before app.js could run at all', async () => {
+      // The point of the inline script is the first paint. Blocking app.js is the only
+      // way to tell it apart from the module doing the same thing a moment later.
+      await page.click('#theme-dark')
+      await page.setRequestInterception(true)
+      const block = (req: HTTPRequest) => {
+        if (req.url().endsWith('/app.js')) void req.abort()
+        else void req.continue()
+      }
+      page.on('request', block)
+      try {
+        await page.reload({ waitUntil: 'domcontentloaded' })
+        expect(await theme()).toBe('dark')
+      } finally {
+        page.off('request', block)
+        await page.setRequestInterception(false)
+        await page.reload({ waitUntil: 'networkidle0' })
+      }
+    })
+
+    it('forgets the choice again when handed back to the system', async () => {
+      await page.click('#theme-dark')
+      await page.click('#theme-system')
+      expect(await theme()).toBe('system')
+      expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe(null)
+    })
+  })
+
+  describe('date range', () => {
+    const openDates = async () => {
+      await page.click('#f-dates > button')
+      expect(await isVisible('#f-dates .menu')).toBe(true)
+    }
+    const shownDates = () =>
+      page.$$eval('#list .day-head h2', (els) => els.map((e) => e.textContent!.trim()))
+
+    it('narrows the list to the days asked for', async () => {
+      const dates = [...new Set(VISIBLE.map((e) => e.localDate))].sort()
+      const [from, to] = [dates[1]!, dates[3]!]
+      await openDates()
+      await page.$eval('#date-from', (el, v) => {
+        ;(el as HTMLInputElement).value = v as string
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+      }, from)
+      await page.$eval('#date-to', (el, v) => {
+        ;(el as HTMLInputElement).value = v as string
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+      }, to)
+      await closeMenus()
+
+      const expected = VISIBLE.filter((e) => e.localDate >= from && e.localDate <= to).length
+      const rendered = await page.$$eval('#list .event', (els) => els.length)
+      expect(rendered).toBe(expected)
+      expect(await shownDates()).toHaveLength(3)
+      const url = new URL(page.url())
+      expect(url.searchParams.get('from')).toBe(from)
+      expect(url.searchParams.get('to')).toBe(to)
+    })
+
+    it('shows the range as a filter pill that clears it again', async () => {
+      await openDates()
+      await page.click('#f-dates [data-range="7"]')
+      await closeMenus()
+      const pill = await page.$eval('#active .pill', (el) => el.textContent!.trim())
+      expect(pill).toMatch(/–/)
+      await page.click('#active .pill button')
+      expect(await page.$$eval('#active .pill', (els) => els.length)).toBe(0)
+      expect(page.url()).not.toContain('from=')
+    })
+
+    it('takes the range the other way round as the range they meant', async () => {
+      const dates = [...new Set(VISIBLE.map((e) => e.localDate))].sort()
+      await openDates()
+      await page.$eval('#date-from', (el, v) => {
+        ;(el as HTMLInputElement).value = v as string
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+      }, dates[3]!)
+      await page.$eval('#date-to', (el, v) => {
+        ;(el as HTMLInputElement).value = v as string
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+      }, dates[1]!)
+      await closeMenus()
+      const url = new URL(page.url())
+      expect(url.searchParams.get('from')).toBe(dates[1])
+      expect(url.searchParams.get('to')).toBe(dates[3])
+    })
+
+    it('carries the range into the subscribe link', async () => {
+      await openDates()
+      await page.click('#f-dates [data-range="30"]')
+      await closeMenus()
+      await page.click('#subscribe')
+      const ics = await page.$eval('#ics-url', (el) => el.textContent!.trim())
+      expect(ics).toContain('from=')
+      expect(ics).toContain('to=')
+      await page.click('#close-sheet')
+    })
   })
 
   describe('list paging', () => {

@@ -240,6 +240,7 @@ function renderEventPage(event: PublicEvent, origin: string, backHref = '/'): st
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script>try { var t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t } catch (e) {}</script>
 <link rel="stylesheet" href="/style.css">
 <script type="module" src="/share.js"></script>
 <script type="application/ld+json">${eventJsonLd(event, canonical)}</script>

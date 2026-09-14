@@ -23,6 +23,9 @@ const state = {
   month: '',
   /** Day whose events are listed in the dialog, 'YYYY-MM-DD' or null. */
   selectedDay: null,
+  /** Date range, either end optional, 'YYYY-MM-DD'. An explicit range beats "upcoming". */
+  from: '',
+  to: '',
 }
 
 const $ = (id) => document.getElementById(id)
@@ -77,6 +80,9 @@ function readUrl() {
   state.showPast = p.get('past') === '1'
   state.view = p.get('view') === 'calendar' ? 'calendar' : 'list'
   state.month = /^\d{4}-\d{2}$/.test(p.get('month') || '') ? p.get('month') : thisMonth()
+  const date = (key) => (/^\d{4}-\d{2}-\d{2}$/.test(p.get(key) || '') ? p.get(key) : '')
+  state.from = date('from')
+  state.to = date('to')
 }
 
 function writeUrl() {
@@ -87,6 +93,8 @@ function writeUrl() {
   if (state.cost !== 'default') p.set('cost', state.cost)
   if (state.showCivic) p.set('civic', '1')
   if (state.showPast) p.set('past', '1')
+  if (state.from) p.set('from', state.from)
+  if (state.to) p.set('to', state.to)
   if (state.view === 'calendar') {
     p.set('view', 'calendar')
     // Only pin the month if it is not the one the page would open on anyway, so a
@@ -104,6 +112,8 @@ function icsUrl() {
   if (state.filters.cat.size) p.set('cat', [...state.filters.cat].join(','))
   if (state.cost !== 'default') p.set('cost', state.cost)
   if (state.showCivic) p.set('civic', '1')
+  if (state.from) p.set('from', state.from)
+  if (state.to) p.set('to', state.to)
   const qs = p.toString()
   return `${location.origin}/calendar.ics${qs ? `?${qs}` : ''}`
 }
@@ -131,7 +141,12 @@ function matchesFilters(e) {
  * the month on screen instead: someone who has deliberately paged back wants that month.
  */
 function inDateScope(e) {
+  if (state.from && e.localDate < state.from) return false
+  if (state.to && e.localDate > state.to) return false
   if (state.view === 'calendar') return e.localDate.slice(0, 7) === state.month
+  // A range the reader typed is a deliberate statement about which days they want, so it
+  // replaces the "from today onwards" default rather than being narrowed by it.
+  if (state.from || state.to) return true
   return state.showPast || e.localDate >= todayISO()
 }
 
@@ -590,6 +605,18 @@ function syncMenus() {
   }
 }
 
+/** The dates field has one badge and no checkboxes, so it syncs on its own. */
+function syncDateMenu() {
+  const container = $('f-dates')
+  if (!container.firstChild) return
+  const badge = container.querySelector('.count')
+  badge.hidden = !(state.from || state.to)
+  const from = container.querySelector('#date-from')
+  const to = container.querySelector('#date-to')
+  if (from) from.value = state.from
+  if (to) to.value = state.to
+}
+
 function closeAllMenus() {
   document.querySelectorAll('.menu').forEach((m) => (m.hidden = true))
   document.querySelectorAll('.field > button').forEach((b) => b.setAttribute('aria-expanded', 'false'))
@@ -606,11 +633,13 @@ function renderActiveFilters() {
 
   for (const slug of state.filters.m) add('m', slug, shortPlaceName(slug))
   for (const cat of state.filters.cat) add('cat', cat, categoryLabel(cat))
+  if (state.from || state.to) add('dates', 'range', rangeLabel())
 
   const box = $('active')
   box.innerHTML = pills.length ? pills.join('') + `<button class="pill clear-all" type="button">Clear all</button>` : ''
   box.querySelectorAll('button[data-key]').forEach((b) => {
     b.onclick = () => {
+      if (b.dataset.key === 'dates') return setRange('', '')
       state.filters[b.dataset.key].delete(b.dataset.value)
       refresh()
     }
@@ -622,7 +651,9 @@ function renderActiveFilters() {
 window.__clearAll = () => {
   state.filters.m.clear()
   state.filters.cat.clear()
-  refresh()
+  state.from = ''
+  state.to = ''
+  refreshAll()
 }
 
 /* ---------- options derived from the data ---------- */
@@ -678,6 +709,89 @@ function municipalityOptions() {
     })
 }
 
+/** Shift a 'YYYY-MM-DD' by whole days, in UTC so no local DST edge can move the date. */
+function addDays(iso, days) {
+  const d = new Date(`${iso}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Ranges people actually ask for, worked out from the date in Simcoe County today. */
+function presetRange(name) {
+  const today = todayISO()
+  if (name === '7') return [today, addDays(today, 6)]
+  if (name === '30') return [today, addDays(today, 29)]
+  if (name === 'month') {
+    const [y, m] = today.split('-').map(Number)
+    return [`${today.slice(0, 7)}-01`, new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)]
+  }
+  // The weekend: the coming Saturday and Sunday, or the rest of this one if it has started.
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay()
+  const saturday = dow === 0 ? addDays(today, -1) : addDays(today, 6 - dow)
+  return [dow === 0 ? today : saturday, addDays(saturday, 1)]
+}
+
+const fmtShortDate = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+const shortDate = (iso) => fmtShortDate.format(new Date(`${iso}T00:00:00Z`))
+
+/** How the chosen range reads on the pill: both ends, or whichever one was given. */
+function rangeLabel() {
+  if (state.from && state.to) {
+    return state.from === state.to ? shortDate(state.from) : `${shortDate(state.from)} – ${shortDate(state.to)}`
+  }
+  return state.from ? `From ${shortDate(state.from)}` : `Until ${shortDate(state.to)}`
+}
+
+function setRange(from, to) {
+  // Typed the other way round: take what they meant rather than showing them nothing.
+  if (from && to && from > to) [from, to] = [to, from]
+  state.from = from
+  state.to = to
+  refreshAll()
+}
+
+function buildDateMenu() {
+  const container = $('f-dates')
+  const set = state.from || state.to
+  container.innerHTML = `
+    <button aria-expanded="false" aria-haspopup="true">Dates<span class="count"${set ? '' : ' hidden'}>1</span> <span class="chev">▾</span></button>
+    <div class="menu menu-dates" hidden>
+      <div class="date-row">
+        <label>From <input type="date" id="date-from" value="${esc(state.from)}" aria-label="From date"></label>
+        <label>To <input type="date" id="date-to" value="${esc(state.to)}" aria-label="To date"></label>
+      </div>
+      <div class="date-presets">
+        <button type="button" data-range="weekend">This weekend</button>
+        <button type="button" data-range="7">Next 7 days</button>
+        <button type="button" data-range="30">Next 30 days</button>
+        <button type="button" data-range="month">This month</button>
+      </div>
+      <div class="menu-head"><button type="button" data-clear>Clear dates</button></div>
+    </div>`
+
+  const trigger = container.querySelector('button')
+  const menu = container.querySelector('.menu')
+  trigger.onclick = (ev) => {
+    ev.stopPropagation()
+    const wasOpen = !menu.hidden
+    closeAllMenus()
+    if (!wasOpen) {
+      menu.hidden = false
+      trigger.setAttribute('aria-expanded', 'true')
+    }
+  }
+  menu.onclick = (ev) => ev.stopPropagation()
+
+  const from = menu.querySelector('#date-from')
+  const to = menu.querySelector('#date-to')
+  from.onchange = () => setRange(from.value, to.value)
+  to.onchange = () => setRange(from.value, to.value)
+  menu.querySelectorAll('[data-range]').forEach((b) => {
+    b.onclick = () => setRange(...presetRange(b.dataset.range))
+  })
+  menu.querySelector('[data-clear]').onclick = () => setRange('', '')
+}
+
 function rebuildMenus() {
   buildMenu('f-municipality', 'Municipality', 'm', municipalityOptions())
   buildMenu(
@@ -686,6 +800,7 @@ function rebuildMenus() {
     'cat',
     optionsFor((e) => e.category).map((o) => ({ ...o, label: categoryLabel(o.value) })),
   )
+  buildDateMenu()
 }
 
 function refresh() {
@@ -693,6 +808,7 @@ function refresh() {
   writeUrl()
   applyView()
   syncMenus()
+  syncDateMenu()
   renderActiveFilters()
   if (state.view === 'calendar') renderCalendar()
   else renderList()
@@ -724,6 +840,42 @@ $('copy-ics').onclick = async () => {
     $('copy-ics').textContent = 'Select the link above'
   }
 }
+
+/* ---------- theme ---------- */
+
+/*
+ * Three states, not two: light, dark, and following the system — which is the default and
+ * the only one that stores nothing. The attribute on <html> is what the stylesheet reads;
+ * a copy of this choice runs inline in the page head so the first paint is already right.
+ */
+const THEME_KEY = 'theme'
+
+function readTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_KEY)
+    return stored === 'dark' || stored === 'light' ? stored : 'system'
+  } catch {
+    return 'system'
+  }
+}
+
+function applyTheme(theme) {
+  if (theme === 'system') delete document.documentElement.dataset.theme
+  else document.documentElement.dataset.theme = theme
+  try {
+    if (theme === 'system') localStorage.removeItem(THEME_KEY)
+    else localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    // A browser with storage blocked still gets the theme, just not the memory of it.
+  }
+  for (const [id, value] of Object.entries(THEME_BUTTONS)) {
+    $(id).setAttribute('aria-pressed', String(value === theme))
+  }
+}
+
+const THEME_BUTTONS = { 'theme-light': 'light', 'theme-dark': 'dark', 'theme-system': 'system' }
+for (const [id, value] of Object.entries(THEME_BUTTONS)) $(id).onclick = () => applyTheme(value)
+applyTheme(readTheme())
 
 /* ---------- view + month controls ---------- */
 

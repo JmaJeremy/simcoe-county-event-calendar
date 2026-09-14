@@ -104,6 +104,17 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
 - **The judge is optional and cached.** Without `ANTHROPIC_API_KEY` ambiguous pairs stay
   unmerged (`unresolved` in the run stats) and are retried next run. A verdict is stored per
   pair per content hash, so the model sees each pair once.
+- **The dark palette is written twice**, once under `prefers-color-scheme` guarded by
+  `:root:not([data-theme="light"])` and once under `:root[data-theme="dark"]`. Three theme
+  states need that: the system preference must lose to an explicit light choice, and an
+  explicit dark choice must beat a light system. Change one block, change the other.
+- **The theme is applied by an inline script in the head**, in `index.html` and in the
+  event page, before the stylesheet. Without it every load flashes white for a reader who
+  chose dark. `app.js` sets it too, but that is too late to matter. A browser test blocks
+  `app.js` on reload to prove the head script is doing the work.
+- **A typed date range replaces the "upcoming only" default** rather than narrowing it —
+  see `inDateScope`. Someone who asks for last week means last week, whatever the "Past
+  events" box says. `from`/`to` also ride along to the iCal feed.
 - **The mark exists in three copies**: inline in `public/index.html`, as `MARK` in
   `apps/web/src/worker.ts` (both in CSS variables) and in `scripts/brand.ts` (hardcoded
   hex, because a screenshot cannot read CSS variables). Change one, change all three, and
