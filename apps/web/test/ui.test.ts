@@ -236,6 +236,20 @@ describeIfChrome('filter menus (real browser)', () => {
     })
   })
 
+  it('hands the current filters to each event link, so the way back is the same view', async () => {
+    await page.click('#f-municipality > button')
+    await page.click('#f-municipality input[value="tay"]')
+    await closeMenus()
+    const href = await page.$eval('#list .event h3 a', (el) => (el as HTMLAnchorElement).getAttribute('href')!)
+    expect(href).toMatch(/^\/e\/\w+\?/)
+    expect(new URL(href, 'https://x.invalid').searchParams.get('m')).toBe('tay')
+  })
+
+  it('links plainly when nothing is filtered', async () => {
+    const href = await page.$eval('#list .event h3 a', (el) => (el as HTMLAnchorElement).getAttribute('href')!)
+    expect(href).not.toContain('?')
+  })
+
   describe('list paging', () => {
     const rendered = () => page.$$eval('#list .event', (els) => els.length)
 

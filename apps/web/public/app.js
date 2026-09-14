@@ -243,6 +243,15 @@ function costTag(e) {
   return ''
 }
 
+/**
+ * An event's permalink, carrying whatever is filtered right now. The server reads those
+ * back off the link so "All events" returns to this view, not to an unfiltered list.
+ * The search string is already the filter state — writeUrl keeps it that way.
+ */
+function eventHref(e) {
+  return `/e/${e.shortCode}${location.search}`
+}
+
 function renderEvent(e) {
   const tags = []
   if (e.status === 'cancelled') tags.push('<span class="tag cancelled">Cancelled</span>')
@@ -255,13 +264,13 @@ function renderEvent(e) {
   const place = [e.venueName, !e.venueName && e.address ? e.address : null].filter(Boolean)[0]
   const alsoOn = e.sourceSlugs.length > 1 ? `<span class="also">listed ${e.sourceSlugs.length} places</span>` : ''
 
-  return `<article class="event${e.status === 'cancelled' ? ' is-cancelled' : ''}">
+  return `<article class="event${e.status === 'cancelled' ? ' is-cancelled' : ''}" data-cat="${esc(e.category)}">
     <div class="time">${time}</div>
     <div>
-      <h3><a href="/e/${esc(e.shortCode)}">${esc(e.title)}</a> ${tags.join(' ')}</h3>
+      <h3><a href="${esc(eventHref(e))}">${esc(e.title)}</a> ${tags.join(' ')}</h3>
       <div class="meta">
         <span class="jur">${esc(shortPlaceName(e.municipalitySlug))}</span>
-        <span>${esc(categoryLabel(e.category))}</span>
+        <span class="cat"><span class="cat-dot" aria-hidden="true"></span>${esc(categoryLabel(e.category))}</span>
         ${place ? `<span>${esc(place)}</span>` : ''}
         ${alsoOn}
       </div>
@@ -285,7 +294,12 @@ function monthGrid(month) {
   const cursor = new Date(start)
   while (cells.length < 42) {
     const iso = cursor.toISOString().slice(0, 10)
-    cells.push({ iso, day: cursor.getUTCDate(), inMonth: iso.slice(0, 7) === month })
+    cells.push({
+      iso,
+      day: cursor.getUTCDate(),
+      inMonth: iso.slice(0, 7) === month,
+      weekend: cursor.getUTCDay() === 0 || cursor.getUTCDay() === 6,
+    })
     cursor.setUTCDate(cursor.getUTCDate() + 1)
     if (cells.length % 7 === 0 && cursor.toISOString().slice(0, 7) !== month) break
   }
@@ -327,6 +341,7 @@ function renderCalendar() {
     .map((cell) => {
       const dayEvents = byDay.get(cell.iso) ?? []
       const classes = ['cal-day']
+      if (cell.weekend) classes.push('is-weekend')
       if (!cell.inMonth) classes.push('is-outside')
       if (cell.iso === today) classes.push('is-today')
       if (cell.iso === state.selectedDay) classes.push('is-selected')
@@ -337,7 +352,7 @@ function renderCalendar() {
         .map((e) => {
           const dateOnly = e.allDay || e.timePrecision === 'date-only'
           const fullTime = dateOnly ? 'All day' : formatTime(e.localTime)
-          return `<span class="chip ${e.status === 'cancelled' ? 'is-cancelled' : ''}"
+          return `<span class="chip ${e.status === 'cancelled' ? 'is-cancelled' : ''}" data-cat="${esc(e.category)}"
             title="${esc(`${fullTime} · ${placeName(e.municipalitySlug)} · ${e.title}`)}">
             <span class="chip-time">${dateOnly ? '' : esc(compactTime(e.localTime))}</span>
             ${showPlace ? `<span class="chip-place">${esc(shortPlaceName(e.municipalitySlug))}</span>` : ''}
@@ -347,7 +362,7 @@ function renderCalendar() {
       const more = dayEvents.length > MAX_CHIPS ? `<span class="chip-more">+${dayEvents.length - MAX_CHIPS} more</span>` : ''
       const dots = dayEvents
         .slice(0, 4)
-        .map((e) => `<span class="dot ${e.status === 'cancelled' ? 'is-cancelled' : ''}"></span>`)
+        .map((e) => `<span class="dot ${e.status === 'cancelled' ? 'is-cancelled' : ''}" data-cat="${esc(e.category)}"></span>`)
         .join('')
 
       return `<button type="button" class="${classes.join(' ')}" data-day="${cell.iso}"
@@ -797,7 +812,9 @@ async function boot() {
   for (const m of municipalities) state.municipalities.set(m.slug, m)
 
   if (sources.length) {
-    $('sources-line').innerHTML = `Sources: ${sources.map((s) => `<a href="${esc(s.homepage)}" rel="noopener">${esc(s.name)}</a>`).join(' · ')}`
+    $('sources-line').innerHTML = `Sources: ${sources
+      .map((s) => `<a href="${esc(s.homepage)}" target="_blank" rel="noopener noreferrer">${esc(s.name)}</a>`)
+      .join(' · ')}`
   }
   refreshAll()
 }

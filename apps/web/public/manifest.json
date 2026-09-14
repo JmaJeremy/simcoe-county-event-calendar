@@ -4,7 +4,7 @@
   "description": "Free things to do across Simcoe County, in one place.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f6f3",
-  "theme_color": "#8a3b12",
+  "background_color": "#fdf7ed",
+  "theme_color": "#e05a17",
   "icons": [{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }]
 }

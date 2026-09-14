@@ -104,6 +104,17 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
 - **The judge is optional and cached.** Without `ANTHROPIC_API_KEY` ambiguous pairs stay
   unmerged (`unresolved` in the run stats) and are retried next run. A verdict is stored per
   pair per content hash, so the model sees each pair once.
+- **The mark exists in three copies**: inline in `public/index.html`, as `MARK` in
+  `apps/web/src/worker.ts` (both in CSS variables) and in `scripts/brand.ts` (hardcoded
+  hex, because a screenshot cannot read CSS variables). Change one, change all three, and
+  re-run `brand.ts` — the palette is repeated at the top of that script for the same reason.
+- **Fraunces is self-hosted in `public/fonts/`** (SIL OFL), not linked from Google. The UI
+  suite loads the page with `networkidle0` and `npm test` is promised to run with no
+  network, so a third-party font request would hang the tests offline.
+- **An event link carries the list's filters** (`/e/{code}?m=tay&…`) and the event page
+  turns them back into its "All events" href through `listUrlFrom`. That function rebuilds
+  the query from a whitelist rather than echoing it: the input is a stranger's text on its
+  way into an href.
 - **`m=unspecified` is not a municipality.** It is the sentinel for events no town could
   be resolved for, exported as `UNPLACED` from `apps/web/src/query.ts` and repeated in
   `public/app.js`. The query builder turns it into `municipality_slug IS NULL` and ORs it

@@ -39,6 +39,33 @@ export function parseFilters(url: URL): EventFilters {
   }
 }
 
+/**
+ * Rebuild the list's own URL from whatever filters an event-page link carried, so
+ * "All events" puts the reader back in the view they left rather than at the top of an
+ * unfiltered list.
+ *
+ * Every key is re-derived and re-encoded here rather than echoed: the incoming query is
+ * a stranger's text on its way into an href, and only these keys, in these shapes, may
+ * come out the other side.
+ */
+export function listUrlFrom(url: URL): string {
+  const filters = parseFilters(url)
+  const out = new URLSearchParams()
+  if (filters.municipalities.length) out.set('m', filters.municipalities.join(','))
+  if (filters.categories.length) out.set('cat', filters.categories.join(','))
+  const cost = url.searchParams.get('cost')
+  if (cost === 'free' || cost === 'all') out.set('cost', cost)
+  for (const flag of ['civic', 'past']) {
+    if (url.searchParams.get(flag) === '1') out.set(flag, '1')
+  }
+  // The view and month are the front end's own state; parseFilters knows nothing of them.
+  if (url.searchParams.get('view') === 'calendar') out.set('view', 'calendar')
+  const month = url.searchParams.get('month')
+  if (month && /^\d{4}-\d{2}$/.test(month)) out.set('month', month)
+  const query = out.toString()
+  return query ? `/?${query}` : '/'
+}
+
 export interface Row {
   id: string
   short_code: string

@@ -1,5 +1,5 @@
 import { buildIcal, sourceBySlug } from '@scec/core'
-import { UNPLACED, buildQuery, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
+import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 
 interface D1Statement {
   all<T>(): Promise<{ results: T[] }>
@@ -55,9 +55,9 @@ const escapeHtml = (value: string): string =>
  * permalink paints it with the first byte, drawn in currentColor to follow the theme.
  */
 const MARK = `<svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
-  <circle cx="24" cy="19" r="8" fill="var(--accent)"/>
-  <path d="M6 38 Q24 26 42 38" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <path d="M24 4v4M9 10l3 3M39 10l-3 3M4 22h4M40 22h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="24" cy="19" r="7.5" fill="var(--accent)"/>
+  <path d="M24 4.5v4M11 11l2.9 2.9M37 11l-2.9 2.9M4.5 21h4M39.5 21h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
 </svg>`
 
 export default {
@@ -134,7 +134,7 @@ export default {
         const code = decodeURIComponent(url.pathname.slice('/e/'.length))
         const row = await lookupEvent(env, 'short_code', code)
         if (!row) return new Response('Event not found', { status: 404 })
-        return new Response(renderEventPage(rowToEvent(row), url.origin), {
+        return new Response(renderEventPage(rowToEvent(row), url.origin, listUrlFrom(url)), {
           headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' },
         })
       }
@@ -187,7 +187,7 @@ const titleCase = (slug: string): string =>
 
 const COST_LABEL: Record<string, string> = { free: 'Free', paid: 'Paid', unknown: 'Cost not listed' }
 
-function renderEventPage(event: PublicEvent, origin: string): string {
+function renderEventPage(event: PublicEvent, origin: string, backHref = '/'): string {
   const when =
     event.allDay || event.timePrecision === 'date-only'
       ? `${formatDate(event.localDate)}${event.endsAtUtc ? ` to ${formatDate(localDateOf(event.endsAtUtc, event.timezone))}` : ''} · all day`
@@ -202,7 +202,11 @@ function renderEventPage(event: PublicEvent, origin: string): string {
   const canonical = `${origin}/e/${event.shortCode}`
 
   const listedOn = event.sourceSlugs.map((slug) => sourceBySlug(slug)?.name ?? slug)
-  const links: string[] = [`<a class="btn" href="${escapeHtml(event.url)}" rel="noopener">View the listing</a>`]
+  // The listing lives on someone else's site: open it in a new tab so this page, and
+  // whatever the reader was scrolling through to reach it, stays where it was.
+  const links: string[] = [
+    `<a class="btn" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">View the listing <span class="ext" aria-hidden="true">&#8599;</span></a>`,
+  ]
   links.push(
     `<button class="btn ghost" type="button" data-share aria-haspopup="dialog"
        data-share-url="${escapeHtml(canonical)}"
@@ -220,7 +224,7 @@ function renderEventPage(event: PublicEvent, origin: string): string {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
-<meta name="theme-color" content="#8a3b12">
+<meta name="theme-color" content="#e05a17">
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${SITE_NAME}">
@@ -240,8 +244,8 @@ function renderEventPage(event: PublicEvent, origin: string): string {
 <script type="module" src="/share.js"></script>
 <script type="application/ld+json">${eventJsonLd(event, canonical)}</script>
 </head><body class="event-page">
-<header class="topbar"><a href="/" class="home">${MARK}<span>&larr; All events</span></a></header>
-<main class="card">
+<header class="topbar"><a href="${escapeHtml(backHref)}" class="home">${MARK}<span>&larr; All events</span></a></header>
+<main class="card" data-cat="${escapeHtml(event.category)}">
   <p class="eyebrow">${escapeHtml(event.municipalityName ?? 'Simcoe County')} · ${escapeHtml(titleCase(event.category))}</p>
   <h1>${escapeHtml(event.title)}</h1>
   <p class="when">${escapeHtml(when)}</p>
