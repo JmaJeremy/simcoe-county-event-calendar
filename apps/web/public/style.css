@@ -219,6 +219,21 @@ a { color: inherit; }
     var(--cat-community) 76% 88%, var(--cat-education) 88% 100%);
 }
 .masthead-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.brand { min-width: 0; }
+/* Says up front that coverage is still growing, so a missing event reads as a known gap
+   rather than a broken site. The pulsing dot is the "still being built" signal; it holds
+   still for anyone who asked for less motion. */
+.wip {
+  display: inline-flex; align-items: center; gap: 7px; margin: 0 0 10px;
+  padding: 3px 11px 3px 9px; border-radius: 999px;
+  background: var(--warn-bg); color: var(--warn);
+  font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+}
+.wip-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .wip-dot { animation: wip-pulse 2.4s ease-in-out infinite; }
+}
+@keyframes wip-pulse { 50% { opacity: .3; } }
 .wordmark { display: flex; align-items: center; gap: 16px; min-width: 0; }
 /* The mark tracks the wordmark's own clamp so the lockup holds at every width.
    The field takes the ink colour and the sun the accent, so it themes itself. */
@@ -643,10 +658,61 @@ footer a { color: var(--ink-2); }
 /* width/height attributes are on the img so the footer does not jump while it loads. */
 .support .bmc { display: inline-flex; line-height: 0; border-radius: 8px; }
 .support .bmc:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.copyright { margin: 16px 0 0; }
 
 /* ---- single event page ---- */
 .event-page { padding: 0 20px 60px; }
-.event-page .topbar { max-width: 680px; margin: 0 auto; padding: 22px 0; }
+.event-page .topbar {
+  max-width: 680px; margin: 0 auto; padding: 22px 0;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px;
+}
+.event-page .topbar .wip { margin: 0; }
+.event-page .page-foot { max-width: 680px; margin: 0 auto; padding-top: 18px; color: var(--ink-3); font-size: 13px; }
+.event-page .page-foot .copyright { margin: 0; }
+
+/* ---- suggestion invitation, under the list ---- */
+/* The accent fill is the contrast: the one solid-orange block on a page of cards. */
+.suggest-cta { margin: 30px 0 0; }
+.suggest-cta a {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px;
+  padding: 18px 22px; border-radius: 16px;
+  background: var(--accent); color: var(--accent-ink); text-decoration: none;
+  box-shadow: 0 3px 0 var(--accent-deep);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.suggest-cta a:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--accent-deep); }
+.suggest-cta a:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.suggest-cta-q { font-family: inherit; font-size: 19px; font-weight: 800; }
+.suggest-cta-go { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---- suggestion form ---- */
+.suggest-page .lede { margin: 0 0 20px; color: var(--ink-2); }
+.suggest-page fieldset.kind { border: 0; margin: 0 0 18px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.suggest-page fieldset.kind legend { font-weight: 700; margin-bottom: 8px; padding: 0; }
+.kind-option {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 8px 14px; border: 1.5px solid var(--line); border-radius: 999px; font-size: 14.5px;
+}
+.kind-option:has(input:checked) { border-color: var(--accent); background: var(--surface-2); font-weight: 700; }
+.kind-option input { accent-color: var(--accent); margin: 0; }
+.form-field { display: flex; flex-direction: column; gap: 5px; margin: 0 0 14px; min-width: 0; }
+.form-field label { font-weight: 700; font-size: 14px; }
+.form-field input, .form-field textarea {
+  font: inherit; font-size: 15px; color: var(--ink);
+  background: var(--surface-2); border: 1.5px solid var(--line); border-radius: 10px;
+  padding: 9px 11px; width: 100%; box-sizing: border-box;
+}
+.form-field textarea { resize: vertical; min-height: 5.5em; }
+.form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--hl); }
+.form-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.form-pair[hidden] { display: none; }
+.form-hint { margin: -4px 0 16px; color: var(--ink-3); font-size: 13px; }
+.form-error { margin: 0 0 12px; padding: 10px 13px; border-radius: 10px; background: var(--stop-bg); color: var(--stop); font-weight: 700; }
+/* Off-screen rather than display:none, which some bots know to skip. */
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+@media (max-width: 520px) {
+  .form-pair { grid-template-columns: 1fr; }
+}
 .event-page .home {
   display: inline-flex; align-items: center; gap: 10px;
   color: var(--ink-2); text-decoration: none; font-size: 14px;

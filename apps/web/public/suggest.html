@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suggest an event — Out in Simcoe</title>
+<meta name="description" content="Know an event or a calendar Out in Simcoe is missing? Tell us and we'll add it.">
+<meta name="theme-color" content="#e05a17">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script>
+  // Same no-flash theme script as index.html and the event page.
+  try {
+    var t = localStorage.getItem('theme')
+    if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="event-page suggest-page">
+<header class="topbar">
+  <a href="/" class="home">
+    <svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+      <circle cx="24" cy="19" r="7.5" fill="var(--accent)"/>
+      <path d="M24 4.5v4M11 11l2.9 2.9M37 11l-2.9 2.9M4.5 21h4M39.5 21h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
+    </svg>
+    <span>&larr; All events</span>
+  </a>
+  <p class="wip"><span class="wip-dot" aria-hidden="true"></span>Work in progress &middot; more events being added</p>
+</header>
+
+<main class="card">
+  <section id="form-view">
+    <h1>Are we missing something?</h1>
+    <p class="lede">Tell us about an event that isn't here, or a website that lists events we should be reading.
+      Every field is optional — fill in whatever you know.</p>
+
+    <!-- Posts as an ordinary form when scripts are off; suggest.js upgrades it. -->
+    <form id="suggest-form" method="post" action="/api/suggest" novalidate>
+      <fieldset class="kind">
+        <legend>What are you suggesting?</legend>
+        <label class="kind-option"><input type="radio" name="kind" value="event" checked> A single event</label>
+        <label class="kind-option"><input type="radio" name="kind" value="website"> A website with a list of events</label>
+      </fieldset>
+
+      <!-- For bots only. Hidden from people and from screen readers; anything typed here
+           marks the submission as spam. -->
+      <div class="hp" aria-hidden="true">
+        <label>Company <input type="text" name="company" tabindex="-1" autocomplete="off"></label>
+      </div>
+
+      <div class="form-field">
+        <label for="s-title" data-event="Event title" data-website="Website or organization name">Event title</label>
+        <input id="s-title" name="title" type="text" maxlength="200" autocomplete="off">
+      </div>
+
+      <div class="form-field">
+        <label for="s-url" data-event="Link to the event" data-website="Website address">Link to the event</label>
+        <input id="s-url" name="url" type="url" inputmode="url" maxlength="2000" placeholder="https://" autocomplete="off">
+      </div>
+
+      <div class="form-pair" data-kind="event">
+        <div class="form-field">
+          <label for="s-date">Date</label>
+          <input id="s-date" name="date" type="date">
+        </div>
+        <div class="form-field">
+          <label for="s-time">Time</label>
+          <input id="s-time" name="time" type="time">
+        </div>
+      </div>
+
+      <div class="form-field" data-kind="event">
+        <label for="s-description">Event description</label>
+        <textarea id="s-description" name="description" rows="5" maxlength="5000"></textarea>
+      </div>
+
+      <div class="form-field">
+        <label for="s-comments">Comments</label>
+        <textarea id="s-comments" name="comments" rows="3" maxlength="5000"
+          placeholder="Anything else we should know"></textarea>
+      </div>
+
+      <div class="form-pair">
+        <div class="form-field">
+          <label for="s-name">Your name</label>
+          <input id="s-name" name="name" type="text" maxlength="100" autocomplete="name">
+        </div>
+        <div class="form-field">
+          <label for="s-email">Your email</label>
+          <input id="s-email" name="email" type="email" maxlength="254" autocomplete="email">
+        </div>
+      </div>
+      <p class="form-hint">Leave an email and we'll send a quick thank-you, so you can reply if there's more to add.
+        We won't use it for anything else.</p>
+
+      <p class="form-error" id="form-error" role="alert" hidden></p>
+      <div class="actions">
+        <button class="btn" type="submit" id="submit">Send suggestion</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="sent-view" hidden>
+    <h1>Thanks!</h1>
+    <p class="lede">Your suggestion is on its way. We read every one, and if it fits we'll add it.</p>
+    <div class="actions">
+      <a class="btn" href="/">Back to events</a>
+      <button class="btn ghost" type="button" id="another">Suggest something else</button>
+    </div>
+  </section>
+</main>
+<footer class="page-foot"><p class="copyright">&copy; 2026 Jeremy Andrews &amp; Torbarrie Tech</p></footer>
+<script type="module" src="/suggest.js"></script>
+</body>
+</html>

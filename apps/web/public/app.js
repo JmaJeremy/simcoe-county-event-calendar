@@ -535,6 +535,8 @@ function applyView() {
   $('monthnav').hidden = !calendar
   // "Past events" has no meaning once the month on screen defines the range.
   $('past-toggle').hidden = calendar
+  // An invitation at the end of a list; the calendar has no end to put it at.
+  $('suggest-cta').hidden = calendar
   $('view-list').setAttribute('aria-pressed', String(!calendar))
   $('view-calendar').setAttribute('aria-pressed', String(calendar))
 }

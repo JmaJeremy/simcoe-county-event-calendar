@@ -41,13 +41,16 @@
 <div class="wrap">
   <header class="masthead">
     <div class="masthead-top">
-      <div class="wordmark">
-        <svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
-          <circle cx="24" cy="19" r="7.5" fill="var(--accent)"/>
-          <path d="M24 4.5v4M11 11l2.9 2.9M37 11l-2.9 2.9M4.5 21h4M39.5 21h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
-          <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
-        </svg>
-        <h1>Out in <span class="hl">Simcoe</span></h1>
+      <div class="brand">
+        <p class="wip"><span class="wip-dot" aria-hidden="true"></span>Work in progress &middot; more events being added</p>
+        <div class="wordmark">
+          <svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="24" cy="19" r="7.5" fill="var(--accent)"/>
+            <path d="M24 4.5v4M11 11l2.9 2.9M37 11l-2.9 2.9M4.5 21h4M39.5 21h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
+          </svg>
+          <h1>Out in <span class="hl">Simcoe</span></h1>
+        </div>
       </div>
       <div class="themeswitch" role="group" aria-label="Theme">
         <button type="button" id="theme-light" aria-pressed="false" aria-label="Light theme" title="Light">
@@ -102,6 +105,12 @@
   </nav>
 
   <main id="list"><div class="loading">Loading events…</div></main>
+  <aside class="suggest-cta" id="suggest-cta">
+    <a href="/suggest">
+      <span class="suggest-cta-q">Are we missing something?</span>
+      <span class="suggest-cta-go">Suggest an event or a calendar we should add <span aria-hidden="true">&rarr;</span></span>
+    </a>
+  </aside>
   <section id="calendar" hidden></section>
 
   <footer>
@@ -115,6 +124,7 @@
              width="217" height="60" style="height: 60px !important; width: 217px !important;">
       </a>
     </p>
+    <p class="copyright">&copy; 2026 Jeremy Andrews &amp; Torbarrie Tech</p>
   </footer>
 </div>
 

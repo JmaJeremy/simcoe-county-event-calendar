@@ -1,9 +1,27 @@
 import { buildIcal, sourceBySlug } from '@scec/core'
 import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
+import { adminMail, thanksMail, validateSuggestion, type Suggestion } from './suggest.ts'
 
 interface D1Statement {
   all<T>(): Promise<{ results: T[] }>
   first<T>(): Promise<T | null>
+  run(): Promise<unknown>
+}
+
+interface EmailAddress {
+  email: string
+  name?: string
+}
+
+/** The Cloudflare Email Service binding — only the part of it this worker uses. */
+interface SendEmail {
+  send(message: {
+    to: string | EmailAddress
+    from: string | EmailAddress
+    replyTo?: string | EmailAddress
+    subject: string
+    text: string
+  }): Promise<unknown>
 }
 
 export interface Env {
@@ -11,6 +29,8 @@ export interface Env {
     prepare(query: string): D1Statement & { bind(...values: unknown[]): D1Statement }
   }
   ASSETS: { fetch(request: Request): Promise<Response> }
+  /** Optional so a local `wrangler dev` without it still serves the site. */
+  EMAIL?: SendEmail
   /** Set once a custom domain is attached; www then redirects to it. */
   CANONICAL_HOST?: string
 }
@@ -84,6 +104,10 @@ const MARK = `<svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="tru
   <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
 </svg>`
 
+/** Mirrors the tag and footer line in public/index.html; change one, change both. */
+const WIP_TAG = '<p class="wip"><span class="wip-dot" aria-hidden="true"></span>Work in progress &middot; more events being added</p>'
+const COPYRIGHT = '&copy; 2026 Jeremy Andrews &amp; Torbarrie Tech'
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -96,6 +120,11 @@ export default {
     }
 
     try {
+      if (url.pathname === '/api/suggest') {
+        if (request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: { Allow: 'POST' } })
+        return await handleSuggestion(request, env)
+      }
+
       if (url.pathname === '/api/events') {
         const events = await queryEvents(env, url)
         return json({ count: events.length, events }, 600)
@@ -188,6 +217,104 @@ export default {
   },
 }
 
+/** The site's inbox: gets every suggestion, and is where a thank-you's reply goes. */
+const ADMIN_ADDRESS = 'contact@outinsimcoe.ca'
+const MAIL_FROM: EmailAddress = { email: ADMIN_ADDRESS, name: SITE_NAME }
+/** Per sender, per hour. A person suggesting a whole festival programme will not hit it. */
+const SUGGESTIONS_PER_HOUR = 5
+const MAX_BODY_BYTES = 64_000
+
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** An email's fate, as recorded on the suggestion row. Never throws. */
+async function sendMail(env: Env, message: Parameters<SendEmail['send']>[0]): Promise<string> {
+  if (!env.EMAIL) return 'error: no EMAIL binding'
+  try {
+    await env.EMAIL.send(message)
+    return 'sent'
+  } catch (err) {
+    return `error: ${err instanceof Error ? err.message : String(err)}`.slice(0, 500)
+  }
+}
+
+/**
+ * Take a suggestion from the form.
+ *
+ * The order matters: validate, store, then mail. Once the row is written the suggestion
+ * is safe, so a mail failure is recorded on the row and the visitor still hears "thanks"
+ * — telling them it failed would only get the same suggestion sent twice.
+ *
+ * Answers JSON to the page's own script and a redirect to a plain form post, so the form
+ * still works with scripts off.
+ */
+async function handleSuggestion(request: Request, env: Env): Promise<Response> {
+  const wantsJson = (request.headers.get('Accept') ?? '').includes('application/json')
+  const reply = (status: number, error?: string): Response => {
+    if (wantsJson) return Response.json(error ? { ok: false, error } : { ok: true }, { status, headers: { 'Cache-Control': 'no-store' } })
+    if (!error) return Response.redirect(new URL('/suggest?sent=1', request.url).toString(), 303)
+    return new Response(error, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } })
+  }
+
+  if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY_BYTES) return reply(413, 'That is too long to send in one go.')
+
+  let form: Record<string, unknown>
+  try {
+    const type = request.headers.get('Content-Type') ?? ''
+    const body: unknown = type.includes('application/json') ? await request.json() : Object.fromEntries(await request.formData())
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('not an object')
+    form = body as Record<string, unknown>
+  } catch {
+    return reply(400, 'That submission could not be read. Please try again.')
+  }
+
+  const result = validateSuggestion(form)
+  // A bot is thanked like anyone else and nothing is kept, so it has nothing to learn.
+  if (result.ok === 'spam') return reply(200)
+  if (!result.ok) return reply(400, result.error)
+  const suggestion: Suggestion = result.suggestion
+
+  const now = new Date()
+  // Salted with the day, so the hash can count one sender's hour and cannot follow them
+  // from one day to the next.
+  const ipHash = await sha256(`${now.toISOString().slice(0, 10)}:${request.headers.get('CF-Connecting-IP') ?? 'unknown'}`)
+  const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM suggestions WHERE ip_hash = ? AND created_at > ?')
+    .bind(ipHash, new Date(now.getTime() - 3_600_000).toISOString())
+    .first<{ n: number }>()
+  if ((recent?.n ?? 0) >= SUGGESTIONS_PER_HOUR) {
+    return reply(429, 'Thanks — that is a lot of suggestions for one hour. Please send the rest a little later.')
+  }
+
+  const id = crypto.randomUUID()
+  const receivedAt = now.toISOString()
+  await env.DB.prepare(
+    `INSERT INTO suggestions (id, kind, name, email, title, url, event_date, event_time, description, comments, ip_hash, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(id, suggestion.kind, suggestion.name, suggestion.email, suggestion.title, suggestion.url, suggestion.date,
+      suggestion.time, suggestion.description, suggestion.comments, ipHash, receivedAt)
+    .run()
+
+  // Reply-To on the admin copy is the suggester, so answering them is one click.
+  const admin = adminMail(suggestion, { id, receivedAt })
+  const adminOutcome = await sendMail(env, {
+    to: ADMIN_ADDRESS,
+    from: MAIL_FROM,
+    ...(suggestion.email ? { replyTo: suggestion.email } : {}),
+    ...admin,
+  })
+  const userOutcome = suggestion.email
+    ? await sendMail(env, { to: suggestion.email, from: MAIL_FROM, replyTo: ADMIN_ADDRESS, ...thanksMail(suggestion) })
+    : 'skipped'
+
+  await env.DB.prepare('UPDATE suggestions SET admin_mail = ?, user_mail = ? WHERE id = ?')
+    .bind(adminOutcome, userOutcome, id)
+    .run()
+  return reply(200)
+}
+
 function describeFilters(url: URL, events: PublicEvent[]): string {
   const parts = [SITE_NAME]
   const m = url.searchParams.get('m')
@@ -269,7 +396,7 @@ function renderEventPage(event: PublicEvent, origin: string, backHref = '/'): st
 <script type="module" src="/share.js"></script>
 <script type="application/ld+json">${eventJsonLd(event, canonical)}</script>
 </head><body class="event-page">
-<header class="topbar"><a href="${escapeHtml(backHref)}" class="home">${MARK}<span>&larr; All events</span></a></header>
+<header class="topbar"><a href="${escapeHtml(backHref)}" class="home">${MARK}<span>&larr; All events</span></a>${WIP_TAG}</header>
 <main class="card" data-cat="${escapeHtml(event.category)}">
   <p class="eyebrow">${escapeHtml(event.municipalityName ?? 'Simcoe County')} · ${escapeHtml(titleCase(event.category))}</p>
   <h1>${escapeHtml(event.title)}</h1>
@@ -283,7 +410,9 @@ function renderEventPage(event: PublicEvent, origin: string, backHref = '/'): st
   <div class="actions">${links.join('')}</div>
   <p class="listed">Listed on ${listedOn.map((n) => escapeHtml(n)).join(', ')}. Details come from those sites; confirm with the organizer before you go.</p>
   ${event.municipalitySlug ? `<p class="subscribe"><a href="${origin}/calendar.ics?m=${encodeURIComponent(event.municipalitySlug)}">Subscribe to ${escapeHtml(event.municipalityName ?? '')} events</a></p>` : ''}
-</main></body></html>`
+</main>
+<footer class="page-foot"><p class="copyright">${COPYRIGHT}</p></footer>
+</body></html>`
 }
 
 const SCHEMA_STATUS: Record<string, string> = {
