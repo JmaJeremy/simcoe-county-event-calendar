@@ -245,6 +245,16 @@ describeIfChrome('filter menus (real browser)', () => {
     expect(new URL(href, 'https://x.invalid').searchParams.get('m')).toBe('tay')
   })
 
+  it('invites suggestions above the list as well as below it', async () => {
+    const links = await page.$$eval('a[href="/suggest"]', (as) =>
+      as.map((a) => ({ inTop: !!a.closest('#suggest-top'), inBottom: !!a.closest('#suggest-cta'), visible: a.getBoundingClientRect().height > 0 })),
+    )
+    expect(links.filter((l) => l.inTop && l.visible)).toHaveLength(1)
+    expect(links.filter((l) => l.inBottom && l.visible)).toHaveLength(1)
+    const topBeforeList = await page.$eval('#suggest-top', (el) => !!(el.compareDocumentPosition(document.getElementById('list')!) & Node.DOCUMENT_POSITION_FOLLOWING))
+    expect(topBeforeList).toBe(true)
+  })
+
   it('links plainly when nothing is filtered', async () => {
     const href = await page.$eval('#list .event h3 a', (el) => (el as HTMLAnchorElement).getAttribute('href')!)
     expect(href).not.toContain('?')

@@ -685,6 +685,16 @@ footer a { color: var(--ink-2); }
 .suggest-cta a:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .suggest-cta-q { font-family: inherit; font-size: 19px; font-weight: 800; }
 .suggest-cta-go { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+/* The same invitation, small, above the list: a tinted strip rather than a second big button. */
+.suggest-top { margin: 14px 0 8px; }
+.suggest-top a {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px;
+  padding: 9px 14px; border-radius: 12px; border-left: 4px solid var(--accent);
+  background: var(--surface-2); color: var(--ink); font-size: 14px; text-decoration: none;
+}
+.suggest-top a span { color: var(--accent-deep); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.suggest-top a:hover span { text-decoration-thickness: 2px; }
+.suggest-top a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 /* ---- suggestion form ---- */
 .suggest-page .lede { margin: 0 0 20px; color: var(--ink-2); }
