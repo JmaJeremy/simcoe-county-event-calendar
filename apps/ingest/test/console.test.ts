@@ -350,9 +350,17 @@ describe('suggestions', () => {
     expect(body).not.toContain('<script')
   })
 
-  it('offer no event for a website suggestion, which is a source to add instead', async () => {
-    const res = await handleConsole(get(`/suggestions/${SUGGESTION_ID}`), env(fakeDb([], [], [suggestionRow({ kind: 'website' })]).db), keys)
-    expect(await res.text()).not.toContain('/new?from=')
+  it('offer an event for a website suggestion too, noting it may be a source instead', async () => {
+    const body = await (await handleConsole(get(`/suggestions/${SUGGESTION_ID}`), env(fakeDb([], [], [suggestionRow({ kind: 'website' })]).db), keys)).text()
+    expect(body).toContain(`href="/new?from=${SUGGESTION_ID}"`)
+    expect(body).toContain('better added as a source')
+  })
+
+  it('offer no event once dismissed, only the way back', async () => {
+    const dismissed = suggestionRow({ handled_at: '2026-09-15T04:51:34.112Z', handled_as: 'dismissed' })
+    const body = await (await handleConsole(get(`/suggestions/${SUGGESTION_ID}`), env(fakeDb([], [], [dismissed]).db), keys)).text()
+    expect(body).not.toContain('/new?from=')
+    expect(body).toContain(`action="/suggestions/${SUGGESTION_ID}/reopen"`)
   })
 
   it('never link a stored address that is not a web page', async () => {

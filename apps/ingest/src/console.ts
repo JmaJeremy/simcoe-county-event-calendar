@@ -949,11 +949,13 @@ async function suggestionPage(db: D1Like, id: string, publicOrigin: string, emai
 
   let actions: string
   if (!s.handled_at) {
-    const create =
-      s.kind === 'event'
-        ? `<a class="button" href="/new?from=${s.id}">Create an event from this</a>`
-        : '<span class="muted">A website is a source for the ingest run to read, not an event to add here.</span>'
-    actions = `${create}<form method="post" action="/suggestions/${s.id}/dismiss"><button type="submit" class="link">Dismiss</button></form>`
+    // Offered for websites too: "Barrie Film Festival" sent as a website is often one event.
+    const create = `<a class="button" href="/new?from=${s.id}">Create an event from this</a>`
+    const note =
+      s.kind === 'website'
+        ? '<span class="muted">Sent as a website that lists events, so it may be better added as a source for the ingest run. If it is really one event, create it here.</span>'
+        : ''
+    actions = `${create}<form method="post" action="/suggestions/${s.id}/dismiss"><button type="submit" class="link">Dismiss</button></form>${note}`
   } else if (s.handled_as === 'dismissed') {
     actions = `${handledNote(s, publicOrigin)}<form method="post" action="/suggestions/${s.id}/reopen"><button type="submit" class="link">Undo, and put it back in the waiting list</button></form>`
   } else {
