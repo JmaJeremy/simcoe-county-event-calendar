@@ -95,6 +95,10 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   turned on when the domain was attached — without it the site answered on plain HTTP.
   HSTS is deliberately off: it is a long-lived promise and there is no reason to make it yet.
 - `.env` is gitignored, as is `jeremy-atlassian-token.key`. Keep it that way.
+- **Commits are checked for secrets** by gitleaks in `.githooks/pre-commit`; `npm install`
+  enables it (the `prepare` script sets `core.hooksPath`). It fails closed if gitleaks is not
+  installed (`brew install gitleaks`). `.gitleaks.toml` allowlists three public identifiers
+  the generic-api-key rule mistakes for secrets — keep that list short and specific.
 
 ## Search
 
@@ -264,8 +268,9 @@ when it breaks, so nothing here is checked by eye.
   `1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`). Their
   token comes back with action `test`, so expect our worker to refuse it as
   `action-mismatch`: that refusal is the proof the whole chain ran.
-- **The work-in-progress tag and the copyright line are repeated** in `index.html`,
-  `suggest.html` and `WIP_TAG`/`COPYRIGHT` in `apps/web/src/html.ts`. Change one, change all three.
+- **The work-in-progress tag and the footer's copyright and licence lines are repeated** in
+  `index.html`, `suggest.html` and `WIP_TAG`/`FOOTER_NOTES` in `apps/web/src/html.ts`. Change
+  one, change all three.
 - **Hand-entered events are listings, never rows written into `events`.** Dedup rebuilds
   events from listings each run and closes any event in its window with no listing behind
   it, so a bare event would vanish within two hours. The console (`apps/ingest/src/

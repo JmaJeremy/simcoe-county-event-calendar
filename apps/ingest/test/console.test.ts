@@ -75,6 +75,8 @@ const eventRow = (overrides: Record<string, unknown> = {}) => ({
 interface Executed {
   sql: string
   values: unknown[]
+  /** Which db.batch call it arrived in; -1 for a lone run(). */
+  batch: number
 }
 
 /** Answers the console's reads from the rows given, and records every write. */
@@ -84,9 +86,10 @@ function fakeDb(
   suggestions: Array<Record<string, unknown>> = [],
 ) {
   const executed: Executed[] = []
+  let batches = 0
   const answer = (sql: string, values: unknown[]): unknown[] => {
-    if (sql.startsWith('SELECT * FROM suggestions WHERE id = ?')) return suggestions.filter((s) => s.id === values[0])
-    if (sql.includes('FROM suggestions ORDER BY')) return suggestions
+    if (sql.includes('FROM suggestions s') && sql.includes('WHERE s.id = ?')) return suggestions.filter((s) => s.id === values[0])
+    if (sql.includes('FROM suggestions s') && sql.includes('ORDER BY s.created_at')) return suggestions
     if (sql.includes('COUNT(*) AS n FROM suggestions')) return [{ n: suggestions.filter((s) => !s.handled_at).length }]
     if (sql.includes('FROM listings l LEFT JOIN events e')) {
       return listings.map((l) => ({ ...l, event_code: 'abc1234', event_listings: events.find((e) => e.id === l.cluster_id)?.listing_count ?? 1 }))
@@ -102,7 +105,7 @@ function fakeDb(
     all: async () => ({ results: answer(sql, values) }),
     first: async () => answer(sql, values)[0] ?? null,
     run: async () => {
-      executed.push({ sql, values })
+      executed.push({ sql, values, batch: -1 })
       return {}
     },
   })
@@ -110,7 +113,8 @@ function fakeDb(
     prepare: (sql: string) => statement(sql),
     // Every statement this fake hands out carries its sql and values.
     batch: async (statements: any[]) => {
-      for (const s of statements) executed.push({ sql: s.sql, values: s.values })
+      const batch = batches++
+      for (const s of statements) executed.push({ sql: s.sql, values: s.values, batch })
       return []
     },
   }
@@ -383,6 +387,9 @@ describe('suggestions', () => {
     expect(writes('INSERT INTO listings')[0]!.values).toContain(`https://site.example.ca/posters/${POSTER_KEY}`)
     const [marked] = writes("UPDATE suggestions SET handled_at = ?, handled_as = 'event'")
     expect(marked!.values.slice(1)).toEqual([`manual:${uuid}`, SUGGESTION_ID])
+    // One batch, one transaction: the event and the approval land together or not at all.
+    expect(marked!.batch).toBe(writes('INSERT INTO listings')[0]!.batch)
+    expect(marked!.batch).toBe(writes('INSERT INTO events')[0]!.batch)
   })
 
   it('stay attached to a form sent back with problems, and stay waiting', async () => {
@@ -391,6 +398,19 @@ describe('suggestions', () => {
     expect(res.status).toBe(400)
     expect(await res.text()).toContain(`name="from" value="${SUGGESTION_ID}"`)
     expect(writes('UPDATE suggestions')).toEqual([])
+  })
+
+  it('link an approved one to the public page of the event it became', async () => {
+    const approved = suggestionRow({ handled_at: '2026-09-15T16:00:00.000Z', handled_as: 'event', handled_listing_id: LISTING_ID, event_code: 'abc1234' })
+    for (const path of ['/suggestions', `/suggestions/${SUGGESTION_ID}`]) {
+      const body = await (await handleConsole(get(path), env(fakeDb([], [], [approved]).db), keys)).text()
+      expect(body, path).toContain('<a class="flag ok" href="https://site.example.ca/e/abc1234" target="_blank" rel="noopener">Added as an event')
+      expect(body, path).toContain(`href="/events/${UUID}"`)
+    }
+    // Before the event has a short code, the tag is plain text rather than a dead link.
+    const pending = suggestionRow({ handled_at: '2026-09-15T16:00:00.000Z', handled_as: 'event', handled_listing_id: LISTING_ID, event_code: null })
+    const body = await (await handleConsole(get('/suggestions'), env(fakeDb([], [], [pending]).db), keys)).text()
+    expect(body).toContain('<span class="flag ok">Added as an event</span>')
   })
 
   it('can be dismissed, and the dismissal undone', async () => {

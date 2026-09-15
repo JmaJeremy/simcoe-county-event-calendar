@@ -1,0 +1,9 @@
+#!/bin/sh
+# Refuse any commit that stages a secret. Enabled by `npm install`, whose prepare script
+# points core.hooksPath here. Fails closed without gitleaks: an unchecked commit is exactly
+# the one that leaks. (`git commit --no-verify` skips it, deliberately and visibly.)
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed (brew install gitleaks), so this commit was not checked for secrets." >&2
+  exit 1
+fi
+exec gitleaks git --pre-commit --staged --redact --no-banner --verbose

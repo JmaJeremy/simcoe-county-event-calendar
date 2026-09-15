@@ -97,12 +97,12 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
     if (path === '/' && request.method === 'GET') return page(await listPage(env.DB, url, publicOrigin, auth.email))
     if (path === '/new' && request.method === 'GET') return await newPage(env.DB, url, publicOrigin, auth.email)
     if (path === '/events' && request.method === 'POST') return await createEvent(env.DB, request, auth.email)
-    if (path === '/suggestions' && request.method === 'GET') return page(await suggestionsPage(env.DB, url, auth.email))
+    if (path === '/suggestions' && request.method === 'GET') return page(await suggestionsPage(env.DB, url, publicOrigin, auth.email))
 
     if (suggestionRoute) {
       const [, id, action] = suggestionRoute
       if (!UUID.test(id!)) return notFound(auth.email)
-      if (!action && request.method === 'GET') return await suggestionPage(env.DB, id!, auth.email)
+      if (!action && request.method === 'GET') return await suggestionPage(env.DB, id!, publicOrigin, auth.email)
       if (action === 'poster' && request.method === 'GET') return await posterResponse(env, id!, auth.email)
       if ((action === 'dismiss' || action === 'reopen') && request.method === 'POST') {
         return await setDismissed(env.DB, id!, action === 'dismiss')
@@ -143,16 +143,18 @@ async function createEvent(db: D1Like, request: Request, email: string): Promise
   if (!parsed.ok) return page(formPage({ email, values: parsed.values, errors: parsed.errors, suggestion }), 400)
 
   const listing = buildManualListing(parsed.input, crypto.randomUUID())
-  await writeListing(db, listing, { eventId: null, eventCreatedAt: null, active: true })
-  if (suggestion) {
-    // This is also what makes its poster public: the site's /posters/ route serves only
-    // the posters of suggestions approved as events.
-    await runBatched(db, [
-      db
-        .prepare("UPDATE suggestions SET handled_at = ?, handled_as = 'event', handled_listing_id = ? WHERE id = ?")
-        .bind(new Date().toISOString(), listing.id, suggestion.id),
-    ])
-  }
+  // Marking the suggestion done is also what makes its poster public: the site's /posters/
+  // route serves only the posters of suggestions approved as events. It rides in the same
+  // batch as the event, so the two land together or not at all — an event whose poster
+  // 404s, with the suggestion still waiting to be approved into a duplicate, cannot happen.
+  const approve = suggestion
+    ? [
+        db
+          .prepare("UPDATE suggestions SET handled_at = ?, handled_as = 'event', handled_listing_id = ? WHERE id = ?")
+          .bind(new Date().toISOString(), listing.id, suggestion.id),
+      ]
+    : []
+  await writeListing(db, listing, { eventId: null, eventCreatedAt: null, active: true }, approve)
   return redirect(`/?saved=${encodeURIComponent(listing.externalId)}${suggestion ? '&suggestion=1' : ''}`)
 }
 
@@ -208,6 +210,8 @@ async function writeListing(
   db: D1Like,
   listing: Listing,
   cluster: { eventId: string | null; eventCreatedAt: string | null; active: boolean; skipEvent?: boolean },
+  /** Further writes that must land with this one, in the same batch. */
+  alongside: ReturnType<D1Like['prepare']>[] = [],
 ): Promise<void> {
   const now = new Date().toISOString()
   const source = sourceBySlug(MANUAL_SOURCE_SLUG)!
@@ -229,6 +233,10 @@ async function writeListing(
     })
     statements.push(...upsertEventStatements(db, events, now), ...assignClusterStatements(db, assignments))
   }
+  statements.push(...alongside)
+  // A D1 batch is one transaction. runBatched only splits past 80 statements, and a single
+  // listing with its event is a handful.
+  if (statements.length > 80) throw new Error('A console write outgrew one batch, so it would no longer be atomic')
   await runBatched(db, statements)
 }
 
@@ -493,13 +501,21 @@ interface SuggestionRow {
   handled_at: string | null
   handled_as: 'event' | 'dismissed' | null
   handled_listing_id: string | null
+  /** The public short code of the event it became, when it was approved. */
+  event_code?: string | null
 }
 
 /** The types the web worker can have decided from a file's bytes. Nothing else is served. */
 const POSTER_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 
+/** The event an approved suggestion became: its listing, then that listing's cluster. */
+const SUGGESTION_EVENT_JOIN = `LEFT JOIN listings l ON l.id = s.handled_listing_id LEFT JOIN events e ON e.id = l.cluster_id`
+
 const loadSuggestion = (db: D1Like, id: string): Promise<SuggestionRow | null> =>
-  db.prepare('SELECT * FROM suggestions WHERE id = ?').bind(id).first<SuggestionRow>()
+  db
+    .prepare(`SELECT s.*, e.short_code AS event_code FROM suggestions s ${SUGGESTION_EVENT_JOIN} WHERE s.id = ?`)
+    .bind(id)
+    .first<SuggestionRow>()
 
 const received = (iso: string): string =>
   new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' })
@@ -530,18 +546,24 @@ function valuesFromSuggestion(s: SuggestionRow, publicOrigin: string): Record<st
   }
 }
 
-function handledNote(s: Pick<SuggestionRow, 'handled_at' | 'handled_as' | 'handled_listing_id'>): string {
+function handledNote(s: Pick<SuggestionRow, 'handled_at' | 'handled_as' | 'handled_listing_id' | 'event_code'>, publicOrigin: string): string {
   if (!s.handled_at) return ''
   if (s.handled_as !== 'event') return '<span class="flag off">Dismissed</span>'
+  // The tag itself opens the event's public page, once it has one.
+  const tag = s.event_code
+    ? `<a class="flag ok" href="${escapeHtml(`${publicOrigin}/e/${s.event_code}`)}" target="_blank" rel="noopener">Added as an event ↗</a>`
+    : '<span class="flag ok">Added as an event</span>'
   const uuid = s.handled_listing_id?.startsWith(MANUAL_ID_PREFIX) ? s.handled_listing_id.slice(MANUAL_ID_PREFIX.length) : null
-  return `<span class="flag ok">Added as an event</span>${uuid && UUID.test(uuid) ? ` <a href="/events/${uuid}">Edit the event</a>` : ''}`
+  return `${tag}${uuid && UUID.test(uuid) ? ` <a href="/events/${uuid}">Edit the event</a>` : ''}`
 }
 
-async function suggestionsPage(db: D1Like, url: URL, email: string): Promise<string> {
+async function suggestionsPage(db: D1Like, url: URL, publicOrigin: string, email: string): Promise<string> {
   const { results } = await db
     .prepare(
-      `SELECT id, kind, name, title, url, event_date, event_time, created_at, poster_key, handled_at, handled_as, handled_listing_id
-         FROM suggestions ORDER BY created_at DESC LIMIT 300`,
+      `SELECT s.id, s.kind, s.name, s.title, s.url, s.event_date, s.event_time, s.created_at, s.poster_key,
+              s.handled_at, s.handled_as, s.handled_listing_id, e.short_code AS event_code
+         FROM suggestions s ${SUGGESTION_EVENT_JOIN}
+        ORDER BY s.created_at DESC LIMIT 300`,
     )
     .all<SuggestionRow>()
   const waiting = results.filter((s) => !s.handled_at)
@@ -554,7 +576,7 @@ async function suggestionsPage(db: D1Like, url: URL, email: string): Promise<str
         s.kind === 'website' ? 'Website' : 'Event'
       }</span>${s.poster_key ? '<span class="flag">Poster</span>' : ''}</div>
       <div class="row-meta">Received ${escapeHtml(received(s.created_at))}${when}${s.name ? ` · from ${escapeHtml(s.name)}` : ''}</div>
-      ${s.handled_at ? `<div class="row-actions">${handledNote(s)}</div>` : ''}
+      ${s.handled_at ? `<div class="row-actions">${handledNote(s, publicOrigin)}</div>` : ''}
     </li>`
   }
   const list = (rows: SuggestionRow[], empty: string): string =>
@@ -574,7 +596,7 @@ async function suggestionsPage(db: D1Like, url: URL, email: string): Promise<str
   )
 }
 
-async function suggestionPage(db: D1Like, id: string, email: string): Promise<Response> {
+async function suggestionPage(db: D1Like, id: string, publicOrigin: string, email: string): Promise<Response> {
   const s = await loadSuggestion(db, id)
   if (!s) return notFound(email)
 
@@ -609,9 +631,9 @@ async function suggestionPage(db: D1Like, id: string, email: string): Promise<Re
         : '<span class="muted">A website is a source for the ingest run to read, not an event to add here.</span>'
     actions = `${create}<form method="post" action="/suggestions/${s.id}/dismiss"><button type="submit" class="link">Dismiss</button></form>`
   } else if (s.handled_as === 'dismissed') {
-    actions = `${handledNote(s)}<form method="post" action="/suggestions/${s.id}/reopen"><button type="submit" class="link">Undo, and put it back in the waiting list</button></form>`
+    actions = `${handledNote(s, publicOrigin)}<form method="post" action="/suggestions/${s.id}/reopen"><button type="submit" class="link">Undo, and put it back in the waiting list</button></form>`
   } else {
-    actions = handledNote(s)
+    actions = handledNote(s, publicOrigin)
   }
 
   const poster = s.poster_key
@@ -689,6 +711,8 @@ function shell(title: string, body: string, email: string): string {
   .flag.warn { background: var(--warn-bg); color: var(--warn); }
   .flag.off { background: var(--bad-bg); color: var(--bad); }
   .flag.ok { background: var(--ok-bg); color: var(--ok); }
+  a.flag { text-decoration: none; }
+  a.flag:hover { text-decoration: underline; }
   .notice { padding: 10px 14px; border: 1.5px solid var(--accent); border-radius: 10px; }
   .from-suggestion { margin: 8px 0 18px; padding: 12px 14px; border: 1.5px dashed var(--line); border-radius: 10px; background: var(--card); }
   .from-suggestion p { margin: 0 0 6px; }

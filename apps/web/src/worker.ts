@@ -333,7 +333,9 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
   const type = request.headers.get('Content-Type') ?? ''
   const cap = type.includes('multipart/form-data') ? MAX_UPLOAD_BYTES : MAX_BODY_BYTES
   if (Number(request.headers.get('Content-Length') ?? 0) > cap) {
-    return reply(413, cap === MAX_UPLOAD_BYTES ? 'That image is too big. Please use one under 5 MB.' : 'That is too long to send in one go.')
+    // Only the size is known here, not what made it big; the exact "image too big" answer
+    // comes once the form is read and the poster itself can be measured.
+    return reply(413, cap === MAX_UPLOAD_BYTES ? 'That is too much to send in one go. If you attached an image, please use one under 5 MB.' : 'That is too long to send in one go.')
   }
 
   let form: Record<string, unknown>

@@ -1,0 +1,17 @@
+# gitleaks configuration: the default rules, minus identifiers that look like keys but are
+# public by design. Keep this list short and specific — every entry is a blind spot.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public identifiers that match the generic-api-key rule"
+regexTarget = "line"
+regexes = [
+  # The Cloudflare Access application audience tag. Every Access JWT carries it; it
+  # authorises nothing on its own.
+  '''"ACCESS_AUD":''',
+  # reCAPTCHA site keys inside event pages captured as adapter fixtures. Site keys are
+  # served to every visitor of those sites.
+  '''data-sitekey=''',
+  '''"sitekey":''',
+]

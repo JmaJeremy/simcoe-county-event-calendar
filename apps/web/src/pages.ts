@@ -1,7 +1,7 @@
 import { MANUAL_SOURCE_SLUG, sourceBySlug, type Municipality } from '@scec/core'
 import type { PublicEvent } from './query.ts'
 import {
-  COPYRIGHT,
+  FOOTER_NOTES,
   MARK,
   REGION_ADDRESS,
   SITE_NAME,
@@ -203,7 +203,7 @@ ${renderHead(
       : ''
   }
 </main>
-<footer class="page-foot"><p class="copyright">${COPYRIGHT}</p></footer>
+<footer class="page-foot">${FOOTER_NOTES}</footer>
 </body></html>`
 }
 
@@ -308,7 +308,7 @@ ${renderHead(
       .join('')}</ul>
   </nav>
 </main>
-<footer class="page-foot"><p class="copyright">${COPYRIGHT}</p></footer>
+<footer class="page-foot">${FOOTER_NOTES}</footer>
 </body></html>`
 }
 
@@ -354,6 +354,6 @@ ${renderHead({ title: `${heading} — ${SITE_NAME}`, description: detail, canoni
   <p class="lead">${escapeHtml(detail)}</p>
   <div class="actions"><a class="btn" href="/">Browse every event</a></div>
 </main>
-<footer class="page-foot"><p class="copyright">${COPYRIGHT}</p></footer>
+<footer class="page-foot">${FOOTER_NOTES}</footer>
 </body></html>`
 }

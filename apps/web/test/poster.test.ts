@@ -137,6 +137,22 @@ describe('a poster sent with a suggestion', () => {
     expect(h.objects.size).toBe(0)
   })
 
+  it('blames the image only when it can see one: an oversized body alone could be anything', async () => {
+    const h = harness()
+    const res = await worker.fetch(
+      new Request(`${SITE}/api/suggest`, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'multipart/form-data; boundary=x', 'Content-Length': String(8 * 1024 * 1024) },
+        body: '--x--',
+      }),
+      h.env,
+    )
+    expect(res.status).toBe(413)
+    const { error } = await res.json()
+    expect(error).not.toContain('That image is too big')
+    expect(error).toContain('If you attached an image')
+  })
+
   it('is ignored on a website suggestion', async () => {
     const h = harness()
     expect((await h.submit({ kind: 'website', url: 'example.org' }, new File([phoneJpeg()], 'p.jpg'))).status).toBe(200)

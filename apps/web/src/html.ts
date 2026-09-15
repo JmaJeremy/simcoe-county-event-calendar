@@ -23,9 +23,9 @@ export const MARK = `<svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidd
   <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
 </svg>`
 
-/** Mirrors the tag and footer line in public/index.html; change one, change both. */
+/** Mirror the tag and footer lines in public/index.html and public/suggest.html; change one, change all three. */
 export const WIP_TAG = '<p class="wip"><span class="wip-dot" aria-hidden="true"></span>Work in progress &middot; more events being added</p>'
-export const COPYRIGHT = '&copy; 2026 Jeremy Andrews &amp; Torbarrie Tech'
+export const FOOTER_NOTES = '<p class="copyright">&copy; 2026 <a href="https://jeremy.click" rel="author">Jeremy Andrews</a> &amp; Torbarrie Tech</p><p class="licence">Free and open source under the GNU GPL v3. <a href="https://github.com/JmaJeremy/simcoe-county-event-calendar">The code is on GitHub</a>.</p>'
 
 /**
  * Runs before the first paint. Without it a reader who chose dark gets a white flash on
