@@ -1,4 +1,4 @@
-import { sourceBySlug, type Municipality } from '@scec/core'
+import { MANUAL_SOURCE_SLUG, sourceBySlug, type Municipality } from '@scec/core'
 import type { PublicEvent } from './query.ts'
 import {
   COPYRIGHT,
@@ -143,7 +143,10 @@ export function renderEventPage(event: PublicEvent, origin: string, backHref = '
   // The listing lives on someone else's site: open it in a new tab so this page, and
   // whatever the reader was scrolling through to reach it, stays where it was.
   const links: string[] = [
-    `<a class="btn" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">View the listing <span class="ext" aria-hidden="true">&#8599;</span></a>`,
+    // An event added by hand in the console may have no page anywhere else.
+    ...(event.url
+      ? [`<a class="btn" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">View the listing <span class="ext" aria-hidden="true">&#8599;</span></a>`]
+      : []),
     `<button class="btn ghost" type="button" data-share aria-haspopup="dialog"
        data-share-url="${escapeHtml(canonical)}"
        data-share-text="${escapeHtml(`${event.title} · ${when}`)}">Share</button>`,
@@ -188,7 +191,11 @@ ${renderHead(
   ${event.description ? `<div class="description">${escapeHtml(event.description).replace(/\n+/g, '<br>')}</div>` : ''}
   ${event.organizer ? `<p class="organizer">Organized by ${escapeHtml(event.organizer)}</p>` : ''}
   <div class="actions">${links.join('')}</div>
-  <p class="listed">Listed on ${listedOn.map((n) => escapeHtml(n)).join(', ')}. Details come from those sites; confirm with the organizer before you go.</p>
+  <p class="listed">${
+    event.sourceSlugs.every((slug) => slug === MANUAL_SOURCE_SLUG)
+      ? 'Added by Out in Simcoe. Confirm the details with the organizer before you go.'
+      : `Listed on ${listedOn.map((n) => escapeHtml(n)).join(', ')}. Details come from those sites; confirm with the organizer before you go.`
+  }</p>
   ${
     event.municipalitySlug && feed
       ? `<p class="subscribe"><a href="${escapeHtml(feed)}">Subscribe to ${escapeHtml(event.municipalityName ?? '')} events</a>

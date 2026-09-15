@@ -13,10 +13,10 @@
  *     the site shows.
  */
 
-export type Platform = 'govstack' | 'drupal-events' | 'eventon' | 'tribe' | 'spaces' | 'cityspark'
+export type Platform = 'govstack' | 'drupal-events' | 'eventon' | 'tribe' | 'spaces' | 'cityspark' | 'manual'
 
 /** Who publishes a calendar. Drives the representative choice when listings merge. */
-export type SourceKind = 'municipal' | 'county' | 'library' | 'media' | 'tourism'
+export type SourceKind = 'municipal' | 'county' | 'library' | 'media' | 'tourism' | 'manual'
 
 export type MunicipalityLevel = 'county' | 'city' | 'town' | 'township'
 
@@ -76,6 +76,8 @@ export type SourceConfig =
   | { platform: 'tribe'; origin: string }
   | { platform: 'spaces'; host: string }
   | { platform: 'cityspark'; portal: string; ppid: number; lat: number; lng: number; distanceKm: number }
+  /** Entered by hand in the admin console. Nothing to fetch. */
+  | { platform: 'manual' }
 
 export interface Source {
   slug: string

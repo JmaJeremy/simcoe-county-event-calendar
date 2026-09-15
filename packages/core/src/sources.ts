@@ -11,6 +11,9 @@ const TZ = 'America/Toronto'
  * which beats a news site's user-submitted copy. Ties break on completeness.
  */
 export const PRIORITY: Record<SourceKind, number> = {
+  // An event someone typed into the admin console on purpose outranks every scraped copy
+  // of it, so its title, time and details are the ones a merged cluster shows.
+  manual: 5,
   municipal: 10,
   county: 20,
   library: 30,
@@ -55,7 +58,24 @@ const govstack = (slug: string, name: string, municipalitySlug: string, host: st
     homepage: `https://${host}/`,
   })
 
+/** Listings entered through the admin console at console.outinsimcoe.ca. */
+export const MANUAL_SOURCE_SLUG = 'manual'
+
 export const SOURCES: Source[] = [
+  // ---- Hand-entered ---------------------------------------------------------------------
+  // Never fetched: disabled, so the ingest loop, enrichment and the public sources list all
+  // skip it. Still registered, because listings reference their source (D1 enforces the
+  // foreign key), and sourceBySlug still finds it for dedup priority and "Listed on".
+  row({
+    slug: MANUAL_SOURCE_SLUG,
+    name: 'Out in Simcoe',
+    kind: 'manual',
+    municipalitySlug: null,
+    config: { platform: 'manual' },
+    homepage: 'https://outinsimcoe.ca/',
+    enabled: false,
+  }),
+
   // ---- County -------------------------------------------------------------------------
   row({
     slug: 'simcoe-county',

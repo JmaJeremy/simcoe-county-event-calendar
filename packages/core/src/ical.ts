@@ -121,7 +121,8 @@ export function buildIcal(events: Event[], options: IcalOptions = {}): string {
     if (event.timePrecision === 'date-only') {
       description.push('Start time not published by the source — check the listing.')
     }
-    description.push(`Source: ${event.url}`)
+    // Events added by hand may have no page of their own to point at.
+    if (event.url) description.push(`Source: ${event.url}`)
 
     lines.push('BEGIN:VEVENT', `UID:${event.id}@${UID_DOMAIN}`, `DTSTAMP:${stamp}`)
 

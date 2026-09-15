@@ -1,4 +1,5 @@
-import { MUNICIPALITIES, enabledSources, type Source } from '@scec/core'
+import { MUNICIPALITIES, SOURCES, enabledSources, type Source } from '@scec/core'
+import { handleConsole } from './console.ts'
 import { noJudge, runDedup, type DedupStats, type Judge } from './dedup.ts'
 import { enrich, type EnrichStats } from './enrich.ts'
 import { judgeCosts, type CostPassStats } from './cost.ts'
@@ -21,6 +22,13 @@ export interface Env {
   INGEST_TOKEN?: string
   /** Claude API key for the de-duplication judge. Without it, ambiguous pairs stay apart. */
   ANTHROPIC_API_KEY?: string
+  /** The admin console's hostname; requests to it are the console and nothing else. */
+  CONSOLE_HOST?: string
+  /** Cloudflare Access team domain and application AUD tag, for verifying console tokens. */
+  ACCESS_TEAM_DOMAIN?: string
+  ACCESS_AUD?: string
+  /** The public site, for the console's links to event pages. */
+  PUBLIC_ORIGIN?: string
 }
 
 export interface SourceOutcome {
@@ -95,7 +103,9 @@ export async function ingestAll(
   env: Env,
   options: { sources?: Source[]; dedup?: boolean; detail?: boolean; cost?: boolean } = {},
 ): Promise<IngestReport> {
-  await upsertRegistry(env.DB, MUNICIPALITIES, enabledSources())
+  // Every source, not just the enabled ones: the disabled `manual` source must still exist
+  // in D1, because hand-entered listings reference it.
+  await upsertRegistry(env.DB, MUNICIPALITIES, SOURCES)
   const outcomes: SourceOutcome[] = []
   // Sequential on purpose: these are small municipal servers and nothing here is urgent.
   for (const source of options.sources ?? enabledSources()) {
@@ -181,9 +191,13 @@ export default {
     )
   },
 
-  /** Manual trigger, so a deploy can be verified without waiting for the cron. */
+  /** Manual trigger, so a deploy can be verified without waiting for the cron; and the console. */
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
+    // The admin console lives on its own hostname, where Cloudflare Access stands in front
+    // of it, and handleConsole verifies the Access token regardless. It is never served on
+    // workers.dev, and /run is never served on the console host.
+    if (env.CONSOLE_HOST && url.hostname === env.CONSOLE_HOST) return handleConsole(request, env)
     if (url.pathname !== '/run') {
       return new Response('Simcoe County events ingest worker. POST /run with the ingest token.', { status: 404 })
     }

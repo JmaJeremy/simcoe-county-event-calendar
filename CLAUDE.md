@@ -84,6 +84,10 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   the worker redirect `www` to it and pin every share card, permalink and feed URL to one
   origin no matter which host answered.
 - Ingest: https://scec-ingest.thejeremy-net.workers.dev (token-guarded, not public)
+- Console: https://console.outinsimcoe.ca — the admin console for adding events by hand,
+  served by the **ingest** worker on its own custom domain behind the Cloudflare Access
+  application "outinsimcoe.ca console". `CONSOLE_HOST`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`
+  and `PUBLIC_ORIGIN` are plain vars in `apps/ingest/wrangler.jsonc`; none is a secret.
 - Zone settings on `outinsimcoe.ca` are Cloudflare defaults except **Always Use HTTPS**,
   turned on when the domain was attached — without it the site answered on plain HTTP.
   HSTS is deliberately off: it is a long-lived promise and there is no reason to make it yet.
@@ -258,5 +262,30 @@ when it breaks, so nothing here is checked by eye.
   `action-mismatch`: that refusal is the proof the whole chain ran.
 - **The work-in-progress tag and the copyright line are repeated** in `index.html`,
   `suggest.html` and `WIP_TAG`/`COPYRIGHT` in `apps/web/src/html.ts`. Change one, change all three.
+- **Hand-entered events are listings, never rows written into `events`.** Dedup rebuilds
+  events from listings each run and closes any event in its window with no listing behind
+  it, so a bare event would vanish within two hours. The console (`apps/ingest/src/
+  console.ts`) stores a listing from the `manual` source, built by `normalizeEvent` like any
+  scraped one, plus the event `buildClusters` makes of it — under the id dedup will keep —
+  so it shows at once. A manual listing can merge with a scraped copy of the same event;
+  `PRIORITY.manual = 5` makes it the representative. Once merged, the console leaves the
+  event to dedup and edits reach the public page at the next run.
+- **The `manual` source is disabled but registered.** Disabled keeps it out of the ingest
+  loop, enrichment and the public sources list; registered matters because D1 enforces the
+  `listings.source_slug` foreign key. That is why `ingestAll` now passes all of `SOURCES`
+  to `upsertRegistry`, and why the console registers it again before every write. Manual
+  listings are also excluded from the cost judge: "Not listed" in the form is a choice.
+- **A manual event's `url` may be empty.** The column is NOT NULL, so no link is `''`. The
+  event page then drops "View the listing", iCal drops its "Source:" line, and dedup's URL
+  signal cannot match `''` against a scraped listing, which always has one.
+- **The console checks the Access JWT itself, on every request.** Access only guards the
+  console hostname; the same worker answers on workers.dev. `access.ts` verifies the
+  `Cf-Access-Jwt-Assertion` header against the team's published keys (issuer, audience,
+  expiry, RS256) and fails closed without the vars. Writes also need `Origin` and
+  `Sec-Fetch-Site: same-origin`, because a cross-site form post carries the Access cookie
+  and gets a perfectly valid token. The console is never served off `CONSOLE_HOST`, and
+  `/run` is never served on it.
+- **Adding a route to a worker turns its workers.dev URL off** unless `workers_dev: true`
+  is set. `apps/ingest/wrangler.jsonc` sets it, because `/run` is called on workers.dev.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.
   The civi-times tests used `m` for the month; that is why the ported suite was patched.

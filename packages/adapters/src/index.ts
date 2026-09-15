@@ -10,7 +10,8 @@ import { fetchTribe } from './tribe.ts'
  * Platform -> adapter. Adding a site that runs one of these means adding a row to the
  * source registry and touching nothing here.
  */
-export const ADAPTERS: Record<Platform, Adapter> = {
+/** Not every platform is fetched: 'manual' listings are typed in, so it has no adapter. */
+export const ADAPTERS: Partial<Record<Platform, Adapter>> = {
   govstack: fetchGovstack,
   'drupal-events': fetchDrupal,
   eventon: fetchEventon,

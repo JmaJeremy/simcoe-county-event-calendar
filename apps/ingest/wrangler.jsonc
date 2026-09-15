@@ -5,6 +5,21 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Keeps scec-ingest.thejeremy-net.workers.dev, which /run is called on. Declaring routes
+  // below turns the workers.dev URL off unless this says otherwise.
+  "workers_dev": true,
+  // The admin console. Cloudflare Access (application "outinsimcoe.ca console") guards
+  // this hostname, and the worker verifies the Access token itself as well: the same code
+  // answers on workers.dev, which Access does not cover. See src/access.ts.
+  "routes": [{ "pattern": "console.outinsimcoe.ca", "custom_domain": true }],
+  // Not secrets: the team domain and AUD tag identify the Access application, they do not
+  // unlock it. Tokens are checked against the team's published signing keys.
+  "vars": {
+    "CONSOLE_HOST": "console.outinsimcoe.ca",
+    "ACCESS_TEAM_DOMAIN": "https://hssj-website-pages.cloudflareaccess.com",
+    "ACCESS_AUD": "3ba2ddf9e9631c10b1309b83d3d4cb7ca7b32cfa9d34c23b3a65ed32cafd8b1f",
+    "PUBLIC_ORIGIN": "https://outinsimcoe.ca"
+  },
   "triggers": {
     // Every two hours: community calendars change on the order of days, and several of
     // the sources are third-party servers we would rather not lean on.

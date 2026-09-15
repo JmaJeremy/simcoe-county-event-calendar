@@ -6,6 +6,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
     "@scec/adapters": "*",
-    "@scec/core": "*"
+    "@scec/core": "*",
+    "jose": "^6.2.12"
   }
 }

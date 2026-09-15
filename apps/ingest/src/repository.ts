@@ -476,6 +476,7 @@ export async function loadCostCandidates(
          AND l.local_date >= date('now')
          AND l.category <> 'civic-meeting'
          AND l.cost = 'unknown'
+         AND l.source_slug <> 'manual'
          AND length(coalesce(l.description, '')) >= ?
          AND (l.source_slug NOT IN (${placeholders}) OR l.detail_hash = l.content_hash)
          AND NOT EXISTS (
