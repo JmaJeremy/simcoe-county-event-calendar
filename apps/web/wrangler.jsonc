@@ -14,7 +14,15 @@
     { "pattern": "outinsimcoe.ca", "custom_domain": true },
     { "pattern": "www.outinsimcoe.ca", "custom_domain": true }
   ],
-  "vars": { "CANONICAL_HOST": "outinsimcoe.ca" },
+  "vars": {
+    "CANONICAL_HOST": "outinsimcoe.ca",
+    // Where the admin email links a suggestion's poster: its page in the console, behind
+    // Cloudflare Access, so uploads never need to be public to be looked at.
+    "CONSOLE_ORIGIN": "https://console.outinsimcoe.ca"
+  },
+  // Posters uploaded with suggestions. The bucket is private: this worker writes them, and
+  // serves one publicly (/posters/{key}) only after its suggestion is approved as an event.
+  "r2_buckets": [{ "binding": "POSTERS", "bucket_name": "scec-suggestion-posters" }],
   // Static assets are normally served by the edge without invoking the worker. The shell
   // must go through it so the share metadata gets the serving origin substituted in;
   // everything else (css, js, images) still bypasses the worker entirely.

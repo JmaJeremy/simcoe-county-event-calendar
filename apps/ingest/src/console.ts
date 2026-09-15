@@ -27,7 +27,8 @@ import {
 } from './repository.ts'
 
 /**
- * The admin console at console.outinsimcoe.ca: add, edit and remove events by hand.
+ * The admin console at console.outinsimcoe.ca: add, edit and remove events by hand, and
+ * review what visitors suggest through the site's form.
  *
  * Every event it creates is a listing from the `manual` source, never a row written
  * straight into `events`. Dedup rebuilds events from listings on every run and switches
@@ -46,6 +47,8 @@ export interface ConsoleEnv {
   ACCESS_AUD?: string
   /** The public site, for links to an event's page. */
   PUBLIC_ORIGIN?: string
+  /** Posters uploaded with suggestions. The web worker writes them; the console only reads. */
+  POSTERS?: { get(key: string): Promise<{ body: ReadableStream } | null> }
 }
 
 const MANUAL_ID_PREFIX = `${MANUAL_SOURCE_SLUG}:`
@@ -88,11 +91,23 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
   const publicOrigin = (env.PUBLIC_ORIGIN ?? 'https://outinsimcoe.ca').replace(/\/$/, '')
   const path = url.pathname.replace(/\/+$/, '') || '/'
   const route = path.match(/^\/events\/([^/]+)(?:\/(remove|restore))?$/)
+  const suggestionRoute = path.match(/^\/suggestions\/([^/]+)(?:\/(poster|dismiss|reopen))?$/)
 
   try {
     if (path === '/' && request.method === 'GET') return page(await listPage(env.DB, url, publicOrigin, auth.email))
-    if (path === '/new' && request.method === 'GET') return page(formPage({ email: auth.email }))
+    if (path === '/new' && request.method === 'GET') return await newPage(env.DB, url, publicOrigin, auth.email)
     if (path === '/events' && request.method === 'POST') return await createEvent(env.DB, request, auth.email)
+    if (path === '/suggestions' && request.method === 'GET') return page(await suggestionsPage(env.DB, url, auth.email))
+
+    if (suggestionRoute) {
+      const [, id, action] = suggestionRoute
+      if (!UUID.test(id!)) return notFound(auth.email)
+      if (!action && request.method === 'GET') return await suggestionPage(env.DB, id!, auth.email)
+      if (action === 'poster' && request.method === 'GET') return await posterResponse(env, id!, auth.email)
+      if ((action === 'dismiss' || action === 'reopen') && request.method === 'POST') {
+        return await setDismissed(env.DB, id!, action === 'dismiss')
+      }
+    }
 
     if (route) {
       const [, uuid, action] = route
@@ -121,12 +136,24 @@ async function readForm(request: Request): Promise<Record<string, unknown>> {
 }
 
 async function createEvent(db: D1Like, request: Request, email: string): Promise<Response> {
-  const parsed = parseEventForm(await readForm(request))
-  if (!parsed.ok) return page(formPage({ email, values: parsed.values, errors: parsed.errors }), 400)
+  const form = await readForm(request)
+  // Opened from a suggestion: saving approves it.
+  const suggestion = typeof form.from === 'string' && UUID.test(form.from) ? await loadSuggestion(db, form.from) : null
+  const parsed = parseEventForm(form)
+  if (!parsed.ok) return page(formPage({ email, values: parsed.values, errors: parsed.errors, suggestion }), 400)
 
   const listing = buildManualListing(parsed.input, crypto.randomUUID())
   await writeListing(db, listing, { eventId: null, eventCreatedAt: null, active: true })
-  return redirect(`/?saved=${encodeURIComponent(listing.externalId)}`)
+  if (suggestion) {
+    // This is also what makes its poster public: the site's /posters/ route serves only
+    // the posters of suggestions approved as events.
+    await runBatched(db, [
+      db
+        .prepare("UPDATE suggestions SET handled_at = ?, handled_as = 'event', handled_listing_id = ? WHERE id = ?")
+        .bind(new Date().toISOString(), listing.id, suggestion.id),
+    ])
+  }
+  return redirect(`/?saved=${encodeURIComponent(listing.externalId)}${suggestion ? '&suggestion=1' : ''}`)
 }
 
 async function updateEvent(db: D1Like, request: Request, uuid: string, email: string): Promise<Response> {
@@ -263,6 +290,7 @@ async function listPage(db: D1Like, url: URL, publicOrigin: string, email: strin
   const past = results.filter((r) => r.local_date < today).sort((a, b) => b.starts_at_utc.localeCompare(a.starts_at_utc))
 
   const flash = flashMessage(url, results, publicOrigin)
+  const waiting = (await db.prepare('SELECT COUNT(*) AS n FROM suggestions WHERE handled_at IS NULL').first<{ n: number }>())?.n ?? 0
   const row = (r: (typeof results)[number]): string => {
     const uuid = r.id.slice(MANUAL_ID_PREFIX.length)
     const place = MUNICIPALITIES.find((m) => m.slug === r.municipality_slug)?.shortName ?? 'Not specified'
@@ -290,6 +318,7 @@ async function listPage(db: D1Like, url: URL, publicOrigin: string, email: strin
   return shell(
     'Events added by hand',
     `${flash}
+    ${waiting ? `<p class="notice">${waiting} suggestion${waiting === 1 ? '' : 's'} from the site waiting. <a href="/suggestions">Review ${waiting === 1 ? 'it' : 'them'}</a></p>` : ''}
     <p><a class="button" href="/new">Add an event</a></p>
     ${section('Upcoming', upcoming, 'No upcoming events added by hand yet.')}
     ${past.length ? section('Past', past, '') : ''}`,
@@ -308,7 +337,8 @@ function flashMessage(url: URL, rows: Array<ListingRow & { event_code: string | 
     const merged = url.searchParams.get('merged') === '1'
       ? ' It is merged with a calendar’s copy of the same event, so the public page catches up at the next ingest run (within two hours).'
       : ' It is on the site now; if a calendar lists the same event, the next ingest run merges the two.'
-    return `<p class="flash">Saved “${escapeHtml(saved.title)}”.${merged}${link}</p>`
+    const approved = url.searchParams.get('suggestion') === '1' ? ' The suggestion it came from is marked done.' : ''
+    return `<p class="flash">Saved “${escapeHtml(saved.title)}”.${merged}${approved}${link}</p>`
   }
   const removed = pick('removed')
   // Its own page still opens for anyone holding the link; everything that lists events —
@@ -354,7 +384,14 @@ function valuesFromRow(row: ListingRow): Record<string, string> {
   }
 }
 
-function formPage(options: { email: string; uuid?: string; values?: Record<string, string>; errors?: Record<string, string> }): string {
+function formPage(options: {
+  email: string
+  uuid?: string
+  values?: Record<string, string>
+  errors?: Record<string, string>
+  /** The suggestion this new event is being made from. */
+  suggestion?: SuggestionRow | null
+}): string {
   const values = options.values ?? {}
   const errors = options.errors ?? {}
   const v = (key: string) => escapeHtml(values[key] ?? '')
@@ -372,12 +409,24 @@ function formPage(options: { email: string; uuid?: string; values?: Record<strin
   const places: Array<[string, string]> = [['', 'Not specified'], ...MUNICIPALITIES.map((m): [string, string] => [m.slug, m.name])]
   const categories: ReadonlyArray<readonly [string, string]> = [[AUTO_CATEGORY, 'Work it out from the title'], ...CATEGORY_OPTIONS]
   const action = options.uuid ? `/events/${options.uuid}` : '/events'
-  const heading = options.uuid ? 'Edit event' : 'Add an event'
+  const s = options.uuid ? null : options.suggestion ?? null
+  const heading = options.uuid ? 'Edit event' : s ? 'Add an event from a suggestion' : 'Add an event'
+  const fromPanel = s
+    ? `<div class="from-suggestion">
+        <p><strong>From a suggestion</strong>${s.name ? ` by ${escapeHtml(s.name)}` : ''}, received ${escapeHtml(received(s.created_at))}
+          · <a href="/suggestions/${s.id}">See the suggestion</a></p>
+        <p>Check the details, since they are what a visitor typed. Saving adds the event and marks the suggestion done.</p>
+        ${s.comments ? `<p class="muted pre">Their comments, which are not copied into the event: ${escapeHtml(s.comments)}</p>` : ''}
+        ${s.poster_key ? `<p><img class="thumb" src="/suggestions/${s.id}/poster" alt="The poster sent with the suggestion"></p>` : ''}
+      </div>`
+    : ''
 
   return shell(
     heading,
     `${Object.keys(errors).length ? '<p class="flash error">Some fields need another look — see below.</p>' : ''}
+    ${fromPanel}
     <form method="post" action="${action}" class="event-form">
+      ${s ? `<input type="hidden" name="from" value="${s.id}">` : ''}
       ${field('title', 'Title', input('title', 'text', 'required maxlength="200"'))}
       <div class="pair">
         ${field('municipality', 'Municipality', select('municipality', places, ''))}
@@ -405,11 +454,203 @@ function formPage(options: { email: string; uuid?: string; values?: Record<strin
         ${field('status', 'Status', select('status', STATUS_OPTIONS, 'scheduled'))}
       </div>
       ${field('url', 'Link to more information', input('url', 'url', 'maxlength="2000" placeholder="https://"'), 'Optional. Without one, the event page has no “View the listing” button.')}
-      ${field('image_url', 'Poster image', input('image_url', 'url', 'maxlength="2000" placeholder="https://"'), 'Optional, https only.')}
+      ${field('image_url', 'Poster image', input('image_url', 'url', 'maxlength="2000" placeholder="https://"'), s?.poster_key && values.image_url?.includes(s.poster_key)
+        ? 'The suggested poster, filled in for you. It becomes public when you add this event; clear it to leave the poster out.'
+        : 'Optional, https only.')}
       <p class="actions"><button type="submit" class="button">${options.uuid ? 'Save changes' : 'Add event'}</button> <a href="/">Cancel</a></p>
     </form>`,
     options.email,
   )
+}
+
+/* -------------------------------------------------------------------- suggestions */
+
+/*
+ * What visitors send through the site's "Are we missing something?" form. The web worker
+ * writes these rows and puts any poster in R2; here they are read, their posters shown
+ * behind Access, and an event suggestion becomes a manual event through the ordinary
+ * form, filled in from it. Nothing is ever deleted: a suggestion is waiting, added as an
+ * event, or dismissed.
+ */
+
+interface SuggestionRow {
+  id: string
+  kind: 'event' | 'website'
+  name: string | null
+  email: string | null
+  title: string | null
+  url: string | null
+  event_date: string | null
+  event_time: string | null
+  description: string | null
+  comments: string | null
+  created_at: string
+  admin_mail: string | null
+  user_mail: string | null
+  poster_key: string | null
+  poster_type: string | null
+  poster_error: string | null
+  handled_at: string | null
+  handled_as: 'event' | 'dismissed' | null
+  handled_listing_id: string | null
+}
+
+/** The types the web worker can have decided from a file's bytes. Nothing else is served. */
+const POSTER_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+
+const loadSuggestion = (db: D1Like, id: string): Promise<SuggestionRow | null> =>
+  db.prepare('SELECT * FROM suggestions WHERE id = ?').bind(id).first<SuggestionRow>()
+
+const received = (iso: string): string =>
+  new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' })
+
+const suggestionLabel = (s: Pick<SuggestionRow, 'title' | 'url'>): string => s.title ?? s.url ?? 'No title given'
+
+async function newPage(db: D1Like, url: URL, publicOrigin: string, email: string): Promise<Response> {
+  const from = url.searchParams.get('from')
+  if (!from) return page(formPage({ email }))
+  const suggestion = UUID.test(from) ? await loadSuggestion(db, from) : null
+  if (!suggestion) return notFound(email)
+  return page(formPage({ email, suggestion, values: valuesFromSuggestion(suggestion, publicOrigin) }))
+}
+
+/**
+ * A suggestion in the event form's own field names. The comments stay out: they were
+ * written to us, not for the public page.
+ */
+function valuesFromSuggestion(s: SuggestionRow, publicOrigin: string): Record<string, string> {
+  return {
+    title: s.title ?? '',
+    url: s.url ?? '',
+    date: s.event_date ?? '',
+    start_time: s.event_time ?? '',
+    description: s.description ?? '',
+    // Its public address once the event is saved; see servePoster in apps/web/src/worker.ts.
+    image_url: s.poster_key ? `${publicOrigin}/posters/${s.poster_key}` : '',
+  }
+}
+
+function handledNote(s: Pick<SuggestionRow, 'handled_at' | 'handled_as' | 'handled_listing_id'>): string {
+  if (!s.handled_at) return ''
+  if (s.handled_as !== 'event') return '<span class="flag off">Dismissed</span>'
+  const uuid = s.handled_listing_id?.startsWith(MANUAL_ID_PREFIX) ? s.handled_listing_id.slice(MANUAL_ID_PREFIX.length) : null
+  return `<span class="flag ok">Added as an event</span>${uuid && UUID.test(uuid) ? ` <a href="/events/${uuid}">Edit the event</a>` : ''}`
+}
+
+async function suggestionsPage(db: D1Like, url: URL, email: string): Promise<string> {
+  const { results } = await db
+    .prepare(
+      `SELECT id, kind, name, title, url, event_date, event_time, created_at, poster_key, handled_at, handled_as, handled_listing_id
+         FROM suggestions ORDER BY created_at DESC LIMIT 300`,
+    )
+    .all<SuggestionRow>()
+  const waiting = results.filter((s) => !s.handled_at)
+  const done = results.filter((s) => s.handled_at).slice(0, 50)
+
+  const row = (s: SuggestionRow): string => {
+    const when = s.event_date ? ` · for ${escapeHtml(s.event_date)}${s.event_time ? ` at ${escapeHtml(s.event_time)}` : ''}` : ''
+    return `<li>
+      <div class="row-main"><a href="/suggestions/${s.id}"><strong>${escapeHtml(suggestionLabel(s))}</strong></a><span class="flag">${
+        s.kind === 'website' ? 'Website' : 'Event'
+      }</span>${s.poster_key ? '<span class="flag">Poster</span>' : ''}</div>
+      <div class="row-meta">Received ${escapeHtml(received(s.created_at))}${when}${s.name ? ` · from ${escapeHtml(s.name)}` : ''}</div>
+      ${s.handled_at ? `<div class="row-actions">${handledNote(s)}</div>` : ''}
+    </li>`
+  }
+  const list = (rows: SuggestionRow[], empty: string): string =>
+    rows.length ? `<ul class="rows">${rows.map(row).join('')}</ul>` : `<p class="muted">${empty}</p>`
+
+  const dismissed = results.find((s) => s.id === url.searchParams.get('dismissed'))
+  const flash = dismissed
+    ? `<p class="flash">Dismissed “${escapeHtml(suggestionLabel(dismissed))}”. <a href="/suggestions/${dismissed.id}">Open it</a> to undo that.</p>`
+    : ''
+
+  return shell(
+    'Suggestions',
+    `${flash}
+    <h2>Waiting</h2>${list(waiting, 'Nothing waiting. Suggestions sent through the site’s form appear here.')}
+    ${done.length ? `<h2>Done</h2>${list(done, '')}` : ''}`,
+    email,
+  )
+}
+
+async function suggestionPage(db: D1Like, id: string, email: string): Promise<Response> {
+  const s = await loadSuggestion(db, id)
+  if (!s) return notFound(email)
+
+  // The web worker only stores http(s) links, but this is a stranger's text on its way
+  // into an href, so check again.
+  const link = s.url && /^https?:\/\//i.test(s.url)
+    ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.url)}</a>`
+    : s.url && escapeHtml(s.url)
+  const rows: Array<[string, string | null]> = [
+    ['Type', s.kind === 'website' ? 'A website that lists events' : 'A single event'],
+    ['Title', s.title && escapeHtml(s.title)],
+    ['Link', link],
+    ['Date', s.event_date && escapeHtml(s.event_date)],
+    ['Time', s.event_time && escapeHtml(s.event_time)],
+    ['Description', s.description && escapeHtml(s.description)],
+    ['Comments', s.comments && escapeHtml(s.comments)],
+    ['From', escapeHtml([s.name, s.email ? `<${s.email}>` : null].filter(Boolean).join(' ') || 'Anonymous')],
+    ['Received', escapeHtml(received(s.created_at))],
+    ['Emails', escapeHtml(`to us: ${s.admin_mail ?? 'not recorded'} · thank-you: ${s.user_mail ?? 'not recorded'}`)],
+    ['Poster', s.poster_error && escapeHtml(`one was sent but not kept (${s.poster_error})`)],
+  ]
+  const details = `<dl class="details">${rows
+    .filter(([, value]) => value)
+    .map(([label, value]) => `<dt>${label}</dt><dd>${value}</dd>`)
+    .join('')}</dl>`
+
+  let actions: string
+  if (!s.handled_at) {
+    const create =
+      s.kind === 'event'
+        ? `<a class="button" href="/new?from=${s.id}">Create an event from this</a>`
+        : '<span class="muted">A website is a source for the ingest run to read, not an event to add here.</span>'
+    actions = `${create}<form method="post" action="/suggestions/${s.id}/dismiss"><button type="submit" class="link">Dismiss</button></form>`
+  } else if (s.handled_as === 'dismissed') {
+    actions = `${handledNote(s)}<form method="post" action="/suggestions/${s.id}/reopen"><button type="submit" class="link">Undo, and put it back in the waiting list</button></form>`
+  } else {
+    actions = handledNote(s)
+  }
+
+  const poster = s.poster_key
+    ? `<p><a href="/suggestions/${s.id}/poster" target="_blank" rel="noopener"><img class="poster" src="/suggestions/${s.id}/poster" alt="The poster sent with this suggestion"></a></p>`
+    : ''
+  return page(shell(suggestionLabel(s), `<div class="actions">${actions}</div>${details}${poster}<p><a href="/suggestions">All suggestions</a></p>`, email))
+}
+
+/** A suggestion's poster, straight from the private bucket, to a signed-in admin only. */
+async function posterResponse(env: ConsoleEnv, id: string, email: string): Promise<Response> {
+  const s = await loadSuggestion(env.DB, id)
+  const type = s?.poster_type && POSTER_TYPES.has(s.poster_type) ? s.poster_type : null
+  const object = s?.poster_key && type && env.POSTERS ? await env.POSTERS.get(s.poster_key) : null
+  if (!object || !type) return notFound(email)
+  return new Response(object.body, {
+    headers: {
+      'Content-Type': type,
+      // Not public until approved, so never into a shared cache.
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'",
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
+  })
+}
+
+/**
+ * Dismiss a waiting suggestion, or undo a dismissal. An approved suggestion cannot be
+ * sent back: its event may be showing its poster, which would stop being served.
+ */
+async function setDismissed(db: D1Like, id: string, dismiss: boolean): Promise<Response> {
+  await runBatched(db, [
+    dismiss
+      ? db
+          .prepare("UPDATE suggestions SET handled_at = ?, handled_as = 'dismissed' WHERE id = ? AND handled_at IS NULL")
+          .bind(new Date().toISOString(), id)
+      : db.prepare("UPDATE suggestions SET handled_at = NULL, handled_as = NULL WHERE id = ? AND handled_as = 'dismissed'").bind(id),
+  ])
+  return redirect(dismiss ? `/suggestions?dismissed=${id}` : `/suggestions/${id}`)
 }
 
 function shell(title: string, body: string, email: string): string {
@@ -418,14 +659,16 @@ function shell(title: string, body: string, email: string): string {
 <meta name="robots" content="noindex,nofollow">
 <title>${escapeHtml(title)} — Out in Simcoe console</title>
 <style>
-  :root { color-scheme: light dark; --bg:#fbf7f1; --card:#fffdf9; --ink:#231a12; --muted:#6f6358; --line:#e7ddd0; --accent:#e05a17; --accent-ink:#fffaf4; --warn:#8a4b12; --warn-bg:#fbf1e6; --bad:#a3261b; --bad-bg:#fbe9e7; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#15110d; --card:#1f1914; --ink:#f3ebe1; --muted:#b3a697; --line:#3a3027; --accent:#ff8a4c; --accent-ink:#2c1205; --warn:#e0a86a; --warn-bg:#2c2318; --bad:#ff9d92; --bad-bg:#3a1a16; } }
+  :root { color-scheme: light dark; --bg:#fbf7f1; --card:#fffdf9; --ink:#231a12; --muted:#6f6358; --line:#e7ddd0; --accent:#e05a17; --accent-ink:#fffaf4; --warn:#8a4b12; --warn-bg:#fbf1e6; --bad:#a3261b; --bad-bg:#fbe9e7; --ok:#1f6b2a; --ok-bg:#e3f1e4; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#15110d; --card:#1f1914; --ink:#f3ebe1; --muted:#b3a697; --line:#3a3027; --accent:#ff8a4c; --accent-ink:#2c1205; --warn:#e0a86a; --warn-bg:#2c2318; --bad:#ff9d92; --bad-bg:#3a1a16; --ok:#8fd49a; --ok-bg:#1c2e1f; } }
   * { box-sizing: border-box; }
   body { margin: 0; padding: 0 16px 48px; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
   header, main { max-width: 820px; margin: 0 auto; }
   header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; padding: 20px 0 12px; border-bottom: 1px solid var(--line); }
   header a { color: var(--ink); font-weight: 700; text-decoration: none; }
   header .who { color: var(--muted); font-size: 13px; }
+  header nav { display: flex; gap: 16px; }
+  header nav a { color: var(--accent); font-weight: 600; }
   h1 { font-size: 26px; margin: 22px 0 12px; }
   h2 { font-size: 17px; margin: 26px 0 8px; }
   a { color: var(--accent); }
@@ -440,10 +683,21 @@ function shell(title: string, body: string, email: string): string {
   .row-meta { color: var(--muted); font-size: 13.5px; }
   .row-actions { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px; font-size: 14px; }
   .row-actions form { display: inline; margin: 0; }
+  .row-actions .flag { margin-left: 0; }
   .link { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
   .flag { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--line); font-size: 12px; font-weight: 600; }
   .flag.warn { background: var(--warn-bg); color: var(--warn); }
   .flag.off { background: var(--bad-bg); color: var(--bad); }
+  .flag.ok { background: var(--ok-bg); color: var(--ok); }
+  .notice { padding: 10px 14px; border: 1.5px solid var(--accent); border-radius: 10px; }
+  .from-suggestion { margin: 8px 0 18px; padding: 12px 14px; border: 1.5px dashed var(--line); border-radius: 10px; background: var(--card); }
+  .from-suggestion p { margin: 0 0 6px; }
+  .pre { white-space: pre-wrap; }
+  .thumb { max-width: 160px; max-height: 160px; border: 1px solid var(--line); border-radius: 8px; }
+  .poster { max-width: 100%; max-height: 520px; border: 1px solid var(--line); border-radius: 10px; }
+  .details { display: grid; grid-template-columns: 8.5em 1fr; gap: 8px 16px; margin: 16px 0; }
+  .details dt { color: var(--muted); font-weight: 700; }
+  .details dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
   .event-form { margin-top: 8px; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
   .field { display: flex; flex-direction: column; gap: 4px; margin: 0 0 14px; min-width: 0; }
@@ -453,11 +707,14 @@ function shell(title: string, body: string, email: string): string {
   textarea { resize: vertical; }
   .has-error input, .has-error select, .has-error textarea { border-color: var(--bad); }
   .error { color: var(--bad); font-size: 13px; font-weight: 600; }
-  .actions { display: flex; align-items: center; gap: 16px; }
-  @media (max-width: 600px) { .pair { grid-template-columns: 1fr; } }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 12px 0; }
+  .actions form { margin: 0; }
+  @media (max-width: 600px) { .pair, .details { grid-template-columns: 1fr; } }
 </style>
 </head><body>
-<header><a href="/">Out in Simcoe · console</a>${email ? `<span class="who">Signed in as ${escapeHtml(email)}</span>` : ''}</header>
+<header><a href="/">Out in Simcoe · console</a>${
+  email ? `<nav><a href="/">Events</a><a href="/suggestions">Suggestions</a></nav><span class="who">Signed in as ${escapeHtml(email)}</span>` : ''
+}</header>
 <main><h1>${escapeHtml(title)}</h1>${body}</main>
 </body></html>`
 }

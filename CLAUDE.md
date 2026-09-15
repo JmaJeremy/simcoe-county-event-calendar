@@ -88,6 +88,9 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   served by the **ingest** worker on its own custom domain behind the Cloudflare Access
   application "outinsimcoe.ca console". `CONSOLE_HOST`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`
   and `PUBLIC_ORIGIN` are plain vars in `apps/ingest/wrangler.jsonc`; none is a secret.
+  It also holds the suggestions inbox. Posters live in the private R2 bucket
+  `scec-suggestion-posters`, bound as `POSTERS` on both workers; the web worker's
+  `CONSOLE_ORIGIN` var is where the admin email's links point.
 - Zone settings on `outinsimcoe.ca` are Cloudflare defaults except **Always Use HTTPS**,
   turned on when the domain was attached — without it the site answered on plain HTTP.
   HSTS is deliberately off: it is a long-lived promise and there is no reason to make it yet.
@@ -232,7 +235,8 @@ when it breaks, so nothing here is checked by eye.
   binding (Cloudflare Email Service), recording each outcome on the row. A mail failure
   still answers "thanks" — the row is the record, the mail is a notification. The table's
   migration lives in `apps/ingest/migrations/` like every other, though only the web worker
-  writes it: apply migrations **before** deploying the web worker or the form 500s.
+  writes it: apply migrations **before** deploying the web worker or the form 500s
+  (0005 added the poster and handled columns its INSERT names).
 - **The thank-you email echoes nothing the visitor typed**, not even their name. Anyone can
   put anyone's address in the form; an echo would let them mail their own words to a
   stranger from outinsimcoe.ca. The admin copy has everything, with Reply-To set to the
@@ -285,6 +289,23 @@ when it breaks, so nothing here is checked by eye.
   `Sec-Fetch-Site: same-origin`, because a cross-site form post carries the Access cookie
   and gets a perfectly valid token. The console is never served off `CONSOLE_HOST`, and
   `/run` is never served on it.
+- **Posters are private until a suggestion is approved.** Uploads go to the R2 bucket
+  `scec-suggestion-posters`, bound as `POSTERS` on both workers: the web worker writes, the
+  console reads and shows them behind Access, and the admin email links to the console —
+  never to the bucket. The site's `/posters/{key}` serves one only when its suggestion has
+  `handled_as = 'event'`, which is set by saving the event form the console pre-fills from
+  it (hidden `from` field). So only a dismissal can be undone: un-approving would break the
+  poster on a live event page.
+- **A poster is judged by its bytes and stored without its metadata.** `inspectImage`
+  (`apps/web/src/image.ts`) reads the file signature — the name and declared type are the
+  sender's word — and accepts only JPEG, PNG, GIF and WebP; SVG can carry script. It runs
+  before Turnstile, so a bad file spends no token, and storage happens after it, so a bot's
+  bytes never reach R2. `stripMetadata` then drops EXIF/XMP/IPTC/comments/text chunks and
+  anything after a JPEG's end marker (motion-photo video): a phone photo of a poster
+  carries GPS. It keeps a JPEG's orientation, rewritten as a one-entry EXIF block, and its
+  ICC and Adobe segments, or phone photos show sideways and CMYK files in wrong colours.
+  A file it cannot walk is refused. The form lists the four types in `accept` rather than
+  `image/*`, which is what makes an iPhone convert HEIC to JPEG before upload.
 - **Adding a route to a worker turns its workers.dev URL off** unless `workers_dev: true`
   is set. `apps/ingest/wrangler.jsonc` sets it, because `/run` is called on workers.dev.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.

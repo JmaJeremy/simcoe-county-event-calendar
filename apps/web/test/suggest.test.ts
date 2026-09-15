@@ -55,6 +55,11 @@ describe('validateSuggestion', () => {
     expect(s.description).toHaveLength(5000)
   })
 
+  it('takes a poster on its own as a suggestion, but only for a single event', () => {
+    expect(validateSuggestion({}, { hasPoster: true }).ok).toBe(true)
+    expect(validateSuggestion({ kind: 'website' }, { hasPoster: true }).ok).toBe(false)
+  })
+
   it('treats anything unknown as an event and ignores fields that are not strings', () => {
     const s = valid({ kind: 'nonsense', title: 'Fair', name: { toString: () => 'x' } })
     expect([s.kind, s.name]).toEqual(['event', null])
@@ -83,6 +88,21 @@ describe('suggestion emails', () => {
     for (const part of ['Sam <sam@example.com>', 'https://example.org/supper', '2026-10-03', 'Roast beef, pie.\nAll welcome.', 'abc']) {
       expect(text).toContain(part)
     }
+  })
+
+  it('links the poster and the review page, both in the console', () => {
+    const { text } = adminMail(suggestion, {
+      id: 'abc',
+      receivedAt: 'now',
+      posterUrl: 'https://console.example.ca/suggestions/abc/poster',
+      reviewUrl: 'https://console.example.ca/suggestions/abc',
+    })
+    expect(text).toContain('https://console.example.ca/suggestions/abc/poster')
+    expect(text).toContain('Review it, or turn it into an event:\nhttps://console.example.ca/suggestions/abc')
+  })
+
+  it('says when a poster was sent but could not be kept', () => {
+    expect(adminMail(suggestion, { id: 'abc', receivedAt: 'now', posterProblem: 'storage failed' }).text).toContain('could not be kept (storage failed)')
   })
 
   it('says so when the suggester left no way to reach them', () => {

@@ -44,7 +44,11 @@ const text = (value: unknown, max: number): string | null => {
   return trimmed ? trimmed.slice(0, max) : null
 }
 
-export function validateSuggestion(form: Record<string, unknown>): Validation {
+/**
+ * @param options.hasPoster An image came with it. A poster says what the event is on its
+ *   own, so it counts as content for the "not all empty" rule.
+ */
+export function validateSuggestion(form: Record<string, unknown>, options: { hasPoster?: boolean } = {}): Validation {
   if (text(form[HONEYPOT], 200)) return { ok: 'spam' }
 
   const kind: SuggestionKind = form.kind === 'website' ? 'website' : 'event'
@@ -83,7 +87,8 @@ export function validateSuggestion(form: Record<string, unknown>): Validation {
 
   // Every field is optional, but not all of them at once: a name and an email alone
   // suggest nothing.
-  if (!suggestion.title && !suggestion.url && !suggestion.description && !suggestion.comments) {
+  const poster = kind === 'event' && options.hasPoster === true
+  if (!suggestion.title && !suggestion.url && !suggestion.description && !suggestion.comments && !poster) {
     return {
       ok: false,
       error:
@@ -124,8 +129,19 @@ function details(s: Suggestion): string {
     .join('\n\n')
 }
 
+export interface AdminMailMeta {
+  id: string
+  receivedAt: string
+  /** The suggestion's page in the console, where it can be turned into an event. */
+  reviewUrl?: string | null
+  /** Where the uploaded poster can be opened — the console, behind Access. */
+  posterUrl?: string | null
+  /** Why a poster that was sent could not be kept. */
+  posterProblem?: string | null
+}
+
 /** To the site's inbox. Reply-To is set to the suggester separately, when they gave one. */
-export function adminMail(s: Suggestion, meta: { id: string; receivedAt: string }): Mail {
+export function adminMail(s: Suggestion, meta: AdminMailMeta): Mail {
   const about = s.title ?? s.url ?? 'no title given'
   const from = [s.name, s.email ? `<${s.email}>` : null].filter(Boolean).join(' ') || 'Anonymous (no name or email given)'
   return {
@@ -134,6 +150,9 @@ export function adminMail(s: Suggestion, meta: { id: string; receivedAt: string 
       `A new suggestion came in through outinsimcoe.ca.`,
       `From: ${from}`,
       details(s),
+      ...(meta.posterUrl ? [`Poster (opens after signing in to the console):\n${meta.posterUrl}`] : []),
+      ...(meta.posterProblem ? [`Poster: one was attached but could not be kept (${meta.posterProblem}).`] : []),
+      ...(meta.reviewUrl ? [`Review it, or turn it into an event:\n${meta.reviewUrl}`] : []),
       `—\nReceived ${meta.receivedAt} · suggestion ${meta.id}` +
         (s.email ? `\nReplying to this email goes to the person who sent it.` : ''),
     ].join('\n\n'),
@@ -238,3 +257,4 @@ export async function verifyTurnstile(
   if (outcome.hostname !== options.hostname) return { ok: false, status: 403, error: TRY_AGAIN, codes: ['hostname-mismatch'] }
   return { ok: true }
 }
+

@@ -20,6 +20,9 @@
     "ACCESS_AUD": "3ba2ddf9e9631c10b1309b83d3d4cb7ca7b32cfa9d34c23b3a65ed32cafd8b1f",
     "PUBLIC_ORIGIN": "https://outinsimcoe.ca"
   },
+  // Posters uploaded with suggestions, read by the console to show them behind Access.
+  // The web worker writes them.
+  "r2_buckets": [{ "binding": "POSTERS", "bucket_name": "scec-suggestion-posters" }],
   "triggers": {
     // Every two hours: community calendars change on the order of days, and several of
     // the sources are third-party servers we would rather not lean on.

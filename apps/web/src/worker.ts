@@ -4,6 +4,7 @@ import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
 import { renderEventPage, renderNotFound, renderPlacePage } from './pages.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
 import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
+import { MAX_POSTER_BYTES, inspectImage, stripMetadata, type ImageKind } from './image.ts'
 
 interface D1Statement {
   all<T>(): Promise<{ results: T[] }>
@@ -27,6 +28,12 @@ interface SendEmail {
   }): Promise<unknown>
 }
 
+/** The R2 bucket binding — only the part of it this worker uses. */
+interface PosterBucket {
+  put(key: string, value: Uint8Array, options: { httpMetadata: { contentType: string } }): Promise<unknown>
+  get(key: string): Promise<{ body: ReadableStream } | null>
+}
+
 export interface Env {
   DB: {
     prepare(query: string): D1Statement & { bind(...values: unknown[]): D1Statement }
@@ -41,6 +48,10 @@ export interface Env {
   TURNSTILE_SECRET_KEY?: string
   /** Set once a custom domain is attached; www then redirects to it. */
   CANONICAL_HOST?: string
+  /** Posters uploaded with suggestions. Private: see servePoster. */
+  POSTERS?: PosterBucket
+  /** The admin console, which the admin email links to. */
+  CONSOLE_ORIGIN?: string
 }
 
 /**
@@ -128,6 +139,8 @@ export default {
         if (request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: { Allow: 'POST' } })
         return await handleSuggestion(request, env)
       }
+
+      if (url.pathname.startsWith('/posters/')) return await servePoster(env, url.pathname.slice('/posters/'.length))
 
       if (url.pathname === '/api/events') {
         const events = await queryEvents(env, url)
@@ -270,6 +283,8 @@ const MAIL_FROM: EmailAddress = { email: ADMIN_ADDRESS, name: SITE_NAME }
 /** Per sender, per hour. A person suggesting a whole festival programme will not hit it. */
 const SUGGESTIONS_PER_HOUR = 5
 const MAX_BODY_BYTES = 64_000
+/** A form carrying a poster: the image plus room for every text field at its cap. */
+const MAX_UPLOAD_BYTES = MAX_POSTER_BYTES + MAX_BODY_BYTES
 
 async function sha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
@@ -315,11 +330,14 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
     })
   }
 
-  if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY_BYTES) return reply(413, 'That is too long to send in one go.')
+  const type = request.headers.get('Content-Type') ?? ''
+  const cap = type.includes('multipart/form-data') ? MAX_UPLOAD_BYTES : MAX_BODY_BYTES
+  if (Number(request.headers.get('Content-Length') ?? 0) > cap) {
+    return reply(413, cap === MAX_UPLOAD_BYTES ? 'That image is too big. Please use one under 5 MB.' : 'That is too long to send in one go.')
+  }
 
   let form: Record<string, unknown>
   try {
-    const type = request.headers.get('Content-Type') ?? ''
     const body: unknown = type.includes('application/json') ? await request.json() : Object.fromEntries(await request.formData())
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('not an object')
     form = body as Record<string, unknown>
@@ -327,13 +345,31 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
     return reply(400, 'That submission could not be read. Please try again.')
   }
 
+  // A file input with nothing chosen still sends an empty file; that is no poster.
+  const upload = isFile(form.poster) && form.poster.size > 0 ? form.poster : null
+
   // Validation first: a typo in the link should not cost a round trip to Cloudflare, and
   // a token is single-use, so spending it on a submission that fails anyway is waste.
-  const result = validateSuggestion(form)
+  const result = validateSuggestion(form, { hasPoster: upload !== null })
   // A bot is thanked like anyone else and nothing is kept, so it has nothing to learn.
   if (result.ok === 'spam') return reply(200)
   if (!result.ok) return reply(400, result.error)
   const suggestion: Suggestion = result.suggestion
+
+  /*
+   * The poster is checked before Turnstile too, for the same reason, but stored only after
+   * it: a bot's bytes never reach the bucket. It is judged by its content, and what is kept
+   * is the picture without its metadata — see stripMetadata.
+   */
+  let poster: { bytes: Uint8Array; kind: ImageKind } | null = null
+  if (upload && suggestion.kind === 'event') {
+    if (upload.size > MAX_POSTER_BYTES) return reply(413, 'That image is too big. Please use one under 5 MB.')
+    const original = new Uint8Array(await upload.arrayBuffer())
+    const kind = inspectImage(original)
+    const bytes = kind && stripMetadata(original, kind)
+    if (!kind || !bytes) return reply(400, "That file isn't an image we can use. Please send a JPEG, PNG, GIF or WebP.")
+    poster = { bytes, kind }
+  }
 
   const ip = request.headers.get('CF-Connecting-IP')
 
@@ -374,16 +410,45 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
 
   const id = crypto.randomUUID()
   const receivedAt = now.toISOString()
+
+  // Stored before the row, so the row never names an object that is not there. A failure
+  // costs the poster, not the suggestion: the row says why, and so does the admin email.
+  let posterKey: string | null = null
+  let posterProblem: string | null = null
+  if (poster) {
+    // Unguessable, though the bucket is private anyway; the suggestion id groups them.
+    const key = `${id}/${crypto.randomUUID()}.${poster.kind.ext}`
+    if (!env.POSTERS) posterProblem = 'no POSTERS binding'
+    else {
+      try {
+        await env.POSTERS.put(key, poster.bytes, { httpMetadata: { contentType: poster.kind.contentType } })
+        posterKey = key
+      } catch (err) {
+        posterProblem = `storage failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300)
+      }
+    }
+    if (posterProblem) console.error('suggest: poster not stored', posterProblem)
+  }
+
   await env.DB.prepare(
-    `INSERT INTO suggestions (id, kind, name, email, title, url, event_date, event_time, description, comments, ip_hash, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO suggestions (id, kind, name, email, title, url, event_date, event_time, description, comments, ip_hash, created_at,
+                              poster_key, poster_type, poster_error)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(id, suggestion.kind, suggestion.name, suggestion.email, suggestion.title, suggestion.url, suggestion.date,
-      suggestion.time, suggestion.description, suggestion.comments, ipHash, receivedAt)
+      suggestion.time, suggestion.description, suggestion.comments, ipHash, receivedAt,
+      posterKey, posterKey ? poster!.kind.contentType : null, posterProblem)
     .run()
 
   // Reply-To on the admin copy is the suggester, so answering them is one click.
-  const admin = adminMail(suggestion, { id, receivedAt })
+  const consoleOrigin = env.CONSOLE_ORIGIN?.replace(/\/$/, '') ?? null
+  const admin = adminMail(suggestion, {
+    id,
+    receivedAt,
+    reviewUrl: consoleOrigin ? `${consoleOrigin}/suggestions/${id}` : null,
+    posterUrl: posterKey && consoleOrigin ? `${consoleOrigin}/suggestions/${id}/poster` : null,
+    posterProblem: posterProblem ?? (posterKey && !consoleOrigin ? `stored as ${posterKey}, but CONSOLE_ORIGIN is not set` : null),
+  })
   const adminOutcome = await sendMail(env, {
     to: ADMIN_ADDRESS,
     from: MAIL_FROM,
@@ -398,6 +463,40 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
     .bind(adminOutcome, userOutcome, id)
     .run()
   return reply(200)
+}
+
+const isFile = (value: unknown): value is File =>
+  typeof value === 'object' && value !== null && typeof (value as File).arrayBuffer === 'function' && typeof (value as File).size === 'number'
+
+/** `{suggestion uuid}/{uuid}.{ext}`, exactly as handleSuggestion names them. */
+const POSTER_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|gif|webp)$/
+
+/**
+ * A suggested poster, once its suggestion has been approved as an event.
+ *
+ * The bucket is private. Until the admin approves, a poster is only visible in the console
+ * behind Access; approving publishes it here, where the event page can show it and use it
+ * as its share image. Dismissing, or never deciding, keeps it private. The content type is
+ * the one decided from the bytes at upload, never one the sender declared.
+ */
+async function servePoster(env: Env, key: string): Promise<Response> {
+  const missing = () => new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
+  if (!POSTER_KEY.test(key) || !env.POSTERS) return missing()
+  const row = await env.DB.prepare("SELECT poster_type FROM suggestions WHERE poster_key = ? AND handled_as = 'event'")
+    .bind(key)
+    .first<{ poster_type: string | null }>()
+  if (!row?.poster_type) return missing()
+  const object = await env.POSTERS.get(key)
+  if (!object) return missing()
+  return new Response(object.body, {
+    headers: {
+      'Content-Type': row.poster_type,
+      // A day, not forever: approval can be undone, and the edge should let go soon after.
+      'Cache-Control': 'public, max-age=86400',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'",
+    },
+  })
 }
 
 function describeFilters(url: URL, events: PublicEvent[]): string {

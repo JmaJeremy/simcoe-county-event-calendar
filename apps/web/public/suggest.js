@@ -15,6 +15,9 @@ const submit = $('submit')
 const TURNSTILE_SITE_KEY = '0x4AAAAAAE0QZZaEVJGV6HhE'
 let widget = null
 
+/** Matches MAX_POSTER_BYTES in ../src/image.ts, which enforces it. */
+const MAX_POSTER_BYTES = 5 * 1024 * 1024
+
 /**
  * The site's address, assembled at runtime so it never appears whole in this file for a
  * harvester to find. Server messages mark where it goes with {contact}.
@@ -91,6 +94,12 @@ if (new URLSearchParams(location.search).get('sent') === '1') showSent(true)
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
   showError('')
+  // Said before the upload rather than after five megabytes of it.
+  const poster = form.elements.poster.files[0]
+  if (poster && !form.elements.poster.closest('[data-kind]').hidden && poster.size > MAX_POSTER_BYTES) {
+    showError('That image is too big. Please use one under 5 MB.')
+    return
+  }
   // No widget means no token is coming, and the server would only refuse it.
   const token = widget === null ? '' : window.turnstile.getResponse(widget)
   if (!token) {
@@ -100,9 +109,13 @@ form.addEventListener('submit', async (event) => {
   submit.disabled = true
   submit.textContent = 'Sending…'
   try {
-    const body = new URLSearchParams(new FormData(form))
+    // Multipart, for the poster. No Content-Type header: the browser writes it, with the
+    // boundary the body needs.
+    const body = new FormData(form)
     // Fields hidden for this kind are not part of the suggestion.
     for (const el of form.querySelectorAll('[data-kind][hidden] [name]')) body.delete(el.name)
+    // An empty file input still sends an empty file.
+    if (!(body.get('poster')?.size > 0)) body.delete('poster')
     const response = await fetch(form.action, {
       method: 'POST',
       headers: { Accept: 'application/json' },

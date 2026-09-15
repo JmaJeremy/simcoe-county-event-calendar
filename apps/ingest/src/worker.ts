@@ -29,6 +29,8 @@ export interface Env {
   ACCESS_AUD?: string
   /** The public site, for the console's links to event pages. */
   PUBLIC_ORIGIN?: string
+  /** Posters uploaded with suggestions, which the console shows. */
+  POSTERS?: { get(key: string): Promise<{ body: ReadableStream } | null> }
 }
 
 export interface SourceOutcome {

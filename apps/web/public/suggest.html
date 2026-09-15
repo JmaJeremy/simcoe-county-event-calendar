@@ -50,7 +50,7 @@
         Turn it on, or email your suggestion to
         <span class="email">contact<span class="decoy">-nospam</span>&#64;<span class="decoy">example.</span>outinsimcoe.ca</span>.</p>
     </noscript>
-    <form id="suggest-form" method="post" action="/api/suggest" novalidate>
+    <form id="suggest-form" method="post" action="/api/suggest" enctype="multipart/form-data" novalidate>
       <fieldset class="kind">
         <legend>What are you suggesting?</legend>
         <label class="kind-option"><input type="radio" name="kind" value="event" checked> A single event</label>
@@ -87,6 +87,15 @@
       <div class="form-field" data-kind="event">
         <label for="s-description">Event description</label>
         <textarea id="s-description" name="description" rows="5" maxlength="5000"></textarea>
+      </div>
+
+      <!-- The types are listed rather than image/*: given image/*, an iPhone may send HEIC,
+           which no browser can show; given these, it converts the photo to JPEG first. -->
+      <div class="form-field" data-kind="event">
+        <label for="s-poster">Poster or image</label>
+        <input id="s-poster" name="poster" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
+        <span class="field-hint">Optional. A JPEG, PNG, GIF or WebP, up to 5&nbsp;MB. It only goes on the site if we add the event,
+          and we remove location and camera details from it first.</span>
       </div>
 
       <div class="form-field">
