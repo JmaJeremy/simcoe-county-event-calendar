@@ -749,6 +749,8 @@ footer a { color: var(--ink-2); }
 .event-page .cost.unknown { color: var(--ink-3); font-weight: 400; }
 .event-page .hero { display: block; max-width: 100%; border-radius: var(--radius); margin: 18px 0; }
 .event-page .description { margin: 18px 0; line-height: 1.6; color: var(--ink-2); }
+.event-page .description p { margin: 0 0 0.8em; }
+.event-page .description p:last-child { margin-bottom: 0; }
 .event-page .organizer { color: var(--ink-3); }
 .event-page .listed { margin-top: 20px; font-size: 13px; color: var(--ink-3); }
 .event-page .lead { margin: 0 0 20px; color: var(--ink-2); }

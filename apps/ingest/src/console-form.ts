@@ -96,6 +96,22 @@ const text = (form: Record<string, unknown>, key: string, max = 2000): string | 
   return trimmed ? trimmed.slice(0, max) : null
 }
 
+/**
+ * Typed text that keeps its lines: spaces tidied within each line, at most one blank line
+ * between paragraphs. `normalizeEvent` flattens every run of whitespace to one space, which
+ * suits text scraped out of HTML but erases the line breaks someone typed on purpose.
+ */
+const keepLines = (value: string | null): string | null => {
+  if (!value) return null
+  const tidy = value
+    .split('\n')
+    .map((line) => line.replace(/[^\S\n]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return tidy || null
+}
+
 /** A web address, forgiving a missing scheme. Null when it is not one. */
 const webAddress = (raw: string, httpsOnly: boolean): string | null => {
   const parsed = URL.parse(/^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`)
@@ -239,6 +255,9 @@ export function buildManualListing(input: ManualEventInput, externalId: string):
   return {
     ...listing,
     ...overrides,
+    // Only the stored text changes; the content hash already covers the raw description,
+    // line breaks included, so an edit that only adds one still reads as a change.
+    description: keepLines(input.description),
     // The hash covers the raw fields only, so fold the choices in too: an edit that only
     // moves an event to another town must still read as a change to dedup's verdict cache.
     contentHash: fnv1a64(`${listing.contentHash}|${JSON.stringify(overrides)}`),

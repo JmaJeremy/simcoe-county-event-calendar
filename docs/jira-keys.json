@@ -43,5 +43,6 @@
   "p2-updated-at": "SCEC-56",
   "p2-poster-upload": "SCEC-57",
   "p2-suggestions-inbox": "SCEC-58",
-  "p2-footer-gitleaks": "SCEC-59"
+  "p2-footer-gitleaks": "SCEC-59",
+  "p2-description-lines": "SCEC-60"
 }

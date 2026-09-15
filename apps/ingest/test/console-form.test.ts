@@ -97,6 +97,18 @@ describe('buildManualListing', () => {
     expect(listing.status).toBe('scheduled')
   })
 
+  it('keeps the line breaks that were typed, tidying spaces and extra blank lines', () => {
+    const listing = buildManualListing(
+      valid({ ...base, description: 'Registration  8:00am\nOpening ceremony 9am  \n\n\n\nBring a donation!' }),
+      UUID,
+    )
+    expect(listing.description).toBe('Registration 8:00am\nOpening ceremony 9am\n\nBring a donation!')
+    // The hash sees the breaks too, so adding one is an edit.
+    const flat = buildManualListing(valid({ ...base, description: 'Registration 8:00am Opening ceremony 9am' }), UUID)
+    const broken = buildManualListing(valid({ ...base, description: 'Registration 8:00am\nOpening ceremony 9am' }), UUID)
+    expect(flat.contentHash).not.toBe(broken.contentHash)
+  })
+
   it('still classifies the category from the title when asked to', () => {
     expect(buildManualListing(valid({ ...base, title: 'Farmers market', category: 'auto' }), UUID).category).toBe('markets')
   })

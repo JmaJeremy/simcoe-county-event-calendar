@@ -41,6 +41,17 @@ export const shareableImage = (event: PublicEvent): string | null => {
   return /^(calendar|events)\./i.test(host) ? null : event.imageUrl
 }
 
+/**
+ * A description's own line structure, as HTML: a blank line starts a paragraph, a single
+ * line break stays a line break. Escaped first, so the only markup is what this adds.
+ */
+export const descriptionHtml = (text: string): string =>
+  text
+    .trim()
+    .split(/\n[^\S\n]*\n\s*/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph.trim()).replace(/\s*\n\s*/g, '<br>')}</p>`)
+    .join('')
+
 /** One phrase for when an event is, honest about sources that publish no time. */
 export function describeWhen(event: PublicEvent): string {
   return event.allDay || event.timePrecision === 'date-only'
@@ -188,7 +199,7 @@ ${renderHead(
   <p class="cost ${escapeHtml(event.cost)}">${escapeHtml(cost)}</p>
   ${notices.join('')}
   ${event.imageUrl ? `<img class="hero" src="${escapeHtml(event.imageUrl)}" alt="">` : ''}
-  ${event.description ? `<div class="description">${escapeHtml(event.description).replace(/\n+/g, '<br>')}</div>` : ''}
+  ${event.description ? `<div class="description">${descriptionHtml(event.description)}</div>` : ''}
   ${event.organizer ? `<p class="organizer">Organized by ${escapeHtml(event.organizer)}</p>` : ''}
   <div class="actions">${links.join('')}</div>
   <p class="listed">${

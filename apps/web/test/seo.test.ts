@@ -83,6 +83,16 @@ const jsonLd = (body: string): any[] =>
     JSON.parse(m[1]!.replace(/\\u003c/g, '<')),
   )
 
+describe('event page description', () => {
+  it('turns a blank line into a new paragraph and a single line break into <br>, escaping the text', async () => {
+    const env = stubEnv({
+      'FROM events e LEFT JOIN municipalities': [{ ...EVENT_ROW, description: 'Registration 8:00am\nOpening ceremony <9am>\n\nBring a donation!' }],
+    })
+    const body = await (await get('/e/tay7', APEX, env)).text()
+    expect(body).toContain('<div class="description"><p>Registration 8:00am<br>Opening ceremony &lt;9am&gt;</p><p>Bring a donation!</p></div>')
+  })
+})
+
 describe('robots.txt', () => {
   it('names the sitemap and keeps crawlers out of the JSON endpoints', () => {
     const body = renderRobots(`https://${APEX}`, true)
