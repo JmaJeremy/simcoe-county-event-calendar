@@ -40,5 +40,7 @@
   "p2-turnstile": "SCEC-53",
   "p2-seo": "SCEC-54",
   "p2-console": "SCEC-55",
-  "p2-updated-at": "SCEC-56"
+  "p2-updated-at": "SCEC-56",
+  "p2-poster-upload": "SCEC-57",
+  "p2-suggestions-inbox": "SCEC-58"
 }
