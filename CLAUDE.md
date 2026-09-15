@@ -45,7 +45,8 @@ packages/core/       types, municipalities + gazetteer, sources registry, time, 
 packages/adapters/   one module per PLATFORM + shared http; test/fixtures are captured responses
 apps/ingest/         pipeline, D1 repository, detail enrichment, cost judge, dedup runner,
                      cron worker, dry-run CLI, migrations
-apps/web/            API + iCal + event pages + suggestion form worker, static front end
+apps/web/            API + iCal + server-rendered pages (event, municipality, 404, robots,
+                     sitemap) + suggestion form worker, static front end
 ```
 
 **A run is four passes, in this order**: fetch every source (`pipeline.ts`), read event
@@ -88,6 +89,38 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   HSTS is deliberately off: it is a long-lived promise and there is no reason to make it yet.
 - `.env` is gitignored, as is `jeremy-atlassian-token.key`. Keep it that way.
 
+## Search
+
+The worker renders four surfaces itself, split out of `worker.ts` so they cannot drift:
+`html.ts` builds the head every one of them shares, `pages.ts` renders the event page, the
+municipality page and the 404, `sitemap.ts` emits `/robots.txt` and `/sitemap.xml`.
+`apps/web/test/seo.test.ts` covers them against a stub database — metadata is invisible
+when it breaks, so nothing here is checked by eye.
+
+- **`/place/{slug}` exists as much for crawlers as for readers.** The home page is a
+  filterable app — every view of it is a query string, rendered from JSON after load — so
+  nothing on the site was *about* one town, and `/e/{code}` permalinks were reachable only
+  from a link someone had already shared. The nineteen municipality pages are the crawlable
+  path to all of them, and the `__PLACE_LINKS__` block in the footer is the crawlable path
+  to the municipality pages. Remove either and the event permalinks are orphans in the
+  sitemap again. The slugs match civi-times', so `/place/tay` exists on both sites.
+
+- **A municipality page shows paid events; the list does not.** `buildQuery`'s default
+  hides them because most readers want the free things, but a page answering "what is on
+  in this town" that silently dropped every ticketed concert would answer a different
+  question. That is why `placeResponse` writes its own SQL rather than calling
+  `buildQuery`. Civic meetings stay out, as everywhere else.
+
+- **Anything but `CANONICAL_HOST` gets `X-Robots-Tag: noindex, follow`.** The workers.dev
+  fallback serves the identical site; without it two hosts compete for the same queries.
+  robots.txt there deliberately still allows crawling — `Disallow: /` would stop a crawler
+  ever reading the header that does the work, and a blocked URL can still be indexed from
+  inbound links. With no `CANONICAL_HOST` set there is only one host and nothing to prefer.
+
+- **An Event needs a `location` carrying an `address`.** Google treats one without as an
+  error, not a warning, and a venue name is not an address. Most of these events publish
+  neither, so the municipality stands in rather than the property going missing.
+
 ## Things that will bite you
 
 - **Identity is the platform's id for the occurrence.** Only some platforms give one that
@@ -124,8 +157,8 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   `:root:not([data-theme="light"])` and once under `:root[data-theme="dark"]`. Three theme
   states need that: the system preference must lose to an explicit light choice, and an
   explicit dark choice must beat a light system. Change one block, change the other.
-- **The theme is applied by an inline script in the head**, in `index.html` and in the
-  event page, before the stylesheet. Without it every load flashes white for a reader who
+- **The theme is applied by an inline script in the head**, in `index.html` and in
+  `renderHead` (which every server-rendered page shares), before the stylesheet. Without it every load flashes white for a reader who
   chose dark. `app.js` sets it too, but that is too late to matter. A browser test blocks
   `app.js` on reload to prove the head script is doing the work.
 - **A typed date range replaces the "upcoming only" default** rather than narrowing it —
@@ -155,7 +188,7 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   browser, crawlers included, so `shareableImage` in the web worker keeps them out of
   `og:image` while the page still shows them to visitors.
 - **The mark exists in three copies**: inline in `public/index.html`, as `MARK` in
-  `apps/web/src/worker.ts` (both in CSS variables) and in `scripts/brand.ts` (hardcoded
+  `apps/web/src/html.ts` (both in CSS variables) and in `scripts/brand.ts` (hardcoded
   hex, because a screenshot cannot read CSS variables). Change one, change all three, and
   re-run `brand.ts` — the palette is repeated at the top of that script for the same reason.
 - **Fraunces is self-hosted in `public/fonts/`** (SIL OFL), not linked from Google. The UI
@@ -210,6 +243,6 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   token comes back with action `test`, so expect our worker to refuse it as
   `action-mismatch`: that refusal is the proof the whole chain ran.
 - **The work-in-progress tag and the copyright line are repeated** in `index.html`,
-  `suggest.html` and `WIP_TAG`/`COPYRIGHT` in `worker.ts`. Change one, change all three.
+  `suggest.html` and `WIP_TAG`/`COPYRIGHT` in `apps/web/src/html.ts`. Change one, change all three.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.
   The civi-times tests used `m` for the month; that is why the ported suite was patched.
