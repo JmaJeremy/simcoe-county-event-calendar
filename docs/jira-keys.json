@@ -37,5 +37,8 @@
   "p2-finished": "SCEC-52",
   "p2-maclaren": "SCEC-49",
   "p2-venues": "SCEC-50",
-  "p2-turnstile": "SCEC-53"
+  "p2-turnstile": "SCEC-53",
+  "p2-seo": "SCEC-54",
+  "p2-console": "SCEC-55",
+  "p2-updated-at": "SCEC-56"
 }

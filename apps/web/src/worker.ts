@@ -453,6 +453,14 @@ async function placeResponse(
   )
     .bind(slug, today)
     .all<Row>()
+  // Counted separately, because the list stops at 120 and Essa alone has several hundred:
+  // "120 upcoming events" at the top of that page would simply be false.
+  const total = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM events e
+      WHERE e.municipality_slug = ? AND e.active = 1 AND e.category <> 'civic-meeting' AND e.local_date >= ?`,
+  )
+    .bind(slug, today)
+    .first<{ n: number }>()
   const past = await env.DB.prepare(
     `${select} AND e.local_date < ? ORDER BY e.starts_at_utc DESC LIMIT 12`,
   )
@@ -461,49 +469,48 @@ async function placeResponse(
 
   const others = MUNICIPALITIES.filter((m) => m.slug !== slug)
   return html(
-    renderPlacePage(place, upcoming.results.map(rowToEvent), past.results.map(rowToEvent), others, origin),
+    renderPlacePage(place, upcoming.results.map(rowToEvent), past.results.map(rowToEvent), others, origin, total?.n),
     200,
     { 'Cache-Control': 'public, max-age=900', ...indexHeaders },
   )
 }
 
 /**
- * Every URL worth crawling: the home page, the suggestion form, the nineteen
- * municipalities and each event permalink. `lastmod` comes from `updated_at` — the moment
- * dedup last rewrote the event — so one whose time or venue moved is re-crawled while a
- * settled one is left alone.
+ * Every URL worth crawling: the home page, the nineteen municipalities and each event
+ * permalink.
+ *
+ * No `lastmod`. `updated_at` would be the obvious source, but dedup rewrites every event
+ * in its window on every run, so on any given day nearly all of them carry the time of
+ * the last cron run — a sitemap built from it tells search engines everything changed two
+ * hours ago, and they learn to ignore the field for the whole site. Better absent than
+ * wrong; it can come back once `updated_at` only moves when an event's content does.
+ *
+ * Not /suggest either: the form is marked noindex, and a sitemap listing a noindex page
+ * is flagged as an error in Search Console.
  */
 async function sitemapEntries(env: Env): Promise<SitemapEntry[]> {
   // Only '/' for the app itself: every other view of it is a query string that the
   // shell's canonical already points back here, so listing them would ask for a crawl of
   // URLs that declare themselves duplicates.
-  const entries: SitemapEntry[] = [
-    { path: '/', changefreq: 'hourly', priority: '1.0' },
-    { path: '/suggest', changefreq: 'monthly', priority: '0.4' },
-  ]
+  const entries: SitemapEntry[] = [{ path: '/', changefreq: 'hourly', priority: '1.0' }]
 
-  const { results: places } = await env.DB.prepare(
-    `SELECT m.slug AS slug, MAX(e.updated_at) AS lastmod
-       FROM municipalities m
-       LEFT JOIN events e ON e.municipality_slug = m.slug AND e.active = 1
-      GROUP BY m.slug ORDER BY m.slug`,
-  ).all<{ slug: string; lastmod: string | null }>()
-  for (const place of places) {
-    entries.push({ path: `/place/${place.slug}`, lastmod: place.lastmod, changefreq: 'daily', priority: '0.8' })
+  // The registry decides which municipality pages exist, exactly as placeResponse does.
+  for (const place of MUNICIPALITIES) {
+    entries.push({ path: `/place/${place.slug}`, changefreq: 'daily', priority: '0.8' })
   }
 
   // Past events stay listed for a while: someone searching for a festival after the fact
   // should still find the page. A year back is plenty and keeps the file small.
   const cutoff = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10)
   const { results: events } = await env.DB.prepare(
-    `SELECT short_code, updated_at, local_date FROM events
+    `SELECT short_code FROM events
       WHERE active = 1 AND category <> 'civic-meeting' AND local_date >= ?
       ORDER BY starts_at_utc DESC LIMIT 20000`,
   )
     .bind(cutoff)
-    .all<{ short_code: string; updated_at: string; local_date: string }>()
+    .all<{ short_code: string }>()
   for (const event of events) {
-    entries.push({ path: `/e/${event.short_code}`, lastmod: event.updated_at, changefreq: 'weekly', priority: '0.6' })
+    entries.push({ path: `/e/${event.short_code}`, changefreq: 'weekly', priority: '0.6' })
   }
 
   return entries

@@ -89,17 +89,22 @@ function breadcrumbs(trail: { name: string; url: string }[]): { html: string; js
  * with neither still has the town it is in.
  */
 function eventJsonLd(event: PublicEvent, canonical: string): unknown {
+  const dateOnly = event.allDay || event.timePrecision === 'date-only'
   const data: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Event',
     name: event.title,
-    startDate: event.allDay || event.timePrecision === 'date-only' ? event.localDate : event.startsAtUtc,
+    startDate: dateOnly ? event.localDate : event.startsAtUtc,
     eventStatus: SCHEMA_STATUS[event.status] ?? SCHEMA_STATUS.scheduled,
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     url: canonical,
-    isAccessibleForFree: event.cost === 'free',
   }
-  if (event.endsAtUtc) data.endDate = event.endsAtUtc
+  // Said only when a source said it. "Cost not listed" is most events here, and `false`
+  // for those would tell search engines every one of them charges admission.
+  if (event.cost !== 'unknown') data.isAccessibleForFree = event.cost === 'free'
+  // The same precision at both ends: an all-day span's end is stored as 23:59 on its last
+  // day, and as a UTC instant that reads as the following morning.
+  if (event.endsAtUtc) data.endDate = dateOnly ? localDateOf(event.endsAtUtc, event.timezone) : event.endsAtUtc
   if (event.description) data.description = event.description.slice(0, 500)
   if (event.imageUrl) data.image = event.imageUrl
   if (event.organizer) data.organizer = { '@type': 'Organization', name: event.organizer }
@@ -217,11 +222,14 @@ export function renderPlacePage(
   past: PublicEvent[],
   others: Municipality[],
   origin: string,
+  /** Every upcoming event, not just the ones listed; the list is capped. */
+  upcomingTotal = upcoming.length,
 ): string {
   const heading = `Things to do in ${place.shortName}`
   const next = upcoming[0]
+  const total = Math.max(upcomingTotal, upcoming.length)
   const description = next
-    ? `${upcoming.length} upcoming ${upcoming.length === 1 ? 'event' : 'events'} in ${place.shortName}, Ontario — next is ${next.title} on ${formatDate(next.localDate)}. Fairs, markets, concerts and family days, gathered from every local calendar with duplicates removed.`
+    ? `${total} upcoming ${total === 1 ? 'event' : 'events'} in ${place.shortName}, Ontario — next is ${next.title} on ${formatDate(next.localDate)}. Fairs, markets, concerts and family days, gathered from every local calendar with duplicates removed.`
     : `Community events in ${place.shortName}, Ontario — fairs, markets, concerts and family days, gathered from every local calendar with duplicates removed, and a feed you can subscribe to.`
 
   const canonical = placeUrl(origin, place.slug)
@@ -244,8 +252,13 @@ export function renderPlacePage(
     })),
   }
 
+  const more =
+    total > upcoming.length
+      ? `<p class="more-note">Showing the next ${upcoming.length} of ${total}.
+         <a href="/?m=${encodeURIComponent(place.slug)}&amp;cost=all">See all ${total} on the calendar</a>.</p>`
+      : ''
   const body = upcoming.length
-    ? `<ol class="events">${upcoming.map(eventRow).join('')}</ol>`
+    ? `<ol class="events">${upcoming.map(eventRow).join('')}</ol>${more}`
     : `<p class="empty">Nothing is listed in ${escapeHtml(place.shortName)} just yet. Organisers usually post a few
        weeks ahead, so check back — or subscribe below and events will appear in your calendar as they are
        published. If you know of something, <a href="/suggest">suggest an event</a>.</p>`
@@ -269,7 +282,7 @@ ${renderHead(
   <h1>${escapeHtml(heading)}</h1>
   <p class="lead">${escapeHtml(
     upcoming.length
-      ? `${upcoming.length} upcoming ${upcoming.length === 1 ? 'event' : 'events'} in ${place.name}, gathered from every calendar that lists them and de-duplicated, so each one appears once.`
+      ? `${total} upcoming ${total === 1 ? 'event' : 'events'} in ${place.name}, gathered from every calendar that lists them and de-duplicated, so each one appears once.`
       : `Community events in ${place.name}, gathered from every calendar that lists them and de-duplicated, so each one appears once.`,
   )}</p>
 

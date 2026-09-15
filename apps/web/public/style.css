@@ -782,6 +782,7 @@ footer a { color: var(--ink-2); }
 .place-page .flag.stop { background: var(--stop-bg); color: var(--stop); }
 .place-page .flag.warn { background: var(--warn-bg); color: var(--warn); }
 .place-page .empty { margin: 0; color: var(--ink-2); }
+.place-page .more-note { margin: 12px 0 0; color: var(--ink-2); font-size: 14px; }
 .place-page .other-places ul {
   display: flex; flex-wrap: wrap; gap: 6px 14px;
   margin: 0; padding: 0; list-style: none; font-size: 14px;

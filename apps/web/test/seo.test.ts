@@ -53,12 +53,8 @@ function stubEnv(overrides: Record<string, unknown[]> = {}): Env {
     for (const [needle, rows] of Object.entries(overrides)) {
       if (sql.includes(needle)) return rows
     }
-    if (sql.includes('FROM municipalities m')) {
-      return [{ slug: 'tay', lastmod: '2026-09-14T17:00:00.000Z' }]
-    }
-    if (sql.includes('SELECT short_code')) {
-      return [{ short_code: 'tay7', updated_at: '2026-09-14T17:00:00.000Z', local_date: '2026-10-03' }]
-    }
+    if (sql.includes('COUNT(*)')) return [{ n: 1 }]
+    if (sql.includes('SELECT short_code')) return [{ short_code: 'tay7' }]
     if (sql.includes('local_date <')) return []
     if (sql.includes('FROM events e LEFT JOIN municipalities')) return [EVENT_ROW]
     return []
@@ -116,7 +112,21 @@ describe('sitemap.xml', () => {
     expect(xml).toContain(`<loc>https://${APEX}/</loc>`)
     expect(xml).toContain(`<loc>https://${APEX}/place/tay</loc>`)
     expect(xml).toContain(`<loc>https://${APEX}/e/tay7</loc>`)
-    expect(xml).toContain('<lastmod>2026-09-14</lastmod>')
+    // Every municipality in the registry, whether or not it has events yet.
+    expect(xml).toContain(`<loc>https://${APEX}/place/wasaga-beach</loc>`)
+  })
+
+  /*
+   * Dedup rewrites every event in its window each run, so updated_at is the time of the
+   * last cron run for nearly all of them. A lastmod built from it would say everything
+   * changed two hours ago, forever, and teach search engines to ignore the field.
+   */
+  it('carries no lastmod while updated_at only means "the last run"', async () => {
+    expect(await (await get('/sitemap.xml')).text()).not.toContain('<lastmod>')
+  })
+
+  it('leaves out the suggestion form, which is noindex', async () => {
+    expect(await (await get('/sitemap.xml')).text()).not.toContain('/suggest')
   })
 
   it('escapes query strings and drops a lastmod it cannot parse', () => {
@@ -175,6 +185,33 @@ describe('event pages', () => {
     expect(event.location.address.streetAddress).toBeUndefined()
   })
 
+  it('gives an all-day event a date at both ends, not a date and a UTC instant', async () => {
+    const env = stubEnv({
+      'FROM events e LEFT JOIN municipalities': [
+        {
+          ...EVENT_ROW,
+          all_day: 1,
+          time_precision: 'date-only',
+          starts_at_utc: '2026-09-25T04:00:00.000Z',
+          local_date: '2026-09-25',
+          // 23:59 on the last day in Toronto, which is the next morning in UTC.
+          ends_at_utc: '2026-09-28T03:59:00.000Z',
+        },
+      ],
+    })
+    const event = jsonLd(await (await get('/e/tay7', APEX, env)).text()).find((b) => b['@type'] === 'Event')
+    expect([event.startDate, event.endDate]).toEqual(['2026-09-25', '2026-09-27'])
+  })
+
+  it('only claims free or not free when a source said so', async () => {
+    const env = stubEnv({ 'FROM events e LEFT JOIN municipalities': [{ ...EVENT_ROW, cost: 'unknown' }] })
+    const event = jsonLd(await (await get('/e/tay7', APEX, env)).text()).find((b) => b['@type'] === 'Event')
+    expect(event).not.toHaveProperty('isAccessibleForFree')
+    const paid = stubEnv({ 'FROM events e LEFT JOIN municipalities': [{ ...EVENT_ROW, cost: 'paid' }] })
+    const paidEvent = jsonLd(await (await get('/e/tay7', APEX, paid)).text()).find((b) => b['@type'] === 'Event')
+    expect(paidEvent.isAccessibleForFree).toBe(false)
+  })
+
   it('carries breadcrumbs up through its municipality', async () => {
     const body = await (await get('/e/tay7')).text()
     const crumbs = jsonLd(body).find((b) => b['@type'] === 'BreadcrumbList')
@@ -223,6 +260,15 @@ describe('municipality pages', () => {
     })
     const body = await (await get('/place/tay', APEX, env)).text()
     expect(body).toContain('Jazz at the Legion')
+  })
+
+  /* The list stops at 120. Essa has several hundred upcoming events, and a page opening
+     with "120 upcoming events" would be wrong on exactly the busiest towns. */
+  it('counts every upcoming event, and says when the list is only the start of them', async () => {
+    const body = await (await get('/place/tay', APEX, stubEnv({ 'COUNT(*)': [{ n: 571 }] }))).text()
+    expect(body).toContain('571 upcoming events in Township of Tay')
+    expect(body).toContain('Showing the next 1 of 571')
+    expect(body).toContain('href="/?m=tay&amp;cost=all"')
   })
 
   it('404s for a slug we do not cover, without touching the database', async () => {

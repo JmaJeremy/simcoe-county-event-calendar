@@ -117,6 +117,20 @@ when it breaks, so nothing here is checked by eye.
   ever reading the header that does the work, and a blocked URL can still be indexed from
   inbound links. With no `CANONICAL_HOST` set there is only one host and nothing to prefer.
 
+- **The sitemap has no `lastmod`, on purpose.** Dedup rewrites every event in its window
+  each run, so `updated_at` is "the last cron run" for nearly all of them (2,127 of 2,161
+  when measured). A lastmod built from it claims everything changed two hours ago, and
+  search engines then ignore the field site-wide. It comes back with SCEC-56, when
+  `updated_at` only moves on a real change. `/suggest` is left out too: it is noindex, and
+  a sitemap listing a noindex page is a Search Console error.
+
+- **A municipality page lists at most 120 upcoming events but counts them all.** Essa has
+  several hundred; the page says how many there are and links to the calendar filtered to
+  that town for the rest.
+
+- **`isAccessibleForFree` is only emitted when the cost is known.** `false` for "cost not
+  listed" would tell search engines most events here charge admission.
+
 - **An Event needs a `location` carrying an `address`.** Google treats one without as an
   error, not a warning, and a venue name is not an address. Most of these events publish
   neither, so the municipality stands in rather than the property going missing.
