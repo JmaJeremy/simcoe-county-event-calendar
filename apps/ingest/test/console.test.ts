@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair, type JWTVerifyGetKey } from 'jose'
+import { shortCode } from '@scec/core'
 import { handleConsole, type ConsoleEnv } from '../src/console.ts'
 import ingest from '../src/worker.ts'
 
@@ -133,6 +134,12 @@ const env = (db: ConsoleEnv['DB'], extra: Partial<ConsoleEnv> = {}): ConsoleEnv 
   PUBLIC_ORIGIN: 'https://site.example.ca',
   ...extra,
 })
+
+/** A stand-in for the Email Service binding that keeps what it was asked to send. */
+function mailer() {
+  const sent: any[] = []
+  return { sent, EMAIL: { send: async (message: unknown) => void sent.push(message) } }
+}
 
 const SUGGESTION_ID = '0b6c2d7e-5f4a-4e2b-9c1d-3a4b5c6d7e8f'
 const POSTER_KEY = `${SUGGESTION_ID}/1d2e3f40-5a6b-4c7d-8e9f-0a1b2c3d4e5f.jpg`
@@ -344,6 +351,8 @@ describe('suggestions', () => {
     const body = await res.text()
     expect(body).toContain(`href="/new?from=${SUGGESTION_ID}"`)
     expect(body).toContain(`action="/suggestions/${SUGGESTION_ID}/dismiss"`)
+    expect(body).toContain(`action="/suggestions/${SUGGESTION_ID}/accept"`)
+    expect(body).toContain('emails them to say so')
     expect(body).toContain(`<img class="poster" src="/suggestions/${SUGGESTION_ID}/poster"`)
     expect(body).toContain('My kid’s school runs it')
     expect(body).toContain('Sam &lt;sam@example.com&gt;')
@@ -353,7 +362,7 @@ describe('suggestions', () => {
   it('offer an event for a website suggestion too, noting it may be a source instead', async () => {
     const body = await (await handleConsole(get(`/suggestions/${SUGGESTION_ID}`), env(fakeDb([], [], [suggestionRow({ kind: 'website' })]).db), keys)).text()
     expect(body).toContain(`href="/new?from=${SUGGESTION_ID}"`)
-    expect(body).toContain('better added as a source')
+    expect(body).toContain('to plan it as a source, accept it without an event')
   })
 
   it('offer no event once dismissed, only the way back', async () => {
@@ -386,14 +395,15 @@ describe('suggestions', () => {
 
   it('become an event when the form is saved, and are marked done with the listing they became', async () => {
     const { db, writes } = fakeDb([], [], [suggestionRow()])
+    const outbox = mailer()
     const res = await handleConsole(
       post('/events', { from: SUGGESTION_ID, title: 'Pumpkin walk', date: '2099-10-25', start_time: '18:30', image_url: `https://site.example.ca/posters/${POSTER_KEY}` }),
-      env(db),
+      env(db, { EMAIL: outbox.EMAIL }),
       keys,
     )
     expect(res.status).toBe(303)
     const location = res.headers.get('location')!
-    expect(location).toMatch(/^\/\?saved=[0-9a-f-]{36}&suggestion=1$/)
+    expect(location).toMatch(/^\/\?saved=[0-9a-f-]{36}&suggestion=1&mail=sent$/)
     const uuid = location.match(/saved=([^&]+)/)![1]
     expect(writes('INSERT INTO listings')[0]!.values).toContain(`https://site.example.ca/posters/${POSTER_KEY}`)
     const [marked] = writes("UPDATE suggestions SET handled_at = ?, handled_as = 'event'")
@@ -401,6 +411,12 @@ describe('suggestions', () => {
     // One batch, one transaction: the event and the approval land together or not at all.
     expect(marked!.batch).toBe(writes('INSERT INTO listings')[0]!.batch)
     expect(marked!.batch).toBe(writes('INSERT INTO events')[0]!.batch)
+    // Then the suggester hears, with a link that works because the event is already written.
+    expect(outbox.sent).toHaveLength(1)
+    expect(outbox.sent[0].to).toBe('sam@example.com')
+    expect(outbox.sent[0].replyTo).toBe('contact@outinsimcoe.ca')
+    expect(outbox.sent[0].text).toContain(`Pumpkin walk\nhttps://site.example.ca/e/${shortCode(`manual:${uuid}`)}`)
+    expect(writes('SET accepted_mail')[0]!.values).toEqual(['sent', SUGGESTION_ID])
   })
 
   it('stay attached to a form sent back with problems, and stay waiting', async () => {
@@ -424,6 +440,53 @@ describe('suggestions', () => {
     expect(body).toContain('<span class="flag ok">Added as an event</span>')
   })
 
+  it('can be accepted without an event, which emails the suggester without a link', async () => {
+    const { db, writes } = fakeDb([], [], [suggestionRow()])
+    const outbox = mailer()
+    const res = await handleConsole(post(`/suggestions/${SUGGESTION_ID}/accept`, {}), env(db, { EMAIL: outbox.EMAIL }), keys)
+    expect(res.headers.get('location')).toBe(`/suggestions/${SUGGESTION_ID}?accepted=1&mail=sent`)
+    expect(writes("handled_as = 'accepted' WHERE id = ? AND handled_at IS NULL")[0]!.values[1]).toBe(SUGGESTION_ID)
+    expect(outbox.sent).toHaveLength(1)
+    expect(outbox.sent[0].subject).toBe('Your suggestion was accepted — Out in Simcoe')
+    expect(outbox.sent[0].text).not.toContain('/e/')
+    // Nothing the visitor typed: the address may not be theirs.
+    for (const typed of ['Pumpkin walk', 'Sam', 'Carved pumpkins', 'My kid']) expect(outbox.sent[0].text).not.toContain(typed)
+    expect(writes('SET accepted_mail')[0]!.values).toEqual(['sent', SUGGESTION_ID])
+  })
+
+  it('tell nobody when there is no address, and never email the same person twice', async () => {
+    const none = fakeDb([], [], [suggestionRow({ email: null })])
+    const noneBox = mailer()
+    const res = await handleConsole(post(`/suggestions/${SUGGESTION_ID}/accept`, {}), env(none.db, { EMAIL: noneBox.EMAIL }), keys)
+    expect(res.headers.get('location')).toContain('mail=skipped')
+    expect(noneBox.sent).toEqual([])
+
+    const again = fakeDb([], [], [suggestionRow({ accepted_mail: 'sent' })])
+    const againBox = mailer()
+    const second = await handleConsole(post(`/suggestions/${SUGGESTION_ID}/accept`, {}), env(again.db, { EMAIL: againBox.EMAIL }), keys)
+    expect(second.headers.get('location')).toContain('mail=already')
+    expect(againBox.sent).toEqual([])
+    expect(again.writes('SET accepted_mail')).toEqual([])
+  })
+
+  it('stay accepted when the email fails, and keep the reason', async () => {
+    const { db, writes } = fakeDb([], [], [suggestionRow()])
+    const EMAIL = { send: async () => { throw new Error('destination not allowed') } }
+    const res = await handleConsole(post(`/suggestions/${SUGGESTION_ID}/accept`, {}), env(db, { EMAIL }), keys)
+    expect(res.headers.get('location')).toContain('mail=failed')
+    expect(writes("handled_as = 'accepted'")).toHaveLength(1)
+    expect(writes('SET accepted_mail')[0]!.values[0]).toBe('error: destination not allowed')
+  })
+
+  it('say what happened after accepting, and offer the way back', async () => {
+    const accepted = suggestionRow({ handled_at: '2026-09-15T16:00:00.000Z', handled_as: 'accepted', accepted_mail: 'sent' })
+    const body = await (await handleConsole(get(`/suggestions/${SUGGESTION_ID}?accepted=1&mail=sent`), env(fakeDb([], [], [accepted]).db), keys)).text()
+    expect(body).toContain('Accepted. We emailed them to say so.')
+    expect(body).toContain('<span class="flag ok">Accepted</span>')
+    expect(body).toContain(`action="/suggestions/${SUGGESTION_ID}/reopen"`)
+    expect(body).toContain('accepted: sent')
+  })
+
   it('can be dismissed, and the dismissal undone', async () => {
     const dismiss = fakeDb([], [], [suggestionRow()])
     const res = await handleConsole(post(`/suggestions/${SUGGESTION_ID}/dismiss`, {}), env(dismiss.db), keys)
@@ -434,7 +497,7 @@ describe('suggestions', () => {
     const undo = fakeDb([], [], [dismissedRow])
     await handleConsole(post(`/suggestions/${SUGGESTION_ID}/reopen`, {}), env(undo.db), keys)
     // Only a dismissal can be undone: an approved suggestion's event may be showing its poster.
-    expect(undo.writes("WHERE id = ? AND handled_as = 'dismissed'")).toHaveLength(1)
+    expect(undo.writes("handled_as IN ('dismissed', 'accepted')")).toHaveLength(1)
   })
 
   it('show their poster from the private bucket to a signed-in admin, and never let it be cached', async () => {

@@ -23,6 +23,9 @@
   // Posters uploaded with suggestions, read by the console to show them behind Access.
   // The web worker writes them.
   "r2_buckets": [{ "binding": "POSTERS", "bucket_name": "scec-suggestion-posters" }],
+  // Cloudflare Email Service, for the console to tell a suggester their suggestion was
+  // accepted. The web worker has its own binding for the form's two emails.
+  "send_email": [{ "name": "EMAIL" }],
   "triggers": {
     // Every two hours: community calendars change on the order of days, and several of
     // the sources are third-party servers we would rather not lean on.

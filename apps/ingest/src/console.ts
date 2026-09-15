@@ -5,12 +5,14 @@ import {
   buildClusters,
   eventFromCluster,
   parseOverrides,
+  shortCode,
   sourceBySlug,
   type EventOverrides,
   type Listing,
 } from '@scec/core'
 import type { JWTVerifyGetKey } from 'jose'
 import { isSameOriginWrite, verifyAccess } from './access.ts'
+import { ADMIN_ADDRESS, MAIL_FROM, acceptedMail } from './suggestion-mail.ts'
 import {
   AUTO_CATEGORY,
   CATEGORY_OPTIONS,
@@ -58,6 +60,10 @@ export interface ConsoleEnv {
   PUBLIC_ORIGIN?: string
   /** Posters uploaded with suggestions. The web worker writes them; the console only reads. */
   POSTERS?: { get(key: string): Promise<{ body: ReadableStream } | null> }
+  /** Cloudflare Email Service, for telling a suggester their suggestion was accepted. */
+  EMAIL?: {
+    send(message: { to: string; from: { email: string; name: string }; replyTo: string; subject: string; text: string }): Promise<unknown>
+  }
 }
 
 const MANUAL_ID_PREFIX = `${MANUAL_SOURCE_SLUG}:`
@@ -100,12 +106,12 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
   const publicOrigin = (env.PUBLIC_ORIGIN ?? 'https://outinsimcoe.ca').replace(/\/$/, '')
   const path = url.pathname.replace(/\/+$/, '') || '/'
   const route = path.match(/^\/events\/([^/]+)(?:\/(remove|restore))?$/)
-  const suggestionRoute = path.match(/^\/suggestions\/([^/]+)(?:\/(poster|dismiss|reopen))?$/)
+  const suggestionRoute = path.match(/^\/suggestions\/([^/]+)(?:\/(poster|accept|dismiss|reopen))?$/)
 
   try {
     if (path === '/' && request.method === 'GET') return page(await listPage(env.DB, url, publicOrigin, auth.email))
     if (path === '/new' && request.method === 'GET') return await newPage(env.DB, url, publicOrigin, auth.email)
-    if (path === '/events' && request.method === 'POST') return await createEvent(env.DB, request, auth.email)
+    if (path === '/events' && request.method === 'POST') return await createEvent(env, request, publicOrigin, auth.email)
     if (path === '/suggestions' && request.method === 'GET') return page(await suggestionsPage(env.DB, url, publicOrigin, auth.email))
     if (path === '/find' && request.method === 'GET') return page(await findPage(env.DB, url, publicOrigin, auth.email))
 
@@ -121,7 +127,8 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
     if (suggestionRoute) {
       const [, id, action] = suggestionRoute
       if (!UUID.test(id!)) return notFound(auth.email)
-      if (!action && request.method === 'GET') return await suggestionPage(env.DB, id!, publicOrigin, auth.email)
+      if (!action && request.method === 'GET') return await suggestionPage(env.DB, url, id!, publicOrigin, auth.email)
+      if (action === 'accept' && request.method === 'POST') return await acceptSuggestion(env, id!, auth.email)
       if (action === 'poster' && request.method === 'GET') return await posterResponse(env, id!, auth.email)
       if ((action === 'dismiss' || action === 'reopen') && request.method === 'POST') {
         return await setDismissed(env.DB, id!, action === 'dismiss')
@@ -154,7 +161,8 @@ async function readForm(request: Request): Promise<Record<string, unknown>> {
   return Object.fromEntries(await request.formData())
 }
 
-async function createEvent(db: D1Like, request: Request, email: string): Promise<Response> {
+async function createEvent(env: ConsoleEnv, request: Request, publicOrigin: string, email: string): Promise<Response> {
+  const db = env.DB
   const form = await readForm(request)
   // Opened from a suggestion: saving approves it.
   const suggestion = typeof form.from === 'string' && UUID.test(form.from) ? await loadSuggestion(db, form.from) : null
@@ -174,7 +182,11 @@ async function createEvent(db: D1Like, request: Request, email: string): Promise
       ]
     : []
   await writeListing(db, listing, { eventId: null, eventCreatedAt: null, active: true }, approve)
-  return redirect(`/?saved=${encodeURIComponent(listing.externalId)}${suggestion ? '&suggestion=1' : ''}`)
+  if (!suggestion) return redirect(`/?saved=${encodeURIComponent(listing.externalId)}`)
+  // After the write, so the link in the email already works. A new solo event takes its
+  // listing's id, and with it the short code.
+  const mail = await notifyAccepted(env, suggestion, { title: listing.title, url: `${publicOrigin}/e/${shortCode(listing.id)}` })
+  return redirect(`/?saved=${encodeURIComponent(listing.externalId)}&suggestion=1&mail=${mail}`)
 }
 
 async function updateEvent(db: D1Like, request: Request, uuid: string, email: string): Promise<Response> {
@@ -368,7 +380,7 @@ function flashMessage(url: URL, rows: Array<ListingRow & { event_code: string | 
     const merged = url.searchParams.get('merged') === '1'
       ? ' It is merged with a calendar’s copy of the same event, so the public page catches up at the next ingest run (within two hours).'
       : ' It is on the site now; if a calendar lists the same event, the next ingest run merges the two.'
-    const approved = url.searchParams.get('suggestion') === '1' ? ' The suggestion it came from is marked done.' : ''
+    const approved = url.searchParams.get('suggestion') === '1' ? ` The suggestion it came from is marked done. ${mailNote(url.searchParams.get('mail'), true)}` : ''
     return `<p class="flash">Saved “${escapeHtml(saved.title)}”.${merged}${approved}${link}</p>`
   }
   const removed = pick('removed')
@@ -467,7 +479,9 @@ function formPage(options: {
     ? `<div class="from-suggestion">
         <p><strong>From a suggestion</strong>${s.name ? ` by ${escapeHtml(s.name)}` : ''}, received ${escapeHtml(received(s.created_at))}
           · <a href="/suggestions/${s.id}">See the suggestion</a></p>
-        <p>Check the details, since they are what a visitor typed. Saving adds the event and marks the suggestion done.</p>
+        <p>Check the details, since they are what a visitor typed. Saving adds the event, marks the suggestion done${
+          s.email ? ' and emails them a link to it' : ''
+        }.</p>
         ${s.comments ? `<p class="muted pre">Their comments, which are not copied into the event: ${escapeHtml(s.comments)}</p>` : ''}
         ${s.poster_key ? `<p><img class="thumb" src="/suggestions/${s.id}/poster" alt="The poster sent with the suggestion"></p>` : ''}
       </div>`
@@ -823,8 +837,10 @@ interface SuggestionRow {
   poster_type: string | null
   poster_error: string | null
   handled_at: string | null
-  handled_as: 'event' | 'dismissed' | null
+  handled_as: 'event' | 'accepted' | 'dismissed' | null
   handled_listing_id: string | null
+  /** What happened to the acceptance email: 'sent', 'error: …'. Null until one was tried. */
+  accepted_mail?: string | null
   /** The public short code of the event it became, when it was approved. */
   event_code?: string | null
 }
@@ -872,7 +888,8 @@ function valuesFromSuggestion(s: SuggestionRow, publicOrigin: string): Record<st
 
 function handledNote(s: Pick<SuggestionRow, 'handled_at' | 'handled_as' | 'handled_listing_id' | 'event_code'>, publicOrigin: string): string {
   if (!s.handled_at) return ''
-  if (s.handled_as !== 'event') return '<span class="flag off">Dismissed</span>'
+  if (s.handled_as === 'dismissed') return '<span class="flag off">Dismissed</span>'
+  if (s.handled_as === 'accepted') return '<span class="flag ok">Accepted</span>'
   // The tag itself opens the event's public page, once it has one.
   const tag = s.event_code
     ? `<a class="flag ok" href="${escapeHtml(`${publicOrigin}/e/${s.event_code}`)}" target="_blank" rel="noopener">Added as an event ↗</a>`
@@ -920,7 +937,7 @@ async function suggestionsPage(db: D1Like, url: URL, publicOrigin: string, email
   )
 }
 
-async function suggestionPage(db: D1Like, id: string, publicOrigin: string, email: string): Promise<Response> {
+async function suggestionPage(db: D1Like, url: URL, id: string, publicOrigin: string, email: string): Promise<Response> {
   const s = await loadSuggestion(db, id)
   if (!s) return notFound(email)
 
@@ -939,7 +956,7 @@ async function suggestionPage(db: D1Like, id: string, publicOrigin: string, emai
     ['Comments', s.comments && escapeHtml(s.comments)],
     ['From', escapeHtml([s.name, s.email ? `<${s.email}>` : null].filter(Boolean).join(' ') || 'Anonymous')],
     ['Received', escapeHtml(received(s.created_at))],
-    ['Emails', escapeHtml(`to us: ${s.admin_mail ?? 'not recorded'} · thank-you: ${s.user_mail ?? 'not recorded'}`)],
+    ['Emails', escapeHtml(`to us: ${s.admin_mail ?? 'not recorded'} · thank-you: ${s.user_mail ?? 'not recorded'}${s.accepted_mail ? ` · accepted: ${s.accepted_mail}` : ''}`)],
     ['Poster', s.poster_error && escapeHtml(`one was sent but not kept (${s.poster_error})`)],
   ]
   const details = `<dl class="details">${rows
@@ -948,15 +965,23 @@ async function suggestionPage(db: D1Like, id: string, publicOrigin: string, emai
     .join('')}</dl>`
 
   let actions: string
+  let hint = ''
   if (!s.handled_at) {
     // Offered for websites too: "Barrie Film Festival" sent as a website is often one event.
     const create = `<a class="button" href="/new?from=${s.id}">Create an event from this</a>`
-    const note =
+    const accept = `<form method="post" action="/suggestions/${s.id}/accept"><button type="submit" class="button ghost">Accept without an event</button></form>`
+    actions = `${create}${accept}<form method="post" action="/suggestions/${s.id}/dismiss"><button type="submit" class="link">Dismiss</button></form>`
+    const website =
       s.kind === 'website'
-        ? '<span class="muted">Sent as a website that lists events, so it may be better added as a source for the ingest run. If it is really one event, create it here.</span>'
+        ? 'Sent as a website that lists events: to plan it as a source, accept it without an event; if it is really one event, create it. '
         : ''
-    actions = `${create}<form method="post" action="/suggestions/${s.id}/dismiss"><button type="submit" class="link">Dismiss</button></form>${note}`
-  } else if (s.handled_as === 'dismissed') {
+    const tell = !s.email
+      ? 'They left no email address, so accepting tells nobody.'
+      : s.accepted_mail
+        ? 'They were already emailed when it was first accepted, so accepting again sends nothing.'
+        : 'Accepting it, with an event or without, emails them to say so, with a link if you create the event.'
+    hint = `<p class="muted">${website}${tell}</p>`
+  } else if (s.handled_as === 'dismissed' || s.handled_as === 'accepted') {
     actions = `${handledNote(s, publicOrigin)}<form method="post" action="/suggestions/${s.id}/reopen"><button type="submit" class="link">Undo, and put it back in the waiting list</button></form>`
   } else {
     actions = handledNote(s, publicOrigin)
@@ -965,7 +990,8 @@ async function suggestionPage(db: D1Like, id: string, publicOrigin: string, emai
   const poster = s.poster_key
     ? `<p><a href="/suggestions/${s.id}/poster" target="_blank" rel="noopener"><img class="poster" src="/suggestions/${s.id}/poster" alt="The poster sent with this suggestion"></a></p>`
     : ''
-  return page(shell(suggestionLabel(s), `<div class="actions">${actions}</div>${details}${poster}<p><a href="/suggestions">All suggestions</a></p>`, email))
+  const flash = url.searchParams.get('accepted') === '1' ? `<p class="flash">Accepted. ${mailNote(url.searchParams.get('mail'), false)}</p>` : ''
+  return page(shell(suggestionLabel(s), `${flash}<div class="actions">${actions}</div>${hint}${details}${poster}<p><a href="/suggestions">All suggestions</a></p>`, email))
 }
 
 /** A suggestion's poster, straight from the private bucket, to a signed-in admin only. */
@@ -987,16 +1013,70 @@ async function posterResponse(env: ConsoleEnv, id: string, email: string): Promi
 }
 
 /**
- * Dismiss a waiting suggestion, or undo a dismissal. An approved suggestion cannot be
- * sent back: its event may be showing its poster, which would stop being served.
+ * Dismiss a waiting suggestion, or send a dismissed or accepted one back to waiting. One
+ * approved as an event cannot go back: its event may be showing its poster, which would stop
+ * being served. Undoing an acceptance unsends nothing, and accepting again emails nobody twice.
  */
+type MailOutcome = 'sent' | 'failed' | 'skipped' | 'already'
+
+/**
+ * Tell a suggester their suggestion was accepted, once. The outcome is kept on the row
+ * whether it went or not, and a row that has one is never mailed again. A failed email
+ * never undoes the acceptance: the row says what happened.
+ */
+async function notifyAccepted(env: ConsoleEnv, s: SuggestionRow, event: { title: string; url: string } | null): Promise<MailOutcome> {
+  if (!s.email) return 'skipped'
+  if (s.accepted_mail) return 'already'
+  let outcome = 'sent'
+  if (!env.EMAIL) outcome = 'error: no EMAIL binding'
+  else {
+    try {
+      await env.EMAIL.send({ to: s.email, from: MAIL_FROM, replyTo: ADMIN_ADDRESS, ...acceptedMail({ kind: s.kind, createdAt: s.created_at }, event) })
+    } catch (err) {
+      outcome = `error: ${err instanceof Error ? err.message : String(err)}`.slice(0, 500)
+    }
+  }
+  if (outcome !== 'sent') console.error('console: acceptance email not sent', outcome)
+  await runBatched(env.DB, [env.DB.prepare('UPDATE suggestions SET accepted_mail = ? WHERE id = ?').bind(outcome, s.id)])
+  return outcome === 'sent' ? 'sent' : 'failed'
+}
+
+function mailNote(outcome: string | null, linked: boolean): string {
+  switch (outcome) {
+    case 'sent':
+      return linked ? 'We emailed them a link to it.' : 'We emailed them to say so.'
+    case 'failed':
+      return 'The email to them could not be sent; the reason is on the suggestion.'
+    case 'skipped':
+      return 'They left no email address, so nobody was told.'
+    case 'already':
+      return 'They were emailed when it was first accepted, so not again.'
+    default:
+      return ''
+  }
+}
+
+/** Accept a waiting suggestion without making an event of it: a website planned as a source, say. */
+async function acceptSuggestion(env: ConsoleEnv, id: string, email: string): Promise<Response> {
+  const s = await loadSuggestion(env.DB, id)
+  if (!s) return notFound(email)
+  if (s.handled_at) return redirect(`/suggestions/${id}`)
+  await runBatched(env.DB, [
+    env.DB.prepare("UPDATE suggestions SET handled_at = ?, handled_as = 'accepted' WHERE id = ? AND handled_at IS NULL").bind(new Date().toISOString(), id),
+  ])
+  const mail = await notifyAccepted(env, s, null)
+  return redirect(`/suggestions/${id}?accepted=1&mail=${mail}`)
+}
+
 async function setDismissed(db: D1Like, id: string, dismiss: boolean): Promise<Response> {
   await runBatched(db, [
     dismiss
       ? db
           .prepare("UPDATE suggestions SET handled_at = ?, handled_as = 'dismissed' WHERE id = ? AND handled_at IS NULL")
           .bind(new Date().toISOString(), id)
-      : db.prepare("UPDATE suggestions SET handled_at = NULL, handled_as = NULL WHERE id = ? AND handled_as = 'dismissed'").bind(id),
+      : db
+          .prepare("UPDATE suggestions SET handled_at = NULL, handled_as = NULL WHERE id = ? AND handled_as IN ('dismissed', 'accepted')")
+          .bind(id),
   ])
   return redirect(dismiss ? `/suggestions?dismissed=${id}` : `/suggestions/${id}`)
 }
@@ -1038,6 +1118,7 @@ function shell(title: string, body: string, email: string): string {
   .flag.off { background: var(--bad-bg); color: var(--bad); }
   .flag.ok { background: var(--ok-bg); color: var(--ok); }
   .flag.edited { background: var(--warn-bg); color: var(--warn); }
+  .button.ghost { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
   .search { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 14px; margin: 8px 0 18px; }
   .search .field { margin: 0; }
   .search .grow { flex: 1 1 260px; }

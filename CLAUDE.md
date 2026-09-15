@@ -301,6 +301,14 @@ when it breaks, so nothing here is checked by eye.
   `handled_as = 'event'`, which is set by saving the event form the console pre-fills from
   it (hidden `from` field). So only a dismissal can be undone: un-approving would break the
   poster on a live event page.
+- **A suggestion ends one of three ways**: `handled_as` is `event` (saved through the event
+  form the console pre-fills), `accepted` (accepted without an event — a website planned as
+  a source, say) or `dismissed`. Accepting either way emails the suggester, if they left an
+  address, from the **ingest** worker's own `EMAIL` binding (`src/suggestion-mail.ts`); an
+  event's email links it. Like the thank-you, it repeats nothing the visitor typed — only
+  what the admin made, the event's title and link. `accepted_mail` records the outcome and
+  stops a second email: an acceptance or dismissal can be undone and made again, but nobody
+  is emailed twice. A failed email never undoes the acceptance.
 - **A poster is judged by its bytes and stored without its metadata.** `inspectImage`
   (`apps/web/src/image.ts`) reads the file signature — the name and declared type are the
   sender's word — and accepts only JPEG, PNG, GIF and WebP; SVG can carry script. It runs
