@@ -9,6 +9,9 @@ import {
   type EventStatus,
   type Listing,
   type RawEvent,
+  TIME_FIELDS,
+  type EventOverrides,
+  type OverrideField,
 } from '@scec/core'
 
 /**
@@ -262,4 +265,85 @@ export function buildManualListing(input: ManualEventInput, externalId: string):
     // moves an event to another town must still read as a change to dedup's verdict cache.
     contentHash: fnv1a64(`${listing.contentHash}|${JSON.stringify(overrides)}`),
   }
+}
+
+/* -------------------------------------------------------------- edits to any event */
+
+/**
+ * The event form's fields in groups, with the event fields each sets. An edit pins a whole
+ * group; the four date and time inputs are one group because they set TIME_FIELDS together.
+ */
+export const OVERRIDE_GROUPS: ReadonlyArray<{ key: string; label: string; form: readonly string[]; event: readonly OverrideField[] }> = [
+  { key: 'title', label: 'Title', form: ['title'], event: ['title'] },
+  { key: 'municipality', label: 'Municipality', form: ['municipality'], event: ['municipalitySlug'] },
+  { key: 'category', label: 'Category', form: ['category'], event: ['category'] },
+  { key: 'when', label: 'Date and time', form: ['date', 'start_time', 'end_date', 'end_time'], event: TIME_FIELDS },
+  { key: 'venue', label: 'Venue', form: ['venue'], event: ['venueName'] },
+  { key: 'address', label: 'Address', form: ['address'], event: ['address'] },
+  { key: 'cost', label: 'Cost', form: ['cost'], event: ['cost'] },
+  { key: 'cost_text', label: 'Price details', form: ['cost_text'], event: ['costText'] },
+  { key: 'description', label: 'Description', form: ['description'], event: ['description'] },
+  { key: 'organizer', label: 'Organizer', form: ['organizer'], event: ['organizer'] },
+  { key: 'url', label: 'Link', form: ['url'], event: ['url'] },
+  { key: 'image_url', label: 'Poster image', form: ['image_url'], event: ['imageUrl'] },
+  { key: 'status', label: 'Status', form: ['status'], event: ['status'] },
+]
+
+/** Each field's value as the form was filled in, posted back beside it as orig_{name}. */
+export const ORIGINAL_PREFIX = 'orig_'
+
+const hasKey = (object: object, key: string): boolean => Object.prototype.hasOwnProperty.call(object, key)
+
+/** The groups an override pins, in form order. */
+export const editedGroups = (overrides: EventOverrides): string[] =>
+  OVERRIDE_GROUPS.filter((g) => g.event.some((field) => hasKey(overrides, field))).map((g) => g.key)
+
+/** An override with some groups — or every field edit, keeping hidden — taken back out. */
+export function withoutGroups(overrides: EventOverrides, keys: readonly string[] | 'all'): EventOverrides {
+  const out: Record<string, unknown> = { ...overrides }
+  for (const group of OVERRIDE_GROUPS) {
+    if (keys === 'all' || keys.includes(group.key)) for (const field of group.event) delete out[field]
+  }
+  return out as EventOverrides
+}
+
+export type OverrideResult =
+  | { ok: true; overrides: EventOverrides; changed: string[] }
+  | { ok: false; errors: Record<string, string>; values: Record<string, string> }
+
+const posted = (form: Record<string, unknown>, key: string): string => {
+  const value = form[key]
+  return typeof value === 'string' ? value.replace(/\r\n?/g, '\n').trim() : ''
+}
+
+/**
+ * The override a submitted edit form makes: what was there, plus every group edited now.
+ *
+ * A group counts as edited only when what was posted differs from what the form was filled
+ * in with — never from the stored event. Scraped values do not survive a round trip through
+ * the form (an http poster fails the https rule, a link gains a trailing slash, whitespace
+ * is tidied), so comparing with the database would pin such fields on the first save and
+ * quietly cut them off from their sources.
+ */
+export function overridesFromForm(form: Record<string, unknown>, existing: EventOverrides): OverrideResult {
+  const touched = OVERRIDE_GROUPS.filter((g) => g.form.some((key) => posted(form, key) !== posted(form, `${ORIGINAL_PREFIX}${key}`)))
+  const values: Record<string, string> = {}
+  for (const [key, value] of Object.entries(form)) if (typeof value === 'string') values[key] = value
+
+  let parsed = parseEventForm(form)
+  if (!parsed.ok) {
+    // A field nobody touched is not being set, so the source's value need not pass the
+    // form's rules: clear those and check the rest again.
+    const touchedKeys = new Set(touched.flatMap((g) => g.form))
+    const untouched = Object.keys(parsed.errors).filter((key) => !touchedKeys.has(key))
+    if (untouched.length) parsed = parseEventForm({ ...form, ...Object.fromEntries(untouched.map((key) => [key, ''])) })
+  }
+  if (!parsed.ok) return { ok: false, errors: parsed.errors, values }
+  if (!touched.length) return { ok: true, overrides: existing, changed: [] }
+
+  // The same conversion a hand-entered event gets: wall time to UTC exactly once.
+  const listing = buildManualListing(parsed.input, 'override')
+  const overrides: Record<string, unknown> = { ...existing }
+  for (const group of touched) for (const field of group.event) overrides[field] = listing[field]
+  return { ok: true, overrides: overrides as EventOverrides, changed: touched.map((g) => g.key) }
 }

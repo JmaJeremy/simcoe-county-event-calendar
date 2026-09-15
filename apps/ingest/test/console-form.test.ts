@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { shortCode } from '@scec/core'
-import { buildManualListing, parseEventForm, type ManualEventInput } from '../src/console-form.ts'
+import { buildManualListing, editedGroups, overridesFromForm, parseEventForm, withoutGroups, type ManualEventInput } from '../src/console-form.ts'
 
 const UUID = '6f1c1f57-0f7a-4c61-9a7e-0d5c1f2b3a44'
 
@@ -125,5 +125,33 @@ describe('buildManualListing', () => {
     const again = buildManualListing(valid({ ...base, municipality: 'tay' }), UUID)
     expect(tay.contentHash).not.toBe(barrie.contentHash)
     expect(tay.contentHash).toBe(again.contentHash)
+  })
+})
+
+describe('overridesFromForm', () => {
+  const filled = { title: 'Fair', date: '2099-10-03', start_time: '10:00', image_url: 'http://calendar.tay.ca/p.jpg', cost: 'unknown', status: 'scheduled', category: 'community' }
+  const withOriginals = (form: Record<string, string>) => ({ ...form, ...Object.fromEntries(Object.entries(filled).map(([k, v]) => [`orig_${k}`, v])) })
+
+  it('changes nothing when nothing was edited, even if a source value fails the form', () => {
+    expect(overridesFromForm(withOriginals(filled), {})).toEqual({ ok: true, overrides: {}, changed: [] })
+  })
+
+  it('adds the edited group to what was already pinned', () => {
+    const result = overridesFromForm(withOriginals({ ...filled, cost: 'free' }), { title: 'Earlier edit' })
+    expect(result).toEqual({ ok: true, overrides: { title: 'Earlier edit', cost: 'free' }, changed: ['cost'] })
+  })
+
+  it('reads line endings and surrounding space as no change', () => {
+    const form = { ...withOriginals(filled), title: '  Fair\r\n' }
+    expect(overridesFromForm(form, {})).toMatchObject({ changed: [] })
+  })
+})
+
+describe('editedGroups and withoutGroups', () => {
+  it('names the groups an override pins and takes them out again, leaving hidden alone', () => {
+    const overrides = { title: 'X', localTime: '11:00', active: false }
+    expect(editedGroups(overrides)).toEqual(['title', 'when'])
+    expect(withoutGroups(overrides, ['title'])).toEqual({ localTime: '11:00', active: false })
+    expect(withoutGroups(overrides, 'all')).toEqual({ active: false })
   })
 })

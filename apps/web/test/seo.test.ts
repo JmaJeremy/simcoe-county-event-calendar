@@ -49,7 +49,9 @@ const EVENT_ROW = {
 
 /** Answers whichever of the worker's queries it recognises, by a phrase unique to each. */
 function stubEnv(overrides: Record<string, unknown[]> = {}): Env {
-  const answer = (sql: string): unknown[] => {
+  const answer = (raw: string): unknown[] => {
+    // Queries are written across lines; match on their words, not their layout.
+    const sql = raw.replace(/\s+/g, ' ')
     for (const [needle, rows] of Object.entries(overrides)) {
       if (sql.includes(needle)) return rows
     }
@@ -90,6 +92,30 @@ describe('event page description', () => {
     })
     const body = await (await get('/e/tay7', APEX, env)).text()
     expect(body).toContain('<div class="description"><p>Registration 8:00am<br>Opening ceremony &lt;9am&gt;</p><p>Bring a donation!</p></div>')
+  })
+})
+
+describe('event descriptions with markdown', () => {
+  const markdownEnv = () =>
+    stubEnv({
+      'FROM events e LEFT JOIN municipalities': [{ ...EVENT_ROW, description: 'Come to **Global Pet Foods**\n- [Tickets](https://example.org/t)' }],
+    })
+
+  it('renders it on the page and strips it from the structured data', async () => {
+    const body = await (await get('/e/tay7', APEX, markdownEnv())).text()
+    expect(body).toContain(
+      '<p>Come to <strong>Global Pet Foods</strong></p><ul><li><a href="https://example.org/t" rel="nofollow noopener noreferrer">Tickets</a></li></ul>',
+    )
+    const structured = JSON.stringify(jsonLd(body))
+    expect(structured).toContain('Come to Global Pet Foods')
+    expect(structured).not.toContain('**')
+  })
+
+  it('strips it from the calendar feed', async () => {
+    // Unfolded first: iCal wraps long lines, which can split a phrase across two.
+    const ics = (await (await get('/calendar.ics', APEX, markdownEnv())).text()).replace(/\r\n[ \t]/g, '')
+    expect(ics).toContain('Come to Global Pet Foods')
+    expect(ics).not.toContain('**')
   })
 })
 

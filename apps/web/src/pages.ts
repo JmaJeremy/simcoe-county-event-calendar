@@ -14,6 +14,7 @@ import {
   renderHead,
   titleCase,
 } from './html.ts'
+import { descriptionHtml, descriptionText } from './markdown.ts'
 
 const COST_LABEL: Record<string, string> = { free: 'Free', paid: 'Paid', unknown: 'Cost not listed' }
 
@@ -40,17 +41,6 @@ export const shareableImage = (event: PublicEvent): string | null => {
   const host = URL.parse?.(event.imageUrl)?.hostname ?? ''
   return /^(calendar|events)\./i.test(host) ? null : event.imageUrl
 }
-
-/**
- * A description's own line structure, as HTML: a blank line starts a paragraph, a single
- * line break stays a line break. Escaped first, so the only markup is what this adds.
- */
-export const descriptionHtml = (text: string): string =>
-  text
-    .trim()
-    .split(/\n[^\S\n]*\n\s*/)
-    .map((paragraph) => `<p>${escapeHtml(paragraph.trim()).replace(/\s*\n\s*/g, '<br>')}</p>`)
-    .join('')
 
 /** One phrase for when an event is, honest about sources that publish no time. */
 export function describeWhen(event: PublicEvent): string {
@@ -116,7 +106,7 @@ function eventJsonLd(event: PublicEvent, canonical: string): unknown {
   // The same precision at both ends: an all-day span's end is stored as 23:59 on its last
   // day, and as a UTC instant that reads as the following morning.
   if (event.endsAtUtc) data.endDate = dateOnly ? localDateOf(event.endsAtUtc, event.timezone) : event.endsAtUtc
-  if (event.description) data.description = event.description.slice(0, 500)
+  if (event.description) data.description = descriptionText(event.description).slice(0, 500)
   if (event.imageUrl) data.image = event.imageUrl
   if (event.organizer) data.organizer = { '@type': 'Organization', name: event.organizer }
   data.location = {

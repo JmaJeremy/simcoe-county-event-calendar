@@ -318,6 +318,59 @@ const firstOf = <K extends keyof Listing>(members: Listing[], key: K): Listing[K
   return null
 }
 
+/** The listing an event is built from: the highest-priority source, then the fullest listing. */
+export function pickRepresentative<L extends Listing>(members: L[], priorityOf: (sourceSlug: string) => number): L {
+  const active = members.filter((m) => m.active)
+  const pool = active.length ? active : members
+  return [...pool].sort(
+    (x, y) => priorityOf(x.sourceSlug) - priorityOf(y.sourceSlug) || completeness(y) - completeness(x) || x.id.localeCompare(y.id),
+  )[0]!
+}
+
+/**
+ * The event a cluster of listings makes, under the id it already has. `buildClusters` uses
+ * it for every cluster; the console uses it to rebuild one event after an edit, so both
+ * produce exactly what the next ingest run would.
+ */
+export function eventFromCluster(id: string, members: Listing[], priorityOf: (sourceSlug: string) => number): Event {
+  const active = members.filter((m) => m.active)
+  const representative = pickRepresentative(members, priorityOf)
+  const listingIds = members.map((m) => m.id).sort()
+  const sourceSlugs = [...new Set(members.map((m) => m.sourceSlug))].sort()
+  // Whether the event is on: any active member's source text saying "cancelled" wins.
+  const status = members.some((m) => m.active && m.status === 'cancelled') ? 'cancelled' : representative.status
+  const others = members.filter((m) => m !== representative)
+
+  return {
+    id,
+    shortCode: shortCode(id),
+    representativeId: representative.id,
+    listingIds,
+    sourceSlugs,
+    municipalitySlug: representative.municipalitySlug ?? firstOf(others, 'municipalitySlug'),
+    title: representative.title,
+    description: representative.description ?? firstOf(others, 'description'),
+    category: representative.category,
+    startsAtUtc: representative.startsAtUtc,
+    endsAtUtc: representative.endsAtUtc ?? firstOf(others, 'endsAtUtc'),
+    localDate: representative.localDate,
+    localTime: representative.localTime,
+    timezone: representative.timezone,
+    timePrecision: representative.timePrecision,
+    allDay: representative.allDay,
+    venueName: representative.venueName ?? firstOf(others, 'venueName'),
+    address: representative.address ?? firstOf(others, 'address'),
+    // Any member that knows the cost beats "unknown".
+    cost: representative.cost !== 'unknown' ? representative.cost : (others.find((m) => m.cost !== 'unknown')?.cost ?? 'unknown'),
+    costText: representative.costText ?? firstOf(others, 'costText'),
+    organizer: representative.organizer ?? firstOf(others, 'organizer'),
+    imageUrl: representative.imageUrl ?? firstOf(others, 'imageUrl'),
+    url: representative.url,
+    status,
+    active: active.length > 0,
+  }
+}
+
 /**
  * Connected components over "same" edges become clusters. Each cluster keeps the id it
  * had (the oldest existing cluster among its members), or takes its representative's id
@@ -366,14 +419,7 @@ export function buildClusters(input: ClusterInput): ClusterOutput {
   const used = new Set<string>()
 
   for (const members of groups.values()) {
-    const active = members.filter((m) => m.active)
-    const pool = active.length ? active : members
-    const representative = [...pool].sort(
-      (x, y) =>
-        input.priorityOf(x.sourceSlug) - input.priorityOf(y.sourceSlug) ||
-        completeness(y) - completeness(x) ||
-        x.id.localeCompare(y.id),
-    )[0]!
+    const representative = pickRepresentative(members, input.priorityOf)
 
     // Sticky id: the oldest cluster any member already belonged to, if it is not yet
     // claimed by another group this pass (a split leaves the id with one side).
@@ -384,40 +430,7 @@ export function buildClusters(input: ClusterInput): ClusterOutput {
     const id = previous[0] ?? representative.id
     used.add(id)
 
-    const listingIds = members.map((m) => m.id).sort()
-    const sourceSlugs = [...new Set(members.map((m) => m.sourceSlug))].sort()
-    // Whether the event is on: any active member's source text saying "cancelled" wins.
-    const status = members.some((m) => m.active && m.status === 'cancelled') ? 'cancelled' : representative.status
-    const others = members.filter((m) => m !== representative)
-
-    events.push({
-      id,
-      shortCode: shortCode(id),
-      representativeId: representative.id,
-      listingIds,
-      sourceSlugs,
-      municipalitySlug: representative.municipalitySlug ?? firstOf(others, 'municipalitySlug'),
-      title: representative.title,
-      description: representative.description ?? firstOf(others, 'description'),
-      category: representative.category,
-      startsAtUtc: representative.startsAtUtc,
-      endsAtUtc: representative.endsAtUtc ?? firstOf(others, 'endsAtUtc'),
-      localDate: representative.localDate,
-      localTime: representative.localTime,
-      timezone: representative.timezone,
-      timePrecision: representative.timePrecision,
-      allDay: representative.allDay,
-      venueName: representative.venueName ?? firstOf(others, 'venueName'),
-      address: representative.address ?? firstOf(others, 'address'),
-      // Any member that knows the cost beats "unknown".
-      cost: representative.cost !== 'unknown' ? representative.cost : (others.find((m) => m.cost !== 'unknown')?.cost ?? 'unknown'),
-      costText: representative.costText ?? firstOf(others, 'costText'),
-      organizer: representative.organizer ?? firstOf(others, 'organizer'),
-      imageUrl: representative.imageUrl ?? firstOf(others, 'imageUrl'),
-      url: representative.url,
-      status,
-      active: active.length > 0,
-    })
+    events.push(eventFromCluster(id, members, input.priorityOf))
     for (const m of members) assignments.push({ listingId: m.id, clusterId: id })
   }
 

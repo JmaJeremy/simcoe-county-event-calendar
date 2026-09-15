@@ -2,6 +2,7 @@ import { MUNICIPALITIES, buildIcal, municipalityBySlug } from '@scec/core'
 import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
 import { renderEventPage, renderNotFound, renderPlacePage } from './pages.ts'
+import { descriptionText } from './markdown.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
 import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
 import { MAX_POSTER_BYTES, inspectImage, stripMetadata, type ImageKind } from './image.ts'
@@ -222,7 +223,9 @@ export default {
         const events = await queryEvents(env, url)
         const names: Record<string, string> = {}
         for (const e of events) if (e.municipalitySlug && e.municipalityName) names[e.municipalitySlug] = e.municipalityName
-        return new Response(buildIcal(events, { calendarName: describeFilters(url, events), baseUrl: origin, municipalityNames: names }), {
+        // Calendar apps show a description as plain text, so the markdown comes out.
+        const plain = events.map((e) => (e.description ? { ...e, description: descriptionText(e.description) } : e))
+        return new Response(buildIcal(plain, { calendarName: describeFilters(url, events), baseUrl: origin, municipalityNames: names }), {
           headers: {
             'Content-Type': 'text/calendar; charset=utf-8',
             'Cache-Control': 'public, max-age=300, s-maxage=1800',

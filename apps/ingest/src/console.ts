@@ -1,8 +1,12 @@
 import {
   MANUAL_SOURCE_SLUG,
   MUNICIPALITIES,
+  applyOverrides,
   buildClusters,
+  eventFromCluster,
+  parseOverrides,
   sourceBySlug,
+  type EventOverrides,
   type Listing,
 } from '@scec/core'
 import type { JWTVerifyGetKey } from 'jose'
@@ -11,9 +15,14 @@ import {
   AUTO_CATEGORY,
   CATEGORY_OPTIONS,
   COST_OPTIONS,
+  ORIGINAL_PREFIX,
+  OVERRIDE_GROUPS,
   STATUS_OPTIONS,
   buildManualListing,
+  editedGroups,
+  overridesFromForm,
   parseEventForm,
+  withoutGroups,
 } from './console-form.ts'
 import {
   assignClusterStatements,
@@ -27,8 +36,8 @@ import {
 } from './repository.ts'
 
 /**
- * The admin console at console.outinsimcoe.ca: add, edit and remove events by hand, and
- * review what visitors suggest through the site's form.
+ * The admin console at console.outinsimcoe.ca: add, edit and remove events by hand, edit
+ * any event the ingest run found, and review what visitors suggest through the site's form.
  *
  * Every event it creates is a listing from the `manual` source, never a row written
  * straight into `events`. Dedup rebuilds events from listings on every run and switches
@@ -98,6 +107,16 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
     if (path === '/new' && request.method === 'GET') return await newPage(env.DB, url, publicOrigin, auth.email)
     if (path === '/events' && request.method === 'POST') return await createEvent(env.DB, request, auth.email)
     if (path === '/suggestions' && request.method === 'GET') return page(await suggestionsPage(env.DB, url, publicOrigin, auth.email))
+    if (path === '/find' && request.method === 'GET') return page(await findPage(env.DB, url, publicOrigin, auth.email))
+
+    // Short codes are seven hex characters; listing ids can contain slashes.
+    const eventRoute = path.match(/^\/event\/([0-9a-f]{7})(?:\/(clear|hide|show))?$/)
+    if (eventRoute) {
+      const [, code, action] = eventRoute
+      if (!action && request.method === 'GET') return await eventEditPage(env.DB, url, code!, publicOrigin, auth.email)
+      if (!action && request.method === 'POST') return await saveEventEdit(env.DB, request, code!, publicOrigin, auth.email)
+      if (action && request.method === 'POST') return await eventAction(env.DB, request, code!, action as 'clear' | 'hide' | 'show', auth.email)
+    }
 
     if (suggestionRoute) {
       const [, id, action] = suggestionRoute
@@ -231,7 +250,11 @@ async function writeListing(
       existingClusters: cluster.eventId ? [{ id: cluster.eventId, createdAt: cluster.eventCreatedAt ?? now }] : [],
       priorityOf: (slug) => sourceBySlug(slug)?.priority ?? 50,
     })
-    statements.push(...upsertEventStatements(db, events, now), ...assignClusterStatements(db, assignments))
+    // An edit made through /event/ applies here too, so the two editors never disagree.
+    const override = cluster.eventId
+      ? parseOverrides((await db.prepare('SELECT fields FROM event_overrides WHERE event_id = ?').bind(cluster.eventId).first<{ fields: string }>())?.fields)
+      : {}
+    statements.push(...upsertEventStatements(db, events.map((e) => applyOverrides(e, override)), now), ...assignClusterStatements(db, assignments))
   }
   statements.push(...alongside)
   // A D1 batch is one transaction. runBatched only splits past 80 statements, and a single
@@ -276,7 +299,7 @@ async function loadCluster(db: D1Like, id: string | null): Promise<ClusterRow | 
 
 const todayLocal = (): string => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })
 
-function when(row: ListingRow): string {
+function when(row: Pick<ListingRow, 'local_date' | 'local_time' | 'all_day' | 'time_precision'>): string {
   const date = new Date(`${row.local_date}T00:00:00Z`).toLocaleDateString('en-CA', {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
   })
@@ -364,7 +387,14 @@ async function editPage(db: D1Like, uuid: string, email: string): Promise<Respon
 }
 
 /** A stored listing back into the form's own field names. */
-function valuesFromRow(row: ListingRow): Record<string, string> {
+/** The columns the event form is filled from, which listings and events share. */
+type FormRow = Pick<
+  ListingRow,
+  | 'title' | 'municipality_slug' | 'category' | 'local_date' | 'local_time' | 'all_day' | 'time_precision' | 'ends_at_utc'
+  | 'timezone' | 'venue_name' | 'address' | 'cost' | 'cost_text' | 'description' | 'organizer' | 'url' | 'image_url' | 'status'
+>
+
+function valuesFromRow(row: FormRow): Record<string, string> {
   const allDay = row.all_day === 1 || row.time_precision === 'date-only'
   const endLocal = row.ends_at_utc
     ? new Intl.DateTimeFormat('sv-SE', {
@@ -399,6 +429,14 @@ function formPage(options: {
   errors?: Record<string, string>
   /** The suggestion this new event is being made from. */
   suggestion?: SuggestionRow | null
+  /** For editing a found event: where it posts, what it says, and which groups are edited. */
+  action?: string
+  heading?: string
+  submitLabel?: string
+  cancelHref?: string
+  intro?: string
+  hidden?: Record<string, string>
+  edited?: readonly string[]
 }): string {
   const values = options.values ?? {}
   const errors = options.errors ?? {}
@@ -406,19 +444,25 @@ function formPage(options: {
   const error = (key: string) => (errors[key] ? `<span class="error">${escapeHtml(errors[key]!)}</span>` : '')
   const select = (name: string, options: ReadonlyArray<readonly [string, string]>, fallback: string) => {
     const current = values[name] ?? fallback
-    return `<select id="f-${name}" name="${name}">${options
+    // A stored value the list lacks is offered as it is, or the form would post a different one.
+    const known = current === '' || options.some(([key]) => key === current)
+    return `<select id="f-${name}" name="${name}">${known ? '' : `<option value="${escapeHtml(current)}" selected>${escapeHtml(current)}</option>`}${options
       .map(([key, label]) => `<option value="${escapeHtml(key)}"${key === current ? ' selected' : ''}>${escapeHtml(label)}</option>`)
       .join('')}</select>`
   }
+  const editedMark = (name: string): string => {
+    const group = OVERRIDE_GROUPS.find((g) => g.form.includes(name))?.key
+    return group && options.edited?.includes(group) ? ' <span class="flag edited">edited</span>' : ''
+  }
   const field = (name: string, label: string, control: string, hint = '') =>
-    `<div class="field${errors[name] ? ' has-error' : ''}"><label for="f-${name}">${label}</label>${control}${hint ? `<span class="hint">${hint}</span>` : ''}${error(name)}</div>`
+    `<div class="field${errors[name] ? ' has-error' : ''}"><label for="f-${name}">${label}${editedMark(name)}</label>${control}${hint ? `<span class="hint">${hint}</span>` : ''}${error(name)}</div>`
   const input = (name: string, type = 'text', extra = '') => `<input id="f-${name}" name="${name}" type="${type}" value="${v(name)}" ${extra}>`
 
   const places: Array<[string, string]> = [['', 'Not specified'], ...MUNICIPALITIES.map((m): [string, string] => [m.slug, m.name])]
   const categories: ReadonlyArray<readonly [string, string]> = [[AUTO_CATEGORY, 'Work it out from the title'], ...CATEGORY_OPTIONS]
-  const action = options.uuid ? `/events/${options.uuid}` : '/events'
+  const action = options.action ?? (options.uuid ? `/events/${options.uuid}` : '/events')
   const s = options.uuid ? null : options.suggestion ?? null
-  const heading = options.uuid ? 'Edit event' : s ? 'Add an event from a suggestion' : 'Add an event'
+  const heading = options.heading ?? (options.uuid ? 'Edit event' : s ? 'Add an event from a suggestion' : 'Add an event')
   const fromPanel = s
     ? `<div class="from-suggestion">
         <p><strong>From a suggestion</strong>${s.name ? ` by ${escapeHtml(s.name)}` : ''}, received ${escapeHtml(received(s.created_at))}
@@ -433,7 +477,9 @@ function formPage(options: {
     heading,
     `${Object.keys(errors).length ? '<p class="flash error">Some fields need another look — see below.</p>' : ''}
     ${fromPanel}
+    ${options.intro ?? ''}
     <form method="post" action="${action}" class="event-form">
+      ${Object.entries(options.hidden ?? {}).map(([key, value]) => `<input type="hidden" name="${escapeHtml(key)}" value="${escapeHtml(value)}">`).join('')}
       ${s ? `<input type="hidden" name="from" value="${s.id}">` : ''}
       ${field('title', 'Title', input('title', 'text', 'required maxlength="200"'))}
       <div class="pair">
@@ -456,7 +502,7 @@ function formPage(options: {
         ${field('cost', 'Cost', select('cost', COST_OPTIONS, 'unknown'))}
         ${field('cost_text', 'Price details', input('cost_text', 'text', 'maxlength="120" placeholder="Adults $10, kids free"'))}
       </div>
-      ${field('description', 'Description', `<textarea id="f-description" name="description" rows="7" maxlength="4000">${v('description')}</textarea>`)}
+      ${field('description', 'Description', `<textarea id="f-description" name="description" rows="7" maxlength="4000">${v('description')}</textarea>`, 'Markdown works: **bold**, *italic*, [a link](https://…), and lines starting with “- ” for a list. A blank line starts a new paragraph.')}
       <div class="pair">
         ${field('organizer', 'Organizer', input('organizer', 'text', 'maxlength="200"'))}
         ${field('status', 'Status', select('status', STATUS_OPTIONS, 'scheduled'))}
@@ -465,10 +511,288 @@ function formPage(options: {
       ${field('image_url', 'Poster image', input('image_url', 'url', 'maxlength="2000" placeholder="https://"'), s?.poster_key && values.image_url?.includes(s.poster_key)
         ? 'The suggested poster, filled in for you. It becomes public when you add this event; clear it to leave the poster out.'
         : 'Optional, https only.')}
-      <p class="actions"><button type="submit" class="button">${options.uuid ? 'Save changes' : 'Add event'}</button> <a href="/">Cancel</a></p>
+      <p class="actions"><button type="submit" class="button">${options.submitLabel ?? (options.uuid ? 'Save changes' : 'Add event')}</button> <a href="${options.cancelHref ?? '/'}">Cancel</a></p>
     </form>`,
     options.email,
   )
+}
+
+/* ---------------------------------------------------------------------- any event */
+
+/*
+ * Every event on the site, found and edited by hand. The ingest run rebuilds events from
+ * their listings every two hours, so an edit is kept in event_overrides and laid over what
+ * the sources say: by dedup on every run, and here on save, which rebuilds the one event
+ * from its listings exactly as dedup would. Only edited fields are kept, so the rest of the
+ * event goes on following its sources.
+ */
+
+interface EventRow extends FormRow {
+  id: string
+  short_code: string
+  representative_id: string
+  listing_ids: string
+  source_slugs: string
+  listing_count: number
+  active: number
+  starts_at_utc: string
+  override_fields: string | null
+  override_updated_at: string | null
+  override_updated_by: string | null
+}
+
+const EVENT_SELECT = `SELECT e.*, o.fields AS override_fields, o.updated_at AS override_updated_at, o.updated_by AS override_updated_by
+  FROM events e LEFT JOIN event_overrides o ON o.event_id = e.id`
+const FIND_LIMIT = 60
+const UNPLACED = 'unspecified'
+
+const loadEventByCode = (db: D1Like, code: string): Promise<EventRow | null> =>
+  db.prepare(`${EVENT_SELECT} WHERE e.short_code = ?`).bind(code).first<EventRow>()
+
+/** A solo event added by hand is edited as its listing, never through an override. */
+function soloManualUuid(row: Pick<EventRow, 'representative_id' | 'listing_ids'>): string | null {
+  if (!row.representative_id?.startsWith(MANUAL_ID_PREFIX)) return null
+  const ids = JSON.parse(row.listing_ids || '[]') as string[]
+  return ids.length === 1 ? row.representative_id.slice(MANUAL_ID_PREFIX.length) : null
+}
+
+async function loadClusterListings(db: D1Like, row: Pick<EventRow, 'listing_ids'>): Promise<ListingRow[]> {
+  const ids = JSON.parse(row.listing_ids || '[]') as string[]
+  const rows: ListingRow[] = []
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50)
+    const { results } = await db
+      .prepare(`SELECT * FROM listings WHERE id IN (${chunk.map(() => '?').join(', ')})`)
+      .bind(...chunk)
+      .all<ListingRow>()
+    rows.push(...results)
+  }
+  return rows
+}
+
+async function findPage(db: D1Like, url: URL, publicOrigin: string, email: string): Promise<string> {
+  const q = (url.searchParams.get('q') ?? '').trim().slice(0, 200)
+  const placeParam = url.searchParams.get('m') ?? ''
+  const place = placeParam === UNPLACED || MUNICIPALITIES.some((m) => m.slug === placeParam) ? placeParam : ''
+  const past = url.searchParams.get('past') === '1'
+  // A short code, on its own or inside a pasted link, finds that one event wherever it is in time.
+  const code = (q.match(/\/e\/([0-9a-f]{7})\b/i) ?? q.match(/^([0-9a-f]{7})$/i))?.[1]?.toLowerCase() ?? null
+
+  const where: string[] = []
+  const binds: unknown[] = []
+  if (code) {
+    where.push('e.short_code = ?')
+    binds.push(code)
+  } else {
+    if (q) {
+      where.push(`e.title LIKE ? ESCAPE '\\'`)
+      binds.push(`%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`)
+    }
+    if (place === UNPLACED) where.push('e.municipality_slug IS NULL')
+    else if (place) {
+      where.push('e.municipality_slug = ?')
+      binds.push(place)
+    }
+    where.push(past ? 'e.local_date < ?' : 'e.local_date >= ?')
+    binds.push(todayLocal())
+  }
+  const { results } = await db
+    .prepare(`${EVENT_SELECT} WHERE ${where.join(' AND ')} ORDER BY e.starts_at_utc ${past && !code ? 'DESC' : 'ASC'} LIMIT ${FIND_LIMIT + 1}`)
+    .bind(...binds)
+    .all<EventRow>()
+
+  const row = (r: EventRow): string => {
+    const overrides = parseOverrides(r.override_fields)
+    const manual = soloManualUuid(r)
+    const edit = manual ? `/events/${manual}` : `/event/${r.short_code}`
+    const placeName = MUNICIPALITIES.find((m) => m.slug === r.municipality_slug)?.shortName ?? 'Not specified'
+    const sources = (JSON.parse(r.source_slugs || '[]') as string[]).map((slug) => sourceBySlug(slug)?.name ?? slug)
+    const flags = [
+      editedGroups(overrides).length ? '<span class="flag edited">Edited</span>' : '',
+      overrides.active === false ? '<span class="flag off">Hidden</span>' : r.active === 1 ? '' : '<span class="flag off">No longer listed</span>',
+      r.status === 'cancelled' ? '<span class="flag warn">Cancelled</span>' : '',
+      r.representative_id?.startsWith(MANUAL_ID_PREFIX) ? '<span class="flag">Added by hand</span>' : '',
+    ].join('')
+    return `<li class="${r.active === 1 ? '' : 'is-off'}">
+      <div class="row-main"><a href="${edit}"><strong>${escapeHtml(r.title)}</strong></a>${flags}</div>
+      <div class="row-meta">${escapeHtml(when(r))} · ${escapeHtml(placeName)}${r.venue_name ? ` · ${escapeHtml(r.venue_name)}` : ''} · ${escapeHtml(sources.join(', '))}</div>
+      <div class="row-actions"><a href="${edit}">Edit</a><a href="${escapeHtml(`${publicOrigin}/e/${r.short_code}`)}" target="_blank" rel="noopener">View on site</a></div>
+    </li>`
+  }
+
+  const places: Array<[string, string]> = [['', 'Anywhere'], [UNPLACED, 'Not specified'], ...MUNICIPALITIES.map((m): [string, string] => [m.slug, m.name])]
+  const shown = results.slice(0, FIND_LIMIT)
+  const summary = code
+    ? shown.length ? '' : `<p class="muted">No event has the short code ${escapeHtml(code)}.</p>`
+    : results.length > FIND_LIMIT
+      ? `<p class="muted">Showing the first ${FIND_LIMIT}. Narrow the search to see the rest.</p>`
+      : `<p class="muted">${shown.length} ${past ? 'past ' : 'upcoming '}event${shown.length === 1 ? '' : 's'}${q ? ` matching “${escapeHtml(q)}”` : ''}.</p>`
+
+  return shell(
+    'All events',
+    `<form method="get" action="/find" class="search">
+      <div class="field grow"><label for="f-q">Title, short code or event link</label><input id="f-q" name="q" type="search" value="${escapeHtml(q)}"></div>
+      <div class="field"><label for="f-m">Municipality</label><select id="f-m" name="m">${places
+        .map(([key, label]) => `<option value="${escapeHtml(key)}"${key === place ? ' selected' : ''}>${escapeHtml(label)}</option>`)
+        .join('')}</select></div>
+      <label class="check"><input type="checkbox" name="past" value="1"${past ? ' checked' : ''}> Past events</label>
+      <button type="submit" class="button">Search</button>
+    </form>
+    ${summary}
+    ${shown.length ? `<ul class="rows">${shown.map(row).join('')}</ul>` : ''}`,
+    email,
+  )
+}
+
+function eventFlash(url: URL): string {
+  const labels = new Map(OVERRIDE_GROUPS.map((g) => [g.key, g.label]))
+  const saved = (url.searchParams.get('saved') ?? '').split(',').map((key) => labels.get(key)).filter((label): label is string => !!label)
+  if (saved.length) {
+    return `<p class="flash">Saved. ${escapeHtml(saved.join(', '))} now stay${saved.length === 1 ? 's' : ''} as you set ${saved.length === 1 ? 'it' : 'them'} through every ingest run; the rest follows the sources.</p>`
+  }
+  if (url.searchParams.has('unchanged')) return '<p class="flash">Nothing was changed, so nothing was saved.</p>'
+  if (url.searchParams.has('cleared')) return '<p class="flash">Undone. That part of the event follows its sources again.</p>'
+  if (url.searchParams.has('hidden')) {
+    return '<p class="flash">Hidden. It is off the site’s listings, calendar feeds and sitemap until you show it again, whatever its sources say. Its own page still opens for anyone with the link.</p>'
+  }
+  if (url.searchParams.has('shown')) return '<p class="flash">Shown again, for as long as a source still lists it.</p>'
+  return ''
+}
+
+async function eventEditPage(db: D1Like, url: URL, code: string, publicOrigin: string, email: string): Promise<Response> {
+  const row = await loadEventByCode(db, code)
+  if (!row) return notFound(email)
+  const manual = soloManualUuid(row)
+  if (manual) return redirect(`/events/${manual}`)
+  return page(eventFormPage({ email, row, listings: await loadClusterListings(db, row), publicOrigin, flash: eventFlash(url) }))
+}
+
+function eventFormPage(o: {
+  email: string
+  row: EventRow
+  listings: ListingRow[]
+  publicOrigin: string
+  flash?: string
+  values?: Record<string, string>
+  errors?: Record<string, string>
+  /** The orig_ fields as posted, when the form comes back with problems. */
+  originals?: Record<string, string>
+}): string {
+  const overrides = parseOverrides(o.row.override_fields)
+  const edited = editedGroups(overrides)
+  const hidden = overrides.active === false
+  const code = o.row.short_code
+  const original = valuesFromRow(o.row)
+  const labels = new Map(OVERRIDE_GROUPS.map((g) => [g.key, g.label]))
+
+  const listed = o.listings
+    .map((l) => {
+      const link = /^https?:\/\//i.test(l.url) ? ` <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">Open</a>` : ''
+      return `<li><strong>${escapeHtml(sourceBySlug(l.source_slug)?.name ?? l.source_slug)}</strong>: ${escapeHtml(l.title)} · ${escapeHtml(when(l))}${
+        l.active === 1 ? '' : ' <span class="flag off">No longer listed</span>'
+      }${link}</li>`
+    })
+    .join('')
+  const undo = (group: string, label: string) =>
+    `<form method="post" action="/event/${code}/clear" class="inline"><input type="hidden" name="group" value="${group}"><button type="submit" class="link">${label}</button></form>`
+  const editedBox = edited.length
+    ? // Divs, not paragraphs: a form inside a <p> makes the browser close the paragraph early.
+      `<div class="notice"><div>Edited by hand: ${edited.map((key) => `${escapeHtml(labels.get(key)!)} (${undo(key, 'undo')})`).join(', ')}. Everything else follows the sources.</div>${
+        o.row.override_updated_by && o.row.override_updated_at
+          ? `<div class="muted">Last edited by ${escapeHtml(o.row.override_updated_by)} · ${escapeHtml(received(o.row.override_updated_at))}</div>`
+          : ''
+      }<div>${undo('all', 'Undo every edit')}</div></div>`
+    : '<p class="muted">Nothing edited yet: this is what the sources say. A field you change and save stays as you set it through every ingest run; the rest keeps following the sources.</p>'
+  const visibility = `<form method="post" action="/event/${code}/${hidden ? 'show' : 'hide'}" class="inline"><button type="submit" class="link">${
+    hidden ? 'Show it on the site again' : 'Hide it from the site'
+  }</button></form>`
+  const status = hidden
+    ? '<span class="flag off">Hidden from the site</span>'
+    : o.row.active === 1
+      ? ''
+      : '<span class="flag off">No longer listed by any source</span>'
+
+  return formPage({
+    email: o.email,
+    action: `/event/${code}`,
+    heading: `Edit “${o.row.title}”`,
+    submitLabel: 'Save edits',
+    cancelHref: '/find',
+    intro: `${o.flash ?? ''}
+      <div class="actions"><a href="${escapeHtml(`${o.publicOrigin}/e/${code}`)}" target="_blank" rel="noopener">View on site</a>${status}${visibility}</div>
+      ${editedBox}
+      <h2>Listed by</h2><ul class="listed">${listed || '<li class="muted">No listings found.</li>'}</ul>
+      <h2>Details</h2>`,
+    hidden: o.originals ?? Object.fromEntries(Object.entries(original).map(([key, value]) => [`${ORIGINAL_PREFIX}${key}`, value])),
+    edited,
+    values: o.values ?? original,
+    errors: o.errors,
+  })
+}
+
+async function saveEventEdit(db: D1Like, request: Request, code: string, publicOrigin: string, email: string): Promise<Response> {
+  const row = await loadEventByCode(db, code)
+  if (!row) return notFound(email)
+  const manual = soloManualUuid(row)
+  if (manual) return redirect(`/events/${manual}`)
+
+  const result = overridesFromForm(await readForm(request), parseOverrides(row.override_fields))
+  if (!result.ok) {
+    const pick = (original: boolean) =>
+      Object.fromEntries(Object.entries(result.values).filter(([key]) => key.startsWith(ORIGINAL_PREFIX) === original))
+    return page(
+      eventFormPage({ email, row, listings: await loadClusterListings(db, row), publicOrigin, values: pick(false), errors: result.errors, originals: pick(true) }),
+      400,
+    )
+  }
+  if (!result.changed.length) return redirect(`/event/${code}?unchanged=1`)
+  await storeOverrides(db, row, result.overrides, email)
+  return redirect(`/event/${code}?saved=${result.changed.join(',')}`)
+}
+
+async function eventAction(db: D1Like, request: Request, code: string, action: 'clear' | 'hide' | 'show', email: string): Promise<Response> {
+  const row = await loadEventByCode(db, code)
+  if (!row) return notFound(email)
+  const manual = soloManualUuid(row)
+  if (manual) return redirect(`/events/${manual}`)
+
+  const current = parseOverrides(row.override_fields)
+  let next: EventOverrides
+  if (action === 'clear') {
+    const group = String((await readForm(request)).group ?? '')
+    if (group !== 'all' && !OVERRIDE_GROUPS.some((g) => g.key === group)) return redirect(`/event/${code}`)
+    next = withoutGroups(current, group === 'all' ? 'all' : [group])
+  } else if (action === 'hide') {
+    next = { ...current, active: false }
+  } else {
+    const { active: _hidden, ...rest } = current
+    next = rest
+  }
+  await storeOverrides(db, row, next, email)
+  return redirect(`/event/${code}?${action === 'clear' ? 'cleared' : action === 'hide' ? 'hidden' : 'shown'}=1`)
+}
+
+/**
+ * Keep an override and rebuild the event with it at once: from its listings, by dedup's own
+ * eventFromCluster, so the page shows now exactly what the next run will write. One batch,
+ * so the override and the event never disagree. An empty override is deleted.
+ */
+async function storeOverrides(db: D1Like, row: EventRow, overrides: EventOverrides, email: string): Promise<void> {
+  const members = (await loadClusterListings(db, row)).map((r) => rowToListing(r, sourceBySlug(r.source_slug)?.kind ?? 'municipal'))
+  if (!members.length) throw new Error('this event has no listings behind it, so it cannot be rebuilt with the edit')
+  const now = new Date().toISOString()
+  const event = applyOverrides(eventFromCluster(row.id, members, (slug) => sourceBySlug(slug)?.priority ?? 50), overrides)
+  await runBatched(db, [
+    Object.keys(overrides).length
+      ? db
+          .prepare(
+            `INSERT INTO event_overrides (event_id, fields, updated_at, updated_by) VALUES (?, ?, ?, ?)
+             ON CONFLICT(event_id) DO UPDATE SET fields = excluded.fields, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+          )
+          .bind(row.id, JSON.stringify(overrides), now, email)
+      : db.prepare('DELETE FROM event_overrides WHERE event_id = ?').bind(row.id),
+    ...upsertEventStatements(db, [event], now),
+  ])
 }
 
 /* -------------------------------------------------------------------- suggestions */
@@ -711,6 +1035,16 @@ function shell(title: string, body: string, email: string): string {
   .flag.warn { background: var(--warn-bg); color: var(--warn); }
   .flag.off { background: var(--bad-bg); color: var(--bad); }
   .flag.ok { background: var(--ok-bg); color: var(--ok); }
+  .flag.edited { background: var(--warn-bg); color: var(--warn); }
+  .search { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 14px; margin: 8px 0 18px; }
+  .search .field { margin: 0; }
+  .search .grow { flex: 1 1 260px; }
+  .check { display: flex; align-items: center; gap: 6px; padding-bottom: 9px; font-weight: 600; }
+  .check input { width: auto; }
+  form.inline { display: inline; margin: 0; }
+  .notice > div + div { margin-top: 6px; }
+  .listed { margin: 0; padding-left: 1.2em; }
+  .listed li { margin: 4px 0; }
   a.flag { text-decoration: none; }
   a.flag:hover { text-decoration: underline; }
   .notice { padding: 10px 14px; border: 1.5px solid var(--accent); border-radius: 10px; }
@@ -737,7 +1071,7 @@ function shell(title: string, body: string, email: string): string {
 </style>
 </head><body>
 <header><a href="/">Out in Simcoe · console</a>${
-  email ? `<nav><a href="/">Events</a><a href="/suggestions">Suggestions</a></nav><span class="who">Signed in as ${escapeHtml(email)}</span>` : ''
+  email ? `<nav><a href="/">Added by hand</a><a href="/find">All events</a><a href="/suggestions">Suggestions</a></nav><span class="who">Signed in as ${escapeHtml(email)}</span>` : ''
 }</header>
 <main><h1>${escapeHtml(title)}</h1>${body}</main>
 </body></html>`

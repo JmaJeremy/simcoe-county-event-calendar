@@ -88,6 +88,9 @@ function fakeDb(
   const executed: Executed[] = []
   let batches = 0
   const answer = (sql: string, values: unknown[]): unknown[] => {
+    if (sql.includes('LEFT JOIN event_overrides o') && sql.includes('WHERE e.short_code = ?')) return events.filter((e) => e.short_code === values[0])
+    if (sql.includes('LEFT JOIN event_overrides o')) return events
+    if (sql.startsWith('SELECT * FROM listings WHERE id IN')) return listings.filter((l) => values.includes(l.id))
     if (sql.includes('FROM suggestions s') && sql.includes('WHERE s.id = ?')) return suggestions.filter((s) => s.id === values[0])
     if (sql.includes('FROM suggestions s') && sql.includes('ORDER BY s.created_at')) return suggestions
     if (sql.includes('COUNT(*) AS n FROM suggestions')) return [{ n: suggestions.filter((s) => !s.handled_at).length }]
@@ -454,6 +457,166 @@ describe('suggestions', () => {
     expect((await handleConsole(get(`/suggestions/${SUGGESTION_ID}/poster`), env(none, { POSTERS }), keys)).status).toBe(404)
     const html = fakeDb([], [], [suggestionRow({ poster_type: 'text/html' })]).db
     expect((await handleConsole(get(`/suggestions/${SUGGESTION_ID}/poster`), env(html, { POSTERS }), keys)).status).toBe(404)
+  })
+})
+
+describe('finding and editing any event', () => {
+  const CODE = 'f00dcaf'
+  const SCRAPED = 'tay:fair-2099'
+  const scrapedListing = (overrides: Record<string, unknown> = {}) =>
+    listingRow({
+      id: SCRAPED,
+      source_slug: 'tay',
+      external_id: 'fair-2099',
+      title: 'Waubaushene Fall Fair',
+      // Untidy, as scraped text is, and an http poster the form itself would refuse.
+      description: 'Rides  and pie.\nAll welcome',
+      venue_name: 'Memorial Park',
+      url: 'https://tay.ca/fair',
+      image_url: 'http://calendar.tay.ca/poster.jpg',
+      cost: 'free',
+      cluster_id: SCRAPED,
+      starts_at_utc: '2099-10-03T14:00:00.000Z',
+      local_date: '2099-10-03',
+      local_time: '10:00',
+      ...overrides,
+    })
+  const scrapedEvent = (overrides: Record<string, unknown> = {}) => ({
+    ...scrapedListing(),
+    id: SCRAPED,
+    short_code: CODE,
+    representative_id: SCRAPED,
+    listing_ids: JSON.stringify([SCRAPED]),
+    source_slugs: '["tay"]',
+    listing_count: 1,
+    active: 1,
+    created_at: '2026-09-01T00:00:00.000Z',
+    override_fields: null,
+    override_updated_at: null,
+    override_updated_by: null,
+    ...overrides,
+  })
+
+  const unescape = (value: string) =>
+    value.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')
+
+  /** What a browser would post from the edit form exactly as served. */
+  function formFields(html: string): Record<string, string> {
+    const start = html.indexOf('class="event-form"')
+    const body = html.slice(start, html.indexOf('</form>', start))
+    const out: Record<string, string> = {}
+    for (const m of body.matchAll(/<input[^>]*\sname="([^"]+)"[^>]*>/g)) out[m[1]!] = unescape(m[0].match(/\svalue="([^"]*)"/)?.[1] ?? '')
+    for (const m of body.matchAll(/<select[^>]*name="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)) {
+      out[m[1]!] = unescape(m[2]!.match(/<option value="([^"]*)" selected>/)?.[1] ?? m[2]!.match(/<option value="([^"]*)"/)?.[1] ?? '')
+    }
+    for (const m of body.matchAll(/<textarea[^>]*name="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g)) out[m[1]!] = unescape(m[2]!)
+    return out
+  }
+
+  const editForm = async (db: ConsoleEnv['DB']) => formFields(await (await handleConsole(get(`/event/${CODE}`), env(db), keys)).text())
+
+  it('finds events by title, linking each to its editor — a solo hand-entered one to its own', async () => {
+    const manual = { ...eventRow(), representative_id: LISTING_ID, title: 'Harvest supper', override_fields: null, source_slugs: '["manual"]' }
+    const { db } = fakeDb([scrapedListing(), listingRow()], [scrapedEvent(), manual])
+    const body = await (await handleConsole(get('/find?q=fair'), env(db), keys)).text()
+    expect(body).toContain(`href="/event/${CODE}"`)
+    expect(body).toContain(`href="/events/${UUID}"`)
+    expect(body).toContain('value="fair"')
+    const pasted = await handleConsole(get(`/find?q=${encodeURIComponent(`https://outinsimcoe.ca/e/${CODE}`)}`), env(db), keys)
+    expect(pasted.status).toBe(200)
+  })
+
+  it('opens an event with its listings, filled in from what the sources say', async () => {
+    const body = await (await handleConsole(get(`/event/${CODE}`), env(fakeDb([scrapedListing()], [scrapedEvent()]).db), keys)).text()
+    expect(body).toContain('Listed by')
+    expect(body).toContain('href="https://tay.ca/fair"')
+    expect(body).toContain('value="Waubaushene Fall Fair"')
+    expect(body).toContain('<input type="hidden" name="orig_title" value="Waubaushene Fall Fair">')
+    expect(body).toContain('Nothing edited yet')
+    expect(body).not.toContain('<script')
+  })
+
+  it('sends a solo hand-entered event to its own editor, and answers 404 for an unknown code', async () => {
+    const manual = { ...eventRow(), representative_id: LISTING_ID, override_fields: null }
+    const res = await handleConsole(get('/event/abc1234'), env(fakeDb([listingRow()], [manual]).db), keys)
+    expect(res.headers.get('location')).toBe(`/events/${UUID}`)
+    expect((await handleConsole(get('/event/0000000'), env(fakeDb().db), keys)).status).toBe(404)
+  })
+
+  /* The discriminating test: a scraped event does not survive the form unchanged (its
+     description is untidy, its poster is http), so anything but comparing with what the
+     form was filled in with would pin fields nobody touched. */
+  it('stores nothing when the form comes back unchanged', async () => {
+    const { db, writes } = fakeDb([scrapedListing()], [scrapedEvent()])
+    const res = await handleConsole(post(`/event/${CODE}`, await editForm(db)), env(db), keys)
+    expect(res.headers.get('location')).toBe(`/event/${CODE}?unchanged=1`)
+    expect(writes('event_overrides')).toEqual([])
+    expect(writes('INSERT INTO events')).toEqual([])
+  })
+
+  it('pins only the field that was edited, and rebuilds the event with it in the same batch', async () => {
+    const { db, writes } = fakeDb([scrapedListing()], [scrapedEvent()])
+    const fields = await editForm(db)
+    const res = await handleConsole(post(`/event/${CODE}`, { ...fields, title: 'Waubaushene Fall Fair 2099' }), env(db), keys)
+    expect(res.headers.get('location')).toBe(`/event/${CODE}?saved=title`)
+    const [stored] = writes('INSERT INTO event_overrides')
+    expect(stored!.values[0]).toBe(SCRAPED)
+    expect(JSON.parse(stored!.values[1] as string)).toEqual({ title: 'Waubaushene Fall Fair 2099' })
+    expect(stored!.values[3]).toBe('jeremy@example.com')
+    const [event] = writes('INSERT INTO events')
+    expect(event!.values).toContain('Waubaushene Fall Fair 2099')
+    // Everything else still comes from the listing, untidy description and http poster included.
+    expect(event!.values).toContain('Memorial Park')
+    expect(event!.values).toContain('http://calendar.tay.ca/poster.jpg')
+    expect(event!.batch).toBe(stored!.batch)
+  })
+
+  it('pins the whole time when only the start time changes', async () => {
+    const { db, writes } = fakeDb([scrapedListing()], [scrapedEvent()])
+    await handleConsole(post(`/event/${CODE}`, { ...(await editForm(db)), start_time: '11:00' }), env(db), keys)
+    const override = JSON.parse(writes('INSERT INTO event_overrides')[0]!.values[1] as string)
+    expect(Object.keys(override).sort()).toEqual(['allDay', 'endsAtUtc', 'localDate', 'localTime', 'startsAtUtc', 'timePrecision'])
+    expect([override.localTime, override.startsAtUtc]).toEqual(['11:00', '2099-10-03T15:00:00.000Z'])
+  })
+
+  it('still refuses a bad value in a field that was edited', async () => {
+    const { db, writes } = fakeDb([scrapedListing()], [scrapedEvent()])
+    const res = await handleConsole(post(`/event/${CODE}`, { ...(await editForm(db)), image_url: 'http://example.org/new.jpg' }), env(db), keys)
+    expect(res.status).toBe(400)
+    const body = await res.text()
+    expect(body).toContain('Use an https:// image address.')
+    expect(body).toContain('name="orig_image_url" value="http://calendar.tay.ca/poster.jpg"')
+    expect(writes('event_overrides')).toEqual([])
+  })
+
+  it('marks edited fields, and undoes one edit or all of them', async () => {
+    const edited = scrapedEvent({ override_fields: JSON.stringify({ title: 'Fair (edited)', venueName: 'Legion Hall' }) })
+    const page = await (await handleConsole(get(`/event/${CODE}`), env(fakeDb([scrapedListing()], [edited]).db), keys)).text()
+    expect(page).toContain('Edited by hand: Title')
+    expect(page).toContain('Title <span class="flag edited">edited</span>')
+
+    const one = fakeDb([scrapedListing()], [edited])
+    const res = await handleConsole(post(`/event/${CODE}/clear`, { group: 'title' }), env(one.db), keys)
+    expect(res.headers.get('location')).toBe(`/event/${CODE}?cleared=1`)
+    expect(JSON.parse(one.writes('INSERT INTO event_overrides')[0]!.values[1] as string)).toEqual({ venueName: 'Legion Hall' })
+    expect(one.writes('INSERT INTO events')[0]!.values).toContain('Waubaushene Fall Fair')
+
+    const all = fakeDb([scrapedListing()], [edited])
+    await handleConsole(post(`/event/${CODE}/clear`, { group: 'all' }), env(all.db), keys)
+    expect(all.writes('DELETE FROM event_overrides')).toHaveLength(1)
+  })
+
+  it('hides an event the sources keep publishing, and shows it again', async () => {
+    const hide = fakeDb([scrapedListing()], [scrapedEvent()])
+    await handleConsole(post(`/event/${CODE}/hide`, {}), env(hide.db), keys)
+    expect(JSON.parse(hide.writes('INSERT INTO event_overrides')[0]!.values[1] as string)).toEqual({ active: false })
+    // `active` is bound just before listing_count, created_at and updated_at.
+    expect(hide.writes('INSERT INTO events')[0]!.values.at(-4)).toBe(0)
+
+    const show = fakeDb([scrapedListing()], [scrapedEvent({ override_fields: '{"active":false}' })])
+    await handleConsole(post(`/event/${CODE}/show`, {}), env(show.db), keys)
+    expect(show.writes('DELETE FROM event_overrides')).toHaveLength(1)
+    expect(show.writes('INSERT INTO events')[0]!.values.at(-4)).toBe(1)
   })
 })
 

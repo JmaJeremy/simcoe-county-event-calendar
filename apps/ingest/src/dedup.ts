@@ -1,5 +1,6 @@
 import {
   RULES_VERSION,
+  applyOverrides,
   buildClusters,
   candidatePairs,
   scorePair,
@@ -16,6 +17,7 @@ import {
   loadDecisions,
   loadExistingClusters,
   loadListingsForDedup,
+  loadOverrides,
   recordDedupRun,
   rowToListing,
   runBatched,
@@ -179,10 +181,13 @@ export async function runDedup(db: D1Like, window: { from: string; to: string },
     stats.closed = closed.length
 
     const currentCluster = new Map(listings.map((l) => [l.id, l.clusterId ?? null]))
+    // Hand edits from the console, laid over what the sources say. Without this every edit
+    // would be rewritten away by the next run.
+    const overrides = await loadOverrides(db)
     const now = new Date().toISOString()
     await runBatched(db, [
       ...decisionStatements(db, newDecisions, now),
-      ...upsertEventStatements(db, events, now),
+      ...upsertEventStatements(db, events.map((e) => applyOverrides(e, overrides.get(e.id))), now),
       ...assignClusterStatements(db, assignments.filter((a) => currentCluster.get(a.listingId) !== a.clusterId)),
       ...deactivateEventStatements(db, closed, now),
     ])

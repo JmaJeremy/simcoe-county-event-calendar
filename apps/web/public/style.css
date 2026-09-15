@@ -751,6 +751,8 @@ footer a { color: var(--ink-2); }
 .event-page .description { margin: 18px 0; line-height: 1.6; color: var(--ink-2); }
 .event-page .description p { margin: 0 0 0.8em; }
 .event-page .description p:last-child { margin-bottom: 0; }
+.event-page .description ul { margin: 0 0 0.8em; padding-left: 1.3em; }
+.event-page .description li + li { margin-top: 0.2em; }
 .event-page .organizer { color: var(--ink-3); }
 .event-page .listed { margin-top: 20px; font-size: 13px; color: var(--ink-3); }
 .event-page .lead { margin: 0 0 20px; color: var(--ink-2); }

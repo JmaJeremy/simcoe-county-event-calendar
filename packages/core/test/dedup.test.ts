@@ -4,6 +4,7 @@ import {
   buildClusters,
   candidatePairs,
   datesSpanned,
+  eventFromCluster,
   normalizeTitle,
   placeSimilarity,
   scorePair,
@@ -265,5 +266,17 @@ describe('buildClusters', () => {
       priorityOf: priority,
     })
     expect(e2[0]!.status).toBe('cancelled')
+  })
+})
+
+describe('eventFromCluster', () => {
+  /* The console rebuilds one event after an edit with this; it must be exactly what the
+     next ingest run would write, or an edit would flicker between two versions. */
+  it('builds the event buildClusters does for the same members', () => {
+    const a = listing({ id: 'severn:1', sourceSlug: 'severn', venueName: 'Coldwater Hall' })
+    const b = listing({ id: 'orilliamatters:9', sourceSlug: 'orilliamatters', description: 'Pie tent.', cost: 'free' })
+    const { events } = buildClusters({ listings: [a, b], sameEdges: [[a.id, b.id]], existingClusters: [], priorityOf: priority })
+    expect(events).toHaveLength(1)
+    expect(eventFromCluster(events[0]!.id, [b, a], priority)).toEqual(events[0])
   })
 })

@@ -88,7 +88,7 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   served by the **ingest** worker on its own custom domain behind the Cloudflare Access
   application "outinsimcoe.ca console". `CONSOLE_HOST`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`
   and `PUBLIC_ORIGIN` are plain vars in `apps/ingest/wrangler.jsonc`; none is a secret.
-  It also holds the suggestions inbox. Posters live in the private R2 bucket
+  It also holds the suggestions inbox and an editor for any event (`/find`). Posters live in the private R2 bucket
   `scec-suggestion-posters`, bound as `POSTERS` on both workers; the web worker's
   `CONSOLE_ORIGIN` var is where the admin email's links point.
 - Zone settings on `outinsimcoe.ca` are Cloudflare defaults except **Always Use HTTPS**,
@@ -311,6 +311,36 @@ when it breaks, so nothing here is checked by eye.
   ICC and Adobe segments, or phone photos show sideways and CMYK files in wrong colours.
   A file it cannot walk is refused. The form lists the four types in `accept` rather than
   `image/*`, which is what makes an iPhone convert HEIC to JPEG before upload.
+- **Descriptions are rendered as a little markdown, for every event.** `apps/web/src/markdown.ts`:
+  bold, italic, `***both***`, links, bare http(s) addresses, `- ` lists, paragraphs and line
+  breaks, backslash escapes. Sources already type `**bold**` and `*italic*`; before this they
+  showed as literal stars. Escaped first, so the only markup is what the renderer adds, and
+  only http(s) is ever linked. No headings, images, raw HTML or `_underscores_` — underscores
+  turn up inside scraped names. When it changed, all 1,349 live descriptions were rendered
+  both ways and every one of the 86 differences read (39 links, 28 bold, 12 italic): check
+  the same way before widening the subset. Plain-text outputs strip it with
+  `descriptionText`: the JSON-LD description, and iCal, at the `buildIcal` call in `worker.ts`.
+- **Hand edits to scraped events are overrides, never writes to `events`.** Dedup rewrites
+  every event in its window each run, so the console's `/find` and `/event/{short code}`
+  store only the edited fields in `event_overrides` (JSON keyed by `Event` property), and
+  `applyOverrides` (`packages/core/src/overrides.ts`) lays them over the sources' version —
+  in `runDedup` before `upsertEventStatements`, in the console's `writeListing`, and on save,
+  which rebuilds that one event from its listings with `eventFromCluster` (the function
+  `buildClusters` itself uses), so the page shows at once exactly what the next run writes.
+  Unedited fields keep following the sources. The six time fields pin together or not at
+  all (`TIME_FIELDS`), or a source moving the date would slide under a pinned UTC start.
+  `active: false` hides an event its sources keep publishing.
+- **An edit is detected against what the form was filled in with, not the database.** The
+  edit form posts each field's original beside it as `orig_{name}`. Scraped values do not
+  survive a round trip through the form — http posters fail the https rule, links gain a
+  trailing slash, whitespace is tidied — so diffing against the stored event would pin those
+  fields on the first save and quietly cut them off from their sources. For the same reason
+  a form rule an untouched field fails is ignored. The console test "stores nothing when the
+  form comes back unchanged" guards this. A solo event added by hand is edited as its
+  listing (`/events/{uuid}`), never through an override.
+- **An override belongs to an event id, which is sticky — until it isn't.** On platforms whose
+  ids encode the date (govStack, Drupal rows, SPACES), a rescheduled event becomes a new
+  cluster, and its override stays with the old one. The edit has to be made again.
 - **Adding a route to a worker turns its workers.dev URL off** unless `workers_dev: true`
   is set. `apps/ingest/wrangler.jsonc` sets it, because `/run` is called on workers.dev.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.

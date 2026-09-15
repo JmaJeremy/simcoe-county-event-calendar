@@ -1,4 +1,5 @@
 import type { Cost, Event, Listing, Municipality, Source, StoredListing } from '@scec/core'
+import { parseOverrides, type EventOverrides } from '@scec/core'
 
 /**
  * D1 access for the ingester. Kept separate from reconciliation and de-duplication so
@@ -258,6 +259,12 @@ export function decisionStatements(db: D1Like, decisions: DecisionRow[], now: st
       )
       .bind(d.listing_a, d.listing_b, d.hash_a, d.hash_b, d.verdict, d.method, d.score, d.confidence, d.reasoning, now),
   )
+}
+
+/** Every hand edit to an event, by event id; see applyOverrides. One row per edited event. */
+export async function loadOverrides(db: D1Like): Promise<Map<string, EventOverrides>> {
+  const { results } = await db.prepare('SELECT event_id, fields FROM event_overrides').all<{ event_id: string; fields: string }>()
+  return new Map(results.map((r) => [r.event_id, parseOverrides(r.fields)]))
 }
 
 export async function loadExistingClusters(db: D1Like, from: string, to: string): Promise<Array<{ id: string; created_at: string }>> {
