@@ -1,5 +1,8 @@
-import { buildIcal, sourceBySlug } from '@scec/core'
+import { MUNICIPALITIES, buildIcal, municipalityBySlug } from '@scec/core'
 import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
+import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
+import { renderEventPage, renderNotFound, renderPlacePage } from './pages.ts'
+import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
 import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
 
 interface D1Statement {
@@ -38,22 +41,6 @@ export interface Env {
   TURNSTILE_SECRET_KEY?: string
   /** Set once a custom domain is attached; www then redirects to it. */
   CANONICAL_HOST?: string
-}
-
-const SITE_NAME = 'Out in Simcoe'
-
-/**
- * Whether a source's own image can be used as the share card.
- *
- * govStack calendars sit behind a WAF that answers 403 to anything that does not look
- * like a browser, share crawlers included: the poster renders perfectly for a visitor and
- * not at all for Facebook or Slack, which would turn every share of those events into a
- * broken image. They keep the poster on the page and the site's own card in the preview.
- */
-const shareableImage = (event: PublicEvent): string | null => {
-  if (!event.imageUrl) return null
-  const host = URL.parse?.(event.imageUrl)?.hostname ?? ''
-  return /^(calendar|events)\./i.test(host) ? null : event.imageUrl
 }
 
 /**
@@ -96,22 +83,23 @@ async function lookupEvent(env: Env, column: 'short_code' | 'id', value: string)
 /** The one asset that carries share metadata and therefore needs origin substitution. */
 const isShell = (pathname: string): boolean => pathname === '/' || pathname === '/index.html'
 
-const escapeHtml = (value: string): string =>
-  value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+/** Today in Simcoe County, which is what "on now" means to everyone reading the site. */
+const todayLocal = (): string => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })
+
+const html = (body: string, status = 200, extra: Record<string, string> = {}): Response =>
+  new Response(body, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', ...extra } })
 
 /**
- * The mark: a sun over a field — the county's fairs and festivals. Inlined so a shared
- * permalink paints it with the first byte, drawn in currentColor to follow the theme.
+ * The municipality index the shell's footer carries, substituted in like __ORIGIN__.
+ *
+ * It comes from MUNICIPALITIES rather than the database because that registry decides
+ * which places exist, and the home page should not pay for a query to render nineteen
+ * links that change about never. Its real job is to give a crawler nineteen internal
+ * links from the site's strongest page — without it the municipality pages are in the
+ * sitemap and linked from nowhere.
  */
-const MARK = `<svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
-  <circle cx="24" cy="19" r="7.5" fill="var(--accent)"/>
-  <path d="M24 4.5v4M11 11l2.9 2.9M37 11l-2.9 2.9M4.5 21h4M39.5 21h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
-  <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
-</svg>`
-
-/** Mirrors the tag and footer line in public/index.html; change one, change both. */
-const WIP_TAG = '<p class="wip"><span class="wip-dot" aria-hidden="true"></span>Work in progress &middot; more events being added</p>'
-const COPYRIGHT = '&copy; 2026 Jeremy Andrews &amp; Torbarrie Tech'
+const placeLinks = (): string =>
+  MUNICIPALITIES.map((m) => `<a href="/place/${m.slug}">${escapeHtml(m.shortName)}</a>`).join(' · ')
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -123,6 +111,17 @@ export default {
       url.hostname = env.CANONICAL_HOST
       return Response.redirect(url.toString(), 301)
     }
+
+    const origin = canonicalOrigin(url, env)
+    /*
+     * The workers.dev fallback serves the identical site, which without this is textbook
+     * duplicate content: two hosts, one set of pages, and a search engine free to pick
+     * the wrong winner. Every page already declares a canonical on the apex; this makes
+     * the weaker signal explicit. `follow` so links out of it still count. With no
+     * CANONICAL_HOST set there is only one host, so there is nothing to prefer.
+     */
+    const isCanonicalHost = !env.CANONICAL_HOST || url.hostname === env.CANONICAL_HOST
+    const indexHeaders: Record<string, string> = isCanonicalHost ? {} : { 'X-Robots-Tag': 'noindex, follow' }
 
     try {
       if (url.pathname === '/api/suggest') {
@@ -173,12 +172,44 @@ export default {
         return json({ ok: true, events: row?.n ?? 0, lastRun: run?.at ?? null }, 60)
       }
 
+      if (url.pathname === '/robots.txt') {
+        return new Response(renderRobots(origin, isCanonicalHost), {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+          },
+        })
+      }
+
+      if (url.pathname === '/sitemap.xml') {
+        return new Response(renderSitemap(await sitemapEntries(env), origin), {
+          headers: {
+            'Content-Type': 'application/xml; charset=utf-8',
+            // Events appear and move every couple of hours, so a stale sitemap delays
+            // discovery of exactly the listings that are most worth finding.
+            'Cache-Control': 'public, max-age=600, s-maxage=3600',
+          },
+        })
+      }
+
+      // A bare /place has nothing to show; without this the asset router 404s it.
+      if (url.pathname === '/place' || url.pathname === '/place/') {
+        return Response.redirect(`${origin}/`, 301)
+      }
+
+      // One indexable page per municipality — and the only crawlable route to the event
+      // permalinks below, which are otherwise reachable only from a shared link.
+      if (url.pathname.startsWith('/place/')) {
+        const slug = decodeURIComponent(url.pathname.slice('/place/'.length)).replace(/\/$/, '')
+        return await placeResponse(env, slug, origin, indexHeaders)
+      }
+
       // The feature none of the upstream calendars offer: a subscribable feed.
       if (url.pathname === '/calendar.ics') {
         const events = await queryEvents(env, url)
         const names: Record<string, string> = {}
         for (const e of events) if (e.municipalitySlug && e.municipalityName) names[e.municipalitySlug] = e.municipalityName
-        return new Response(buildIcal(events, { calendarName: describeFilters(url, events), baseUrl: canonicalOrigin(url, env), municipalityNames: names }), {
+        return new Response(buildIcal(events, { calendarName: describeFilters(url, events), baseUrl: origin, municipalityNames: names }), {
           headers: {
             'Content-Type': 'text/calendar; charset=utf-8',
             'Cache-Control': 'public, max-age=300, s-maxage=1800',
@@ -191,9 +222,12 @@ export default {
       if (url.pathname.startsWith('/e/')) {
         const code = decodeURIComponent(url.pathname.slice('/e/'.length))
         const row = await lookupEvent(env, 'short_code', code)
-        if (!row) return new Response('Event not found', { status: 404 })
-        return new Response(renderEventPage(rowToEvent(row), canonicalOrigin(url, env), listUrlFrom(url)), {
-          headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' },
+        if (!row) {
+          return notFound(origin, 'Event not found', 'That link does not match any event we list. It may have been taken down by whoever published it.')
+        }
+        return html(renderEventPage(rowToEvent(row), origin, listUrlFrom(url)), 200, {
+          'Cache-Control': 'public, max-age=600',
+          ...indexHeaders,
         })
       }
 
@@ -201,8 +235,8 @@ export default {
       if (url.pathname.startsWith('/event/')) {
         const id = decodeURIComponent(url.pathname.slice('/event/'.length))
         const row = await lookupEvent(env, 'id', id)
-        if (!row) return new Response('Event not found', { status: 404 })
-        return Response.redirect(`${canonicalOrigin(url, env)}/e/${row.short_code}`, 301)
+        if (!row) return notFound(origin, 'Event not found', 'That link does not match any event we list.')
+        return Response.redirect(`${origin}/e/${row.short_code}`, 301)
       }
 
       // Share metadata needs ABSOLUTE urls, but the shell is a static file with no idea
@@ -210,10 +244,13 @@ export default {
       // and on a custom domain later.
       const asset = await env.ASSETS.fetch(request)
       if (isShell(url.pathname) && asset.ok) {
-        const html = (await asset.text()).replaceAll('__ORIGIN__', canonicalOrigin(url, env))
+        const body = (await asset.text())
+          .replaceAll('__ORIGIN__', origin)
+          .replaceAll('__PLACE_LINKS__', placeLinks())
         const headers = new Headers(asset.headers)
         headers.set('Content-Type', 'text/html; charset=utf-8')
-        return new Response(html, { status: asset.status, headers })
+        for (const [k, v] of Object.entries(indexHeaders)) headers.set(k, v)
+        return new Response(body, { status: asset.status, headers })
       }
       return asset
     } catch (err) {
@@ -381,141 +418,93 @@ function describeFilters(url: URL, events: PublicEvent[]): string {
   return parts.join(' — ')
 }
 
-const titleCase = (slug: string): string =>
-  slug.split('-').map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+const notFound = (origin: string, heading: string, detail: string): Response =>
+  html(renderNotFound(heading, detail, origin), 404, { 'X-Robots-Tag': 'noindex, follow' })
 
-const COST_LABEL: Record<string, string> = { free: 'Free', paid: 'Paid', unknown: 'Cost not listed' }
-
-function renderEventPage(event: PublicEvent, origin: string, backHref = '/'): string {
-  const when =
-    event.allDay || event.timePrecision === 'date-only'
-      ? `${formatDate(event.localDate)}${event.endsAtUtc ? ` to ${formatDate(localDateOf(event.endsAtUtc, event.timezone))}` : ''} · all day`
-      : `${formatDate(event.localDate)} at ${formatTime(event.localTime)}${event.endsAtUtc ? ` to ${formatTime(localTimeOf(event.endsAtUtc, event.timezone))}` : ''}`
-
-  const place = [event.venueName, event.address].filter((v): v is string => !!v).join(', ')
-  const cost = event.cost === 'free' ? 'Free' : event.costText ?? COST_LABEL[event.cost] ?? ''
-  // A share preview is often all someone sees: the event, when, and where.
-  const title = event.municipalityName ? `${event.title} — ${event.municipalityName}` : event.title
-  const prefix = event.status === 'cancelled' ? 'CANCELLED · ' : event.status === 'rescheduled' ? 'RESCHEDULED · ' : ''
-  const description = `${prefix}${[when, place || event.municipalityName, cost].filter(Boolean).join(' · ')}`
-  const canonical = `${origin}/e/${event.shortCode}`
-
-  const listedOn = event.sourceSlugs.map((slug) => sourceBySlug(slug)?.name ?? slug)
-  // The listing lives on someone else's site: open it in a new tab so this page, and
-  // whatever the reader was scrolling through to reach it, stays where it was.
-  const links: string[] = [
-    `<a class="btn" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">View the listing <span class="ext" aria-hidden="true">&#8599;</span></a>`,
-  ]
-  links.push(
-    `<button class="btn ghost" type="button" data-share aria-haspopup="dialog"
-       data-share-url="${escapeHtml(canonical)}"
-       data-share-text="${escapeHtml(`${event.title} · ${when}`)}">Share</button>`,
-  )
-
-  const notices: string[] = []
-  if (event.status === 'cancelled') notices.push('<p class="notice cancelled">This event has been cancelled.</p>')
-  if (event.status === 'rescheduled') notices.push('<p class="notice moved">This event has been rescheduled — check the listing for the new time.</p>')
-  if (event.category === 'civic-meeting') {
-    notices.push('<p class="notice">This is a council or committee meeting. Agendas and minutes are on <a href="https://civi-times.ca">Civi-Times</a>.</p>')
+async function placeResponse(
+  env: Env,
+  slug: string,
+  origin: string,
+  indexHeaders: Record<string, string>,
+): Promise<Response> {
+  // The registry is the authority on which municipalities exist, so an unknown slug is a
+  // 404 without touching the database.
+  const place = municipalityBySlug(slug)
+  if (!place) {
+    return notFound(
+      origin,
+      'Municipality not found',
+      'We do not cover a municipality at that address. Simcoe County has nineteen, and all of them are linked from the home page.',
+    )
   }
 
-  return `<!doctype html><html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)}</title>
-<meta name="description" content="${escapeHtml(description)}">
-<meta name="theme-color" content="#e05a17">
-<link rel="canonical" href="${escapeHtml(canonical)}">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="${SITE_NAME}">
-<meta property="og:locale" content="en_CA">
-<meta property="og:url" content="${escapeHtml(canonical)}">
-<meta property="og:title" content="${escapeHtml(title)}">
-<meta property="og:description" content="${escapeHtml(description)}">
-<meta property="og:image" content="${escapeHtml(shareableImage(event) ?? `${origin}/og.png`)}">
-<meta name="twitter:card" content="${shareableImage(event) ? 'summary' : 'summary_large_image'}">
-<meta name="twitter:title" content="${escapeHtml(title)}">
-<meta name="twitter:description" content="${escapeHtml(description)}">
-<meta name="twitter:image" content="${escapeHtml(shareableImage(event) ?? `${origin}/og.png`)}">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
-<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<script>try { var t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t } catch (e) {}</script>
-<link rel="stylesheet" href="/style.css">
-<script type="module" src="/share.js"></script>
-<script type="application/ld+json">${eventJsonLd(event, canonical)}</script>
-</head><body class="event-page">
-<header class="topbar"><a href="${escapeHtml(backHref)}" class="home">${MARK}<span>&larr; All events</span></a>${WIP_TAG}</header>
-<main class="card" data-cat="${escapeHtml(event.category)}">
-  <p class="eyebrow">${escapeHtml(event.municipalityName ?? 'Simcoe County')} · ${escapeHtml(titleCase(event.category))}</p>
-  <h1>${escapeHtml(event.title)}</h1>
-  <p class="when">${escapeHtml(when)}</p>
-  ${place ? `<p class="where">${escapeHtml(place)}</p>` : ''}
-  <p class="cost ${escapeHtml(event.cost)}">${escapeHtml(cost)}</p>
-  ${notices.join('')}
-  ${event.imageUrl ? `<img class="hero" src="${escapeHtml(event.imageUrl)}" alt="">` : ''}
-  ${event.description ? `<div class="description">${escapeHtml(event.description).replace(/\n+/g, '<br>')}</div>` : ''}
-  ${event.organizer ? `<p class="organizer">Organized by ${escapeHtml(event.organizer)}</p>` : ''}
-  <div class="actions">${links.join('')}</div>
-  <p class="listed">Listed on ${listedOn.map((n) => escapeHtml(n)).join(', ')}. Details come from those sites; confirm with the organizer before you go.</p>
-  ${event.municipalitySlug ? `<p class="subscribe"><a href="${origin}/calendar.ics?m=${encodeURIComponent(event.municipalitySlug)}">Subscribe to ${escapeHtml(event.municipalityName ?? '')} events</a></p>` : ''}
-</main>
-<footer class="page-foot"><p class="copyright">${COPYRIGHT}</p></footer>
-</body></html>`
-}
+  const today = todayLocal()
+  /*
+   * Deliberately not buildQuery: that applies the list's defaults, which hide paid events.
+   * A page answering "what is on in this town" that silently dropped every ticketed
+   * concert would be answering a different question. Civic meetings stay out, as they do
+   * everywhere else here — those belong to civi-times.
+   */
+  const select = `SELECT e.*, m.name AS municipality_name
+       FROM events e LEFT JOIN municipalities m ON m.slug = e.municipality_slug
+      WHERE e.municipality_slug = ? AND e.active = 1 AND e.category <> 'civic-meeting'`
+  const upcoming = await env.DB.prepare(
+    `${select} AND e.local_date >= ? ORDER BY e.starts_at_utc ASC LIMIT 120`,
+  )
+    .bind(slug, today)
+    .all<Row>()
+  const past = await env.DB.prepare(
+    `${select} AND e.local_date < ? ORDER BY e.starts_at_utc DESC LIMIT 12`,
+  )
+    .bind(slug, today)
+    .all<Row>()
 
-const SCHEMA_STATUS: Record<string, string> = {
-  scheduled: 'https://schema.org/EventScheduled',
-  cancelled: 'https://schema.org/EventCancelled',
-  rescheduled: 'https://schema.org/EventRescheduled',
+  const others = MUNICIPALITIES.filter((m) => m.slug !== slug)
+  return html(
+    renderPlacePage(place, upcoming.results.map(rowToEvent), past.results.map(rowToEvent), others, origin),
+    200,
+    { 'Cache-Control': 'public, max-age=900', ...indexHeaders },
+  )
 }
 
 /**
- * Structured data, so a shared link can also surface as a rich result. Serialized
- * through JSON.stringify and escaped for `</script>`, since every value here originates
- * from a third-party calendar.
+ * Every URL worth crawling: the home page, the suggestion form, the nineteen
+ * municipalities and each event permalink. `lastmod` comes from `updated_at` — the moment
+ * dedup last rewrote the event — so one whose time or venue moved is re-crawled while a
+ * settled one is left alone.
  */
-function eventJsonLd(event: PublicEvent, canonical: string): string {
-  const data: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: event.title,
-    startDate: event.allDay || event.timePrecision === 'date-only' ? event.localDate : event.startsAtUtc,
-    eventStatus: SCHEMA_STATUS[event.status] ?? SCHEMA_STATUS.scheduled,
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    url: canonical,
-    isAccessibleForFree: event.cost === 'free',
+async function sitemapEntries(env: Env): Promise<SitemapEntry[]> {
+  // Only '/' for the app itself: every other view of it is a query string that the
+  // shell's canonical already points back here, so listing them would ask for a crawl of
+  // URLs that declare themselves duplicates.
+  const entries: SitemapEntry[] = [
+    { path: '/', changefreq: 'hourly', priority: '1.0' },
+    { path: '/suggest', changefreq: 'monthly', priority: '0.4' },
+  ]
+
+  const { results: places } = await env.DB.prepare(
+    `SELECT m.slug AS slug, MAX(e.updated_at) AS lastmod
+       FROM municipalities m
+       LEFT JOIN events e ON e.municipality_slug = m.slug AND e.active = 1
+      GROUP BY m.slug ORDER BY m.slug`,
+  ).all<{ slug: string; lastmod: string | null }>()
+  for (const place of places) {
+    entries.push({ path: `/place/${place.slug}`, lastmod: place.lastmod, changefreq: 'daily', priority: '0.8' })
   }
-  if (event.endsAtUtc) data.endDate = event.endsAtUtc
-  if (event.description) data.description = event.description.slice(0, 500)
-  if (event.imageUrl) data.image = event.imageUrl
-  if (event.organizer) data.organizer = { '@type': 'Organization', name: event.organizer }
-  const place = event.venueName ?? event.address
-  if (place) {
-    data.location = { '@type': 'Place', name: event.venueName ?? event.address, ...(event.address ? { address: event.address } : {}) }
+
+  // Past events stay listed for a while: someone searching for a festival after the fact
+  // should still find the page. A year back is plenty and keeps the file small.
+  const cutoff = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10)
+  const { results: events } = await env.DB.prepare(
+    `SELECT short_code, updated_at, local_date FROM events
+      WHERE active = 1 AND category <> 'civic-meeting' AND local_date >= ?
+      ORDER BY starts_at_utc DESC LIMIT 20000`,
+  )
+    .bind(cutoff)
+    .all<{ short_code: string; updated_at: string; local_date: string }>()
+  for (const event of events) {
+    entries.push({ path: `/e/${event.short_code}`, lastmod: event.updated_at, changefreq: 'weekly', priority: '0.6' })
   }
-  return JSON.stringify(data).replace(/</g, '\\u003c')
+
+  return entries
 }
-
-function formatDate(localDate: string): string {
-  const [y, m, d] = localDate.split('-').map(Number)
-  return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('en-CA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  })
-}
-
-function formatTime(localTime: string): string {
-  const [h, m] = localTime.split(':').map(Number)
-  const suffix = h! >= 12 ? 'p.m.' : 'a.m.'
-  const hour = h! % 12 === 0 ? 12 : h! % 12
-  return `${hour}:${String(m).padStart(2, '0')} ${suffix}`
-}
-
-const localDateOf = (iso: string, tz: string): string =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso))
-
-const localTimeOf = (iso: string, tz: string): string =>
-  new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso))

@@ -143,7 +143,10 @@ export async function startServer(): Promise<{ url: string; close(): Promise<voi
       res.writeHead(200, { 'Content-Type': TYPES[ext] ?? 'application/octet-stream' })
       if (name === 'index.html') {
         const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`
-        return res.end(body.toString('utf8').replaceAll('__ORIGIN__', origin))
+        const links = MUNICIPALITIES.map((m) => `<a href="/place/${m.slug}">${m.short_name}</a>`).join(' · ')
+        return res.end(
+          body.toString('utf8').replaceAll('__ORIGIN__', origin).replaceAll('__PLACE_LINKS__', links),
+        )
       }
       res.end(body)
     } catch {

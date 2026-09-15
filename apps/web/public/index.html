@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-CA">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -7,6 +7,7 @@
 <meta name="description" content="Community events across Simcoe County, Ontario — fairs, markets, concerts, family days and more — gathered from every town's calendar, the county and local news, with duplicates removed. Filter by municipality and subscribe in your own calendar.">
 <meta name="theme-color" content="#e05a17">
 <link rel="canonical" href="__ORIGIN__/">
+<link rel="alternate" type="text/calendar" title="Out in Simcoe — every event in the county (iCal)" href="__ORIGIN__/calendar.ics">
 <!-- __ORIGIN__ is substituted by the worker with whichever host answered, so shares stay
      correct on the workers.dev origin today and on a custom domain later. -->
 <meta property="og:type" content="website">
@@ -36,6 +37,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Out in Simcoe","url":"__ORIGIN__/","description":"Community events across Simcoe County, Ontario, gathered from every town's calendar, the county and local news, with duplicates removed.","inLanguage":"en-CA","publisher":{"@type":"Organization","name":"Out in Simcoe","url":"__ORIGIN__/","logo":"__ORIGIN__/icon-512.png"},"about":{"@type":"AdministrativeArea","name":"Simcoe County","address":{"@type":"PostalAddress","addressRegion":"ON","addressCountry":"CA"}}}</script>
 </head>
 <body>
 <div class="wrap">
@@ -117,6 +119,15 @@
     <p>Events are collected from public calendars and link back to where they were listed.
        "Cost not listed" means the source did not say; confirm details with the organizer before you go.
        Council and committee meetings live at <a href="https://civi-times.ca">Civi-Times</a>.</p>
+    <!-- Server-substituted from MUNICIPALITIES. These nineteen links are the only
+         crawlable path from the site's strongest page to the per-municipality pages, and
+         from there to every event permalink; the filter menus above are built from JSON
+         after load. Short names here, source names in the line below, so the two lists do
+         not read as the same list printed twice. -->
+    <nav class="place-index" aria-label="Events by municipality">
+      <h2>Events by municipality</h2>
+      <p>__PLACE_LINKS__</p>
+    </nav>
     <p id="sources-line"></p>
     <p class="support">Out in Simcoe is a hobby project, free and without ads.
       <a class="bmc" href="https://www.buymeacoffee.com/hZEeGL3" target="_blank" rel="noopener noreferrer">
