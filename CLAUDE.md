@@ -31,9 +31,10 @@ node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
 
-A full run takes ~90 s and ~620 HTTP requests: 25/25 sources for ~2,300 listings, then up
-to 300 event pages read for price and posters, then up to 200 unclear listings sent to the
-cost judge, then dedup over ~2,300 pairs into ~2,160 events. The subrequest ceiling is
+A full run takes ~2 min and ~640 HTTP requests: 28/28 sources for ~2,700 listings (Eventbrite
+alone is 13 slow requests, ~25 s), then up to 300 event pages read for price and posters, then
+up to 200 unclear listings sent to the cost judge, then dedup over ~3,400 pairs into ~2,500
+events. The subrequest ceiling is
 1,000 per invocation, so the two budgets in `enrich.ts` and `cost.ts` are what keeps the
 run inside it — raise either and check the total.
 
@@ -55,8 +56,10 @@ still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load
 dedup rewrites every event from its representative listing, so anything the middle two
 passes learn reaches the site in the same run instead of two hours later.
 
-**Adapters are per platform, sources are per site.** Six adapters cover 25 sources; adding a
-site on a supported platform is a row in `packages/core/src/sources.ts`.
+**Adapters are per platform, sources are per site.** Eight adapters cover 28 sources; adding a
+site on a supported platform is a row in `packages/core/src/sources.ts`. Eventbrite and
+Ticketmaster need credentials, passed to adapters as an `AdapterContext` the worker builds
+from its secrets and the dry-run CLI from the environment (`adapterContextFrom`).
 
 **Listings vs events.** A `Listing` is one source's view of one occurrence, keyed
 `(source, platform id)`. An `Event` is a cluster of listings the de-duplicator judged to be
@@ -73,6 +76,8 @@ npx wrangler deploy --config apps/ingest/wrangler.jsonc   # cron: 23 past every 
 npx wrangler deploy --config apps/web/wrangler.jsonc
 printf '%s' "$INGEST_TOKEN" | npx wrangler secret put INGEST_TOKEN --config apps/ingest/wrangler.jsonc
 printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY --config apps/ingest/wrangler.jsonc
+printf '%s' "$EVENTBRITE_TOKEN" | npx wrangler secret put EVENTBRITE_TOKEN --config apps/ingest/wrangler.jsonc
+printf '%s' "$TICKETMASTER_CONSUMER_KEY" | npx wrangler secret put TICKETMASTER_CONSUMER_KEY --config apps/ingest/wrangler.jsonc
 
 # Trigger a run by hand and read the summary
 curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TOKEN"
@@ -349,6 +354,31 @@ when it breaks, so nothing here is checked by eye.
 - **An override belongs to an event id, which is sticky — until it isn't.** On platforms whose
   ids encode the date (govStack, Drupal rows, SPACES), a rescheduled event becomes a new
   cluster, and its override stays with the old one. The edit has to be made again.
+- **Eventbrite has no documented search any more.** `/v3/events/search/` was removed in 2020.
+  The adapter uses `POST /v3/destination/search/`, the endpoint eventbrite.com itself calls,
+  with the OAuth token and a bounding box: JSON, not scraping, but unpublished, so it can
+  change without notice — the adapter throws rather than return nothing. The documented
+  alternatives were measured and rejected as the main feed: "list events by venue" works on
+  venues we do not own, but 278 of the 293 venue ids behind 348 county events carried a
+  single event (organizers mint a venue per event, one church has four ids), so a curated
+  venue list would miss most future events; organizers repeat more (153 for 348 events)
+  and are the fallback if the search goes. `page_size` is capped at 50, only
+  `dates: 'current_future'` is accepted, and expanding `full_description` is a 500.
+- **Ticketmaster is asked by venue, never by radius.** A radius search from Barrie missed
+  Sadlon Arena's 33 Colts games entirely. `TICKETMASTER_VENUES` in core holds the 63 venues
+  the gazetteer placed in the county (2026-09-15); a venue new to Ticketmaster needs the
+  survey repeated. The key is a query parameter, and an `HttpError` message carries its URL
+  into `sync_runs`, the CLI and the log, so `fetchTicketmaster` redacts it from every error.
+  Only the consumer key is used; the consumer secret is for OAuth and is configured nowhere.
+- **Ticketing events are paid unless they say otherwise.** Ticketmaster events never carry a
+  usable price, so every one is `isFree: false` → paid, and shows under "Paid only", on
+  municipality pages and in "Everything", not in the default free view. Eventbrite's
+  `ticket_availability.is_free` is structural and is taken as given. Both platforms put a
+  cancellation or reschedule in their data, not the title; the adapters prefix
+  `CANCELLED:`/`RESCHEDULED:` so normalization's title rules set the status.
+- **An organization's own calendar outranks the town's copy.** `PRIORITY.organization = 8`
+  (the Barrie Film Festival): a festival knows its own programme better than a municipal
+  repost. `ticketing = 45` sits between tourism and media.
 - **Adding a route to a worker turns its workers.dev URL off** unless `workers_dev: true`
   is set. `apps/ingest/wrangler.jsonc` sets it, because `/run` is called on workers.dev.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.

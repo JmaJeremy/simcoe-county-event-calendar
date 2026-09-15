@@ -1,9 +1,11 @@
 import type { Adapter, EventDetail, Platform, Source } from '@scec/core'
 import { fetchCitySpark } from './cityspark.ts'
 import { fetchDrupal, fetchDrupalDetail } from './drupal.ts'
+import { fetchEventbrite } from './eventbrite.ts'
 import { fetchEventon } from './eventon.ts'
 import { fetchSpaces } from './spaces.ts'
 import { fetchGovstack, fetchGovstackDetail } from './govstack.ts'
+import { fetchTicketmaster } from './ticketmaster.ts'
 import { fetchTribe } from './tribe.ts'
 
 /**
@@ -18,6 +20,8 @@ export const ADAPTERS: Partial<Record<Platform, Adapter>> = {
   tribe: fetchTribe,
   spaces: fetchSpaces,
   cityspark: fetchCitySpark,
+  eventbrite: fetchEventbrite,
+  ticketmaster: fetchTicketmaster,
 }
 
 /**
@@ -43,9 +47,11 @@ export const adapterFor = (platform: Platform): Adapter => {
 
 export * from './cityspark.ts'
 export * from './drupal.ts'
+export * from './eventbrite.ts'
 export * from './eventon.ts'
 export * from './spaces.ts'
 export * from './govstack.ts'
+export * from './ticketmaster.ts'
 export * from './tribe.ts'
 export * from './html.ts'
 export * from './http.ts'

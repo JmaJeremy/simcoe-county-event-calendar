@@ -13,10 +13,14 @@
  *     the site shows.
  */
 
-export type Platform = 'govstack' | 'drupal-events' | 'eventon' | 'tribe' | 'spaces' | 'cityspark' | 'manual'
+export type Platform = 'govstack' | 'drupal-events' | 'eventon' | 'tribe' | 'spaces' | 'cityspark' | 'eventbrite' | 'ticketmaster' | 'manual'
 
 /** Who publishes a calendar. Drives the representative choice when listings merge. */
-export type SourceKind = 'municipal' | 'county' | 'library' | 'media' | 'tourism' | 'manual'
+/**
+ * `organization` is a group's own calendar for its own events (a festival, a gallery);
+ * `ticketing` is a platform organizers sell through (Eventbrite, Ticketmaster).
+ */
+export type SourceKind = 'municipal' | 'county' | 'library' | 'organization' | 'media' | 'tourism' | 'ticketing' | 'manual'
 
 export type MunicipalityLevel = 'county' | 'city' | 'town' | 'township'
 
@@ -76,6 +80,10 @@ export type SourceConfig =
   | { platform: 'tribe'; origin: string }
   | { platform: 'spaces'; host: string }
   | { platform: 'cityspark'; portal: string; ppid: number; lat: number; lng: number; distanceKm: number }
+  /** Eventbrite's search over a bounding box, 'west,south,east,north'. Needs EVENTBRITE_TOKEN. */
+  | { platform: 'eventbrite'; bbox: string }
+  /** Ticketmaster's Discovery API, asked by venue. Needs TICKETMASTER_CONSUMER_KEY. */
+  | { platform: 'ticketmaster'; venueIds: string[] }
   /** Entered by hand in the admin console. Nothing to fetch. */
   | { platform: 'manual' }
 
@@ -231,4 +239,14 @@ export interface SyncWindow {
 }
 
 /** Every adapter is this shape. Pure over its fetched payload wherever possible. */
-export type Adapter = (source: Source, window: SyncWindow) => Promise<RawEvent[]>
+/**
+ * What an adapter may need beyond its source row: credentials, for the platforms that want
+ * them. The worker fills it from its secrets, the dry-run CLI from the environment. An
+ * adapter whose credential is missing throws, so the source reports FAIL rather than an
+ * empty calendar.
+ */
+export interface AdapterContext {
+  secrets: Partial<Record<'EVENTBRITE_TOKEN' | 'TICKETMASTER_CONSUMER_KEY', string>>
+}
+
+export type Adapter = (source: Source, window: SyncWindow, context?: AdapterContext) => Promise<RawEvent[]>

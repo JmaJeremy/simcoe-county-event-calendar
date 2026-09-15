@@ -125,3 +125,22 @@ They do render for an ordinary visitor: confirmed on the live event page, 940px 
 a screenshot script reports the poster as broken, check its user agent first — headless
 Chrome announces itself as HeadlessChrome and that WAF rejects it, which looks exactly
 like a hotlink block and is not one.
+
+## 8. Eventbrite depends on an unpublished endpoint, and forgets past events
+
+The adapter reads `POST /v3/destination/search/` (see CLAUDE.md). If Eventbrite changes it,
+the source fails loudly and its listings stay as they were until someone looks. The fallback
+is the documented "list events by organizer" endpoint over the organizers that repeat
+(153 organizers ran the county's 348 events on 2026-09-15; 37 ran more than one).
+
+The search only answers `current_future`, so an event drops out of the results once it has
+happened, and reconciliation marks its listing inactive. Its page still opens, but it leaves
+"Past events" sooner than a municipal listing would.
+
+## 9. Ticketmaster events are all "paid"
+
+None of the 62 Ticketmaster events on sale in September 2026 carried a price range, and a
+ticketed event is paid, so all are classified paid. When a Casino Rama concert merges with
+the Simcoe.com copy of it, the cluster takes the known cost, which moves that concert out of
+the default free view where the CitySpark copy ("cost not listed") used to sit. Intended.
+

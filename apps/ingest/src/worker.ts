@@ -5,7 +5,7 @@ import { enrich, type EnrichStats } from './enrich.ts'
 import { judgeCosts, type CostPassStats } from './cost.ts'
 import { claudeCostJudge, noCostJudge, type CostJudge } from './cost-judge.ts'
 import { claudeJudge } from './judge.ts'
-import { defaultWindow, syncSource } from './pipeline.ts'
+import { adapterContextFrom, defaultWindow, syncSource } from './pipeline.ts'
 import {
   loadExisting,
   recordRun,
@@ -20,6 +20,9 @@ export interface Env {
   DB: D1Like
   /** Shared secret for the manual /run trigger. */
   INGEST_TOKEN?: string
+  /** Credentials for the eventbrite and ticketmaster sources; each fails without its own. */
+  EVENTBRITE_TOKEN?: string
+  TICKETMASTER_CONSUMER_KEY?: string
   /** Claude API key for the de-duplication judge. Without it, ambiguous pairs stay apart. */
   ANTHROPIC_API_KEY?: string
   /** The admin console's hostname; requests to it are the console and nothing else. */
@@ -50,7 +53,7 @@ async function ingestOne(env: Env, source: Source): Promise<SourceOutcome> {
   const window = defaultWindow()
   const startedAt = new Date().toISOString()
   const existing = await loadExisting(env.DB, source.slug, window.from, window.to)
-  const result = await syncSource(source, window, existing)
+  const result = await syncSource(source, window, existing, adapterContextFrom(env as unknown as Record<string, unknown>))
   const plan = result.plan
 
   let inserted = 0

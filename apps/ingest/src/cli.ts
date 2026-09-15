@@ -3,11 +3,13 @@
  *
  *   node --experimental-strip-types apps/ingest/src/cli.ts [--source <slug>] [--platform <p>] [--json]
  *
+ * Eventbrite and Ticketmaster need their keys in the environment (`set -a; . ./.env; set +a`).
+ *
  * Runs the real adapters against the real sites and prints what *would* be written,
  * touching no database.
  */
 import { enabledSources, sourceBySlug, type Source } from '@scec/core'
-import { defaultWindow, syncSource } from './pipeline.ts'
+import { adapterContextFrom, defaultWindow, syncSource } from './pipeline.ts'
 
 const args = process.argv.slice(2)
 const flag = (name: string): string | undefined => {
@@ -38,7 +40,8 @@ console.error(`Window ${window.from} → ${window.to}, ${sources.length} source(
 // Sequential on purpose: these are small municipal servers, and a dry run is never urgent.
 const results = []
 for (const source of sources) {
-  const result = await syncSource(source, window)
+  // Eventbrite and Ticketmaster read their credentials from the environment: source .env first.
+  const result = await syncSource(source, window, undefined, adapterContextFrom(process.env))
   results.push(result)
   if (asJson) continue
 

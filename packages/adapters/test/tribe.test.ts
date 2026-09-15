@@ -37,3 +37,22 @@ describe('tribe adapter', () => {
     }
   })
 })
+
+describe('tribe adapter on the Barrie Film Festival', () => {
+  const festival: TribePage = JSON.parse(readFileSync(new URL('./fixtures/tribe-barrie-film-festival.json', import.meta.url), 'utf8'))
+  const events = mapTribeEvents(festival.events)
+
+  it('keeps a screening with no published time as all day, not midnight', () => {
+    const tuner = events.find((e) => e.title.startsWith('TUNER'))!
+    expect(tuner.title).toBe('TUNER – Galaxy Cinemas')
+    expect(tuner).toMatchObject({ allDay: true, timePrecision: 'date-only', costText: '$12' })
+    expect(tuner.localStart.slice(0, 10)).toBe('2026-09-09')
+  })
+
+  it('keeps the outdoor screenings’ real start times, and their free price', () => {
+    const outdoor = events.find((e) => /Outdoor Screening/.test(e.title))!
+    expect(outdoor).toMatchObject({ allDay: false, timePrecision: 'exact', costText: 'Free' })
+    expect(outdoor.venueName).toBe('Meridian Place')
+  })
+})
+

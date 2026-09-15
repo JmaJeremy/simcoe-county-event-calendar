@@ -1,0 +1,1506 @@
+{
+ "events": [
+  {
+   "id": 12488,
+   "global_id": "barriefilmfestival.ca?id=12488",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12488"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-01-09 15:37:06",
+   "date_utc": "2026-01-09 20:37:06",
+   "modified": "2026-01-09 15:37:06",
+   "modified_utc": "2026-01-09 20:37:06",
+   "url": "https://barriefilmfestival.ca/now-playing/h-is-for-hawk-galaxy-cinemas/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12488",
+   "title": "H is for HAWK &#8211; Galaxy Cinemas",
+   "description": "<p><a href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=537778~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=9faeb82e-3c21-442f-9aa0-4e674f03476c&amp;mdy=2/4/2026&amp;\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-12486\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/01/HIFH-ptr-375.jpg\" alt=\"\" width=\"375\" height=\"556\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/01/HIFH-ptr-375.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2026/01/HIFH-ptr-375-202x300.jpg 202w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p style=\"font-weight: 400;\"><strong>Wed, Feb 4, 2026</strong><strong>\u00a0\u2013 4:00 pm and 7:00 pm<br />\nGalaxy Cinemas, 72 Commerce Park Drive, Barrie, ON\u00a0 L4N 8W8<br />\nTickets: $12 (includes HST)</strong></p>\n<p style=\"font-weight: 400;\">Drama | 119 Min. | United Kingdom | PG</p>\n<p style=\"font-weight: 400;\">Directed by Philippa Lowthorpe<br />\nStarring: Claire Foy, Brendan Gleeson, Denise Gough, Sam Spruell, and Lindsay Duncan</p>\n<p>&nbsp;</p>\n<a class=\"maxbutton-125 maxbutton maxbutton-h-is-for-hawk\" href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=537778~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=9faeb82e-3c21-442f-9aa0-4e674f03476c&amp;mdy=2/4/2026&amp;\"><span class='mb-text'>BUY TICKETS</span></a>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Based on the award-winning memoir by Helen Macdonald, this biographical drama tells the true story of a woman who attempts to process the sudden death of her father by adopting and training a fierce northern goshawk. Starring Claire Foy and Brendan Gleeson, the film explores how this unconventional bond with a wild animal serves as a transformative path toward healing and resilience.</p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"H is For Hawk| Official Trailer | In Theaters January 23\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/73V6kQfGyt0?start=1&#038;feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<hr />\n<p><strong>Seating is first-come, first-serve.</strong> Tickets: $12 (includes HST). Tickets are available in advance online through the &#8220;Buy Tickets&#8221; links above, or in person the day of screening, subject to availability. Service fees apply to online sales. Box Office opens one hour before showtime. Tickets are not sold through Cineplex.</p>\n<p><em>The Barrie Film Festival is funded by The City of Barrie</em></p>",
+   "excerpt": "",
+   "slug": "h-is-for-hawk-galaxy-cinemas",
+   "image": false,
+   "all_day": true,
+   "start_date": "2026-02-04 00:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "02",
+    "day": "04",
+    "hour": "00",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-02-04 23:59:59",
+   "end_date_details": {
+    "year": "2026",
+    "month": "02",
+    "day": "04",
+    "hour": "23",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "utc_start_date": "2026-02-04 05:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "02",
+    "day": "04",
+    "hour": "05",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-02-05 04:59:59",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "02",
+    "day": "05",
+    "hour": "04",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EST",
+   "cost": "$12",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "12"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 8866,
+    "author": "2",
+    "status": "publish",
+    "date": "2021-09-12 16:49:07",
+    "date_utc": "2021-09-12 20:49:07",
+    "modified": "2021-09-12 16:49:07",
+    "modified_utc": "2021-09-12 20:49:07",
+    "url": "https://barriefilmfestival.ca/venue/galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8/",
+    "venue": "Galaxy Cinemas Barrie, 72 Commerce Park Dr, Barrie, ON L4N 8W8",
+    "slug": "galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8",
+    "address": "72 Commerce Park Drive",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "Ontario",
+    "zip": "L4N 8W8",
+    "stateprovince": "Ontario",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=8866",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=8866"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12511,
+   "global_id": "barriefilmfestival.ca?id=12511",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12511"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-02-10 19:52:56",
+   "date_utc": "2026-02-11 00:52:56",
+   "modified": "2026-03-04 11:07:56",
+   "modified_utc": "2026-03-04 16:07:56",
+   "url": "https://barriefilmfestival.ca/now-playing/the-choral-galaxy-cinemas/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12511",
+   "title": "THE CHORAL &#8211; Galaxy Cinemas",
+   "description": "<p><a href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=543303~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=9faeb82e-3c21-442f-9aa0-4e674f03476c&amp;mdy=3/4/2026&amp;\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-12512\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/02/MM_TheChoral_poster-375.jpg\" alt=\"\" width=\"375\" height=\"542\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/02/MM_TheChoral_poster-375.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2026/02/MM_TheChoral_poster-375-208x300.jpg 208w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p style=\"font-weight: 400;\"><strong>Wed, March 4, 2026<br />\n</strong><strong>4:00 pm &#8211; SOLD OUT<br />\n</strong><strong>7:00 pm &#8211; still tickets available<br />\nGalaxy Cinemas, 72 Commerce Park Drive, Barrie, ON\u00a0 L4N 8W8<br />\nTickets: $12 (includes HST)</strong></p>\n<p style=\"font-weight: 400;\">Drama | 113 Min. | United Kingdom/USA | PG</p>\n<p style=\"font-weight: 400;\">Directed by <span lang=\"EN-US\">Nicholas Hytner<br />\n</span>Starring: Ralph Fiennes, Roger Allam, Jacob Dudman, Robert Emms, Mark Addy, Amara Okereke, Alun Armstrong</p>\n<p>&nbsp;</p>\n<a class=\"maxbutton-126 maxbutton maxbutton-the-coral\" href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=543303~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=9faeb82e-3c21-442f-9aa0-4e674f03476c&amp;mdy=3/4/2026&amp;\"><span class='mb-text'>BUY TICKETS</span></a>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">As World War I rages on, Dr. Henry Guthrie (Ralph Fiennes) takes over a British choral society that&#8217;s lost most of its men to the army. The community soon discovers that the best response to the chaos of war is to make beautiful music together.</p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"THE CHORAL Official Trailer | Mongrel Media\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/hk5IusVZfdo?feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<p>&nbsp;</p>\n<hr />\n<p><strong>Seating is first-come, first-serve.</strong> Tickets: $12 (includes HST). Tickets are available in advance online through the &#8220;Buy Tickets&#8221; links above, or in person the day of screening, subject to availability. Service fees apply to online sales. Box Office opens one hour before showtime. Tickets are not sold through Cineplex.</p>\n<p><em>The Barrie Film Festival is funded by The City of Barrie</em></p>",
+   "excerpt": "",
+   "slug": "the-choral-galaxy-cinemas",
+   "image": false,
+   "all_day": true,
+   "start_date": "2026-03-04 00:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "03",
+    "day": "04",
+    "hour": "00",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-03-04 23:59:59",
+   "end_date_details": {
+    "year": "2026",
+    "month": "03",
+    "day": "04",
+    "hour": "23",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "utc_start_date": "2026-03-04 05:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "03",
+    "day": "04",
+    "hour": "05",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-03-05 04:59:59",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "03",
+    "day": "05",
+    "hour": "04",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EST",
+   "cost": "$12",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "12"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 8866,
+    "author": "2",
+    "status": "publish",
+    "date": "2021-09-12 16:49:07",
+    "date_utc": "2021-09-12 20:49:07",
+    "modified": "2021-09-12 16:49:07",
+    "modified_utc": "2021-09-12 20:49:07",
+    "url": "https://barriefilmfestival.ca/venue/galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8/",
+    "venue": "Galaxy Cinemas Barrie, 72 Commerce Park Dr, Barrie, ON L4N 8W8",
+    "slug": "galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8",
+    "address": "72 Commerce Park Drive",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "Ontario",
+    "zip": "L4N 8W8",
+    "stateprovince": "Ontario",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=8866",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=8866"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12508,
+   "global_id": "barriefilmfestival.ca?id=12508",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12508"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-01-30 10:15:39",
+   "date_utc": "2026-01-30 15:15:39",
+   "modified": "2026-03-28 13:59:59",
+   "modified_utc": "2026-03-28 17:59:59",
+   "url": "https://barriefilmfestival.ca/now-playing/reel-stories-galaxy-cinemas-3/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12508",
+   "title": "REEL STORIES &#8211; Galaxy Cinemas",
+   "description": "<div class=\"fullwidth row \"      \n\n    \n    ><div class=\"clearfix\">\n<div class=\"col col_one \"><div>\n<p><a href=\"https://prod1.agileticketing.net/websales/pages/list.aspx?epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;\"><img loading=\"lazy\" class=\"alignnone wp-image-12548 size-full\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-Header_website-2026-group-w-banner-text.jpg\" alt=\"\" width=\"1188\" height=\"484\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-Header_website-2026-group-w-banner-text.jpg 1188w, https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-Header_website-2026-group-w-banner-text-300x122.jpg 300w, https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-Header_website-2026-group-w-banner-text-1024x417.jpg 1024w, https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-Header_website-2026-group-w-banner-text-768x313.jpg 768w\" sizes=\"(max-width: 1188px) 100vw, 1188px\" /></a></p>\n<p><a href=\"https://prod1.agileticketing.net/websales/pages/list.aspx?epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-12547\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/Reel-Stories-2026-text.jpg\" alt=\"\" width=\"356\" height=\"181\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/Reel-Stories-2026-text.jpg 356w, https://barriefilmfestival.ca/wp-content/uploads/2026/03/Reel-Stories-2026-text-300x153.jpg 300w\" sizes=\"(max-width: 356px) 100vw, 356px\" /></a></p>\n<h1>March 28 &#8211; 29, 2026<br />\nGalaxy Cinemas, 72 Commerce Park Dr, Barrie</h1>\n<p>The Barrie Film Festival&#8217;s Reel Stories returns for its 22nd edition, and will be presented in the south end of Barrie at the Galaxy Cinemas. Discover extraordinary things about fascinating people and places from this thought-provoking festival.</p>\n<p>Click on the &#8220;Tickets &amp; Listings&#8221; button for more information.</p>\n<p>&nbsp;</p>\n<a class=\"maxbutton-127 maxbutton maxbutton-reel-stories-2026\" href=\"https://prod1.agileticketing.net/websales/pages/list.aspx?epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;\"><span class='mb-text'>LISTINGS &amp; TICKETS</span></a>\n<p>&nbsp;</p>\n<hr />\n<p>&nbsp;</p>\n<h1 class=\"null\"><strong>FILM SCHEDULE</strong></h1>\n<h1></h1>\n<h2><strong>Saturday, March 28</strong></h2>\n<h3>1:00 pm &#8211; <a href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=546840~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;mdy=3/28/2026&amp;\"><strong>The Golden Spurtle</strong></a><strong>\u00a0\u2013 SOLD OUT</strong></h3>\n<h3>4:00 pm &#8211;<a href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=546142~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;mdy=3/28/2026&amp;\"> <strong>Checkpoint Zoo</strong></a></h3>\n<h3>7:00 pm &#8211; <a href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=546843~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;mdy=3/28/2026&amp;\"><strong>EPiC: Elvis Presley in Concert</strong></a> <strong>\u2013 SOLD OUT</strong></h3>\n<h3></h3>\n<p>&nbsp;</p>\n<h2><strong>Sunday, March 29</strong></h2>\n<h3>1:00 pm &#8211; <a href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=546140~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;mdy=3/29/2026&amp;\"><strong>Holding Liat</strong></a></h3>\n<h3>4:00 pm &#8211; <a href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=546134~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;mdy=3/29/2026&amp;\"><strong>Tow</strong></a></h3>\n<h3>7:00 pm &#8211; <a href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=546125~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=f9ed216d-aec4-4a36-a5c1-0241c3cb9439&amp;mdy=3/29/2026&amp;\"><strong>The Art of Adventure</strong></a> <strong>\u2013 SOLD OUT</strong></h3>\n<h3></h3>\n<div></div>\n<hr />\n<p>&nbsp;</p>\n<p><strong>Tickets are $12</strong> (HST included in price).</p>\n<div>\n<p><strong>Seating is first-come, first-serve.</strong><span class=\"apple-converted-space\">\u00a0</span>Screenings are at Galaxy Cinemas located in the south end of Barrie at 72 Commerce Park Drive. Tickets are available in advance online through the \u201cBuy Tickets\u201d link found on the individual movie listings, or in-person the day of screening, subject to availability. Box office opens one hour before showtime at venue. Service fees apply to online sales. Tickets are not sold through Cineplex.</p>\n</div>\n<p>&nbsp;</p>\n<hr />\n<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-Barrie-TIFF.jpg\"><img loading=\"lazy\" class=\"wp-image-11800 size-full aligncenter\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-Barrie-TIFF.jpg\" alt=\"\" width=\"2302\" height=\"329\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-Barrie-TIFF.jpg 2302w, https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-Barrie-TIFF-300x43.jpg 300w, https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-Barrie-TIFF-1024x146.jpg 1024w, https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-Barrie-TIFF-768x110.jpg 768w, https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-Barrie-TIFF-1536x220.jpg 1536w, https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-Barrie-TIFF-2048x293.jpg 2048w\" sizes=\"(max-width: 2302px) 100vw, 2302px\" /></a></p>\n<hr />\n<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-2026-Supporters-1200-2.jpg\"><img loading=\"lazy\" class=\"wp-image-12581 size-full aligncenter\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-2026-Supporters-1200-2.jpg\" alt=\"\" width=\"1200\" height=\"1279\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-2026-Supporters-1200-2.jpg 1200w, https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-2026-Supporters-1200-2-281x300.jpg 281w, https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-2026-Supporters-1200-2-961x1024.jpg 961w, https://barriefilmfestival.ca/wp-content/uploads/2026/03/RS-2026-Supporters-1200-2-768x819.jpg 768w\" sizes=\"(max-width: 1200px) 100vw, 1200px\" /></a></p>\n<hr />\n<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-rev2-MC.jpg\"><img loading=\"lazy\" class=\"wp-image-11786 size-full aligncenter\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-rev2-MC.jpg\" alt=\"\" width=\"1197\" height=\"1228\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-rev2-MC.jpg 1197w, https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-rev2-MC-292x300.jpg 292w, https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-rev2-MC-998x1024.jpg 998w, https://barriefilmfestival.ca/wp-content/uploads/2025/02/RS-2025-Supporters-rev2-MC-768x788.jpg 768w\" sizes=\"(max-width: 1197px) 100vw, 1197px\" /></a></p>\n<div class=\"col col_one \"><div></div></div>\n</div></div>\n</div></div>\n<p>&nbsp;</p>",
+   "excerpt": "",
+   "slug": "reel-stories-galaxy-cinemas-3",
+   "image": false,
+   "all_day": true,
+   "start_date": "2026-03-28 00:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "03",
+    "day": "28",
+    "hour": "00",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-03-29 23:59:59",
+   "end_date_details": {
+    "year": "2026",
+    "month": "03",
+    "day": "29",
+    "hour": "23",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "utc_start_date": "2026-03-28 04:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "03",
+    "day": "28",
+    "hour": "04",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-03-30 03:59:59",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "03",
+    "day": "30",
+    "hour": "03",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": []
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 8866,
+    "author": "2",
+    "status": "publish",
+    "date": "2021-09-12 16:49:07",
+    "date_utc": "2021-09-12 20:49:07",
+    "modified": "2021-09-12 16:49:07",
+    "modified_utc": "2021-09-12 20:49:07",
+    "url": "https://barriefilmfestival.ca/venue/galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8/",
+    "venue": "Galaxy Cinemas Barrie, 72 Commerce Park Dr, Barrie, ON L4N 8W8",
+    "slug": "galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8",
+    "address": "72 Commerce Park Drive",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "Ontario",
+    "zip": "L4N 8W8",
+    "stateprovince": "Ontario",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=8866",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=8866"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12590,
+   "global_id": "barriefilmfestival.ca?id=12590",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12590"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-03-18 13:23:04",
+   "date_utc": "2026-03-18 17:23:04",
+   "modified": "2026-03-18 13:25:56",
+   "modified_utc": "2026-03-18 17:25:56",
+   "url": "https://barriefilmfestival.ca/now-playing/holy-days-galaxy-cinemas/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12590",
+   "title": "HOLY DAYS &#8211; Galaxy Cinemas",
+   "description": "<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/HolyDays-poster-375.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-12587 size-full\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/HolyDays-poster-375.jpg\" alt=\"\" width=\"375\" height=\"544\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/03/HolyDays-poster-375.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2026/03/HolyDays-poster-375-207x300.jpg 207w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p style=\"font-weight: 400;\"><strong>Wed, April 1, 2026<br />\n</strong><strong>4:00 pm, </strong><strong>7:00 pm<br />\nGalaxy Cinemas, 72 Commerce Park Drive, Barrie, ON\u00a0 L4N 8W8<br />\nTickets: $12 (includes HST)</strong></p>\n<p style=\"font-weight: 400;\">Comedy/Drama | 101 Min. | Canada/New Zealand | PG</p>\n<p style=\"font-weight: 400;\">Director: Nat Boltt<br />\nCast: Judy Davis, Miriam Margolyes, Jacki Weaver, and Elijah Tamati.</p>\n<p>&nbsp;</p>\n<a class=\"maxbutton-128 maxbutton maxbutton-holy-days\" href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=549286~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=9faeb82e-3c21-442f-9aa0-4e674f03476c&amp;mdy=4/1/2026&amp;\"><span class='mb-text'>BUY TICKETS</span></a>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Judy Davis, Miriam Margolyes, and Jacki Weaver lead an unforgettable ensemble in Holy Days \u2014 a heartfelt, riotous comedy about rebellion, faith, and found family.</p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"Holy Days (2026) | Official Trailer\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/kSiACjgELyM?feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<p>&nbsp;</p>\n<hr />\n<p><strong>Seating is first-come, first-serve.</strong> Tickets: $12 (includes HST). Tickets are available in advance online through the &#8220;Buy Tickets&#8221; links above, or in person the day of screening, subject to availability. Service fees apply to online sales. Box Office opens one hour before showtime. Tickets are not sold through Cineplex.</p>\n<p>&nbsp;</p>\n<p><em>The Barrie Film Festival is a not for profit organization that provides film fans unique experiences through year-round programming.</em></p>",
+   "excerpt": "",
+   "slug": "holy-days-galaxy-cinemas",
+   "image": false,
+   "all_day": true,
+   "start_date": "2026-04-01 00:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "04",
+    "day": "01",
+    "hour": "00",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-04-01 23:59:59",
+   "end_date_details": {
+    "year": "2026",
+    "month": "04",
+    "day": "01",
+    "hour": "23",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "utc_start_date": "2026-04-01 04:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "04",
+    "day": "01",
+    "hour": "04",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-04-02 03:59:59",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "04",
+    "day": "02",
+    "hour": "03",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "$12",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "12"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 8866,
+    "author": "2",
+    "status": "publish",
+    "date": "2021-09-12 16:49:07",
+    "date_utc": "2021-09-12 20:49:07",
+    "modified": "2021-09-12 16:49:07",
+    "modified_utc": "2021-09-12 20:49:07",
+    "url": "https://barriefilmfestival.ca/venue/galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8/",
+    "venue": "Galaxy Cinemas Barrie, 72 Commerce Park Dr, Barrie, ON L4N 8W8",
+    "slug": "galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8",
+    "address": "72 Commerce Park Drive",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "Ontario",
+    "zip": "L4N 8W8",
+    "stateprovince": "Ontario",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=8866",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=8866"
+    ]
+   },
+   "organizer": []
+  },
+  {
+   "id": 12623,
+   "global_id": "barriefilmfestival.ca?id=12623",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12623"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-04-02 07:09:37",
+   "date_utc": "2026-04-02 11:09:37",
+   "modified": "2026-04-15 15:10:49",
+   "modified_utc": "2026-04-15 19:10:49",
+   "url": "https://barriefilmfestival.ca/now-playing/national-canadian-film-day-galaxy-cinemas/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12623",
+   "title": "National Canadian Film Day &#8211; SOLD OUT",
+   "description": "<p>Join us for a FREE screening of ATANARJUAT: THE FAST RUNNER on National Canadian Film Day! Let&#8217;s celebrate Canadian cinema together!</p>\n<p>&nbsp;</p>\n<p><a href=\"https://bffncfd2026.eventbrite.ca\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-12624\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/04/NCFD-Atanarjuat-Apr-15-2026.jpg\" alt=\"\" width=\"1188\" height=\"484\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/04/NCFD-Atanarjuat-Apr-15-2026.jpg 1188w, https://barriefilmfestival.ca/wp-content/uploads/2026/04/NCFD-Atanarjuat-Apr-15-2026-300x122.jpg 300w, https://barriefilmfestival.ca/wp-content/uploads/2026/04/NCFD-Atanarjuat-Apr-15-2026-1024x417.jpg 1024w, https://barriefilmfestival.ca/wp-content/uploads/2026/04/NCFD-Atanarjuat-Apr-15-2026-768x313.jpg 768w\" sizes=\"(max-width: 1188px) 100vw, 1188px\" /></a></p>\n<h2><strong><em>National Canadian Film Day Screening:<br />\n</em></strong><strong>ATANARJUAT: THE FAST RUNNER</strong></h2>\n<p style=\"font-weight: 400;\">CANADA\u00a0|\u00a02001\u00a0|\u00a0172m\u00a0|\u00a014A<br />\nLanguage: Inuktitut with English subtitles<br />\nDrama</p>\n<p>Admission: FREE</p>\n<p>&nbsp;</p>\n<h2><em>We have SOLD OUT!</em></h2>\n<p>&nbsp;</p>\n<a class=\"maxbutton-129 maxbutton maxbutton-atanarjuat\" href=\"https://bffncfd2026.eventbrite.ca\"><span class='mb-text'>TICKET REGISTRATION</span></a>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Based on an ancient Inuit legend,\u00a0Atanarjuat\u00a0is an epic tale of love, betrayal, and revenge. The beautiful Atuat (Ivalu) has been promised to the short-fused Oki (Arnatsiaq), the son of the tribe\u2019s leader. However, she loves the good-natured Atanarjuat (Ungalaaq), a fast runner and excellent hunter. When Atanarjuat is forced to battle the jealous Oki for Atuat\u2019s hand, the events that follow determine not only his fate, but that of his people.</p>\n<p style=\"font-weight: 400;\"><strong><em>Atanarjuat</em></strong><strong><em>\u00a0</em></strong><strong>won 26 awards</strong>, including eight Genies and the Cam\u00e9ra d\u2019Or at the 2001 Cannes Film Festival. In 2015,\u00a0<em>Atanarjuat</em>\u00a0was selected as TIFF\u2019s number one Canadian film of all time.<strong>\u00a0</strong><strong>It is the 25th Anniversary for this film.</strong></p>\n<p>&nbsp;</p>",
+   "excerpt": "",
+   "slug": "national-canadian-film-day-galaxy-cinemas",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-04-15 19:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "04",
+    "day": "15",
+    "hour": "19",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-04-15 19:00:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "04",
+    "day": "15",
+    "hour": "19",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-04-15 23:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "04",
+    "day": "15",
+    "hour": "23",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-04-15 23:00:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "04",
+    "day": "15",
+    "hour": "23",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "Free",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "0"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 8866,
+    "author": "2",
+    "status": "publish",
+    "date": "2021-09-12 16:49:07",
+    "date_utc": "2021-09-12 20:49:07",
+    "modified": "2021-09-12 16:49:07",
+    "modified_utc": "2021-09-12 20:49:07",
+    "url": "https://barriefilmfestival.ca/venue/galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8/",
+    "venue": "Galaxy Cinemas Barrie, 72 Commerce Park Dr, Barrie, ON L4N 8W8",
+    "slug": "galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8",
+    "address": "72 Commerce Park Drive",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "Ontario",
+    "zip": "L4N 8W8",
+    "stateprovince": "Ontario",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=8866",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=8866"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12672,
+   "global_id": "barriefilmfestival.ca?id=12672",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12672"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-06-08 15:36:32",
+   "date_utc": "2026-06-08 19:36:32",
+   "modified": "2026-06-08 15:36:32",
+   "modified_utc": "2026-06-08 19:36:32",
+   "url": "https://barriefilmfestival.ca/now-playing/airshow-screening-top-gun-maverick/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12672",
+   "title": "Airshow Screening: TOP GUN: MAVERICK",
+   "description": "<p><a href=\"https://www.barrie.ca/community-recreation-environment/community-events/free-outdoor-movie-screening-barrie-airshow-weekend\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-10296\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/top-gun-maverick-ptr-sm.jpg\" alt=\"\" width=\"375\" height=\"552\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/top-gun-maverick-ptr-sm.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2023/06/top-gun-maverick-ptr-sm-204x300.jpg 204w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p>Barrie Airshow 2026 | Outdoor screening</p>\n<h2><strong>TOP GUN: MAVERICK</strong></h2>\n<blockquote><p><strong>Friday, June 12, 2026</strong><br />\n<strong>Meridian Place, Downtown Barrie</strong><br />\n<strong>Admission: Free</strong><br />\nStarts at dusk, weather permitting (rain date June 14)</p></blockquote>\n<p>&nbsp;</p>\n<p>Action/Drama | PG-13 | 130 min. | 2022 | USA</p>\n<p>Directed by Joseph Kosinski</p>\n<p><em><strong>Rated PG-13 for sequences of intense action, and some strong language</strong></em></p>\n<p>&nbsp;</p>\n<p><strong>Synopsis:</strong><br />\nAfter more than thirty years of service as one of the Navy\u2019s top aviators, Pete \u201cMaverick\u201d Mitchell (Tom Cruise) is where he belongs, pushing the envelope as a courageous test pilot and dodging the advancement in rank that would ground him. When he finds himself training a detachment of Top Gun graduates for a specialized mission the likes of which no living pilot has ever seen, Maverick encounters Lt. Bradley Bradshaw (Miles Teller), call sign: \u201cRooster,\u201d the son of Maverick\u2019s late friend and Radar Intercept Officer Lt. Nick Bradshaw, aka \u201cGoose.\u201d Facing an uncertain future and confronting the ghosts of his past, Maverick is drawn into a confrontation with his own deepest fears, culminating in a mission that demands the ultimate sacrifice from those who will be chosen to fly it.</p>\n<p>&nbsp;</p>\n<p><strong>Awards: Won 1 Oscar (Best Sound), 93 wins, 214 nominations!</strong></p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"Top Gun: Maverick (2022) \u2013 New Trailer - Paramount Pictures\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/g4U4BQW9OEk?feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" allowfullscreen></iframe></p>\n<p>&nbsp;</p>\n<hr />\n<p>&nbsp;</p>\n<h1>Screening as part of 2026 Barrie Airshow. Screening is presented by the <a href=\"https://downtownbarrie.ca\">Downtown Barrie BIA</a>.</h1>\n<p>&nbsp;</p>\n<h2>For the full schedule of 2026 Barrie Airshow events, <a href=\"https://www.barrie.ca/community-recreation-environment/community-events/free-outdoor-movie-screening-barrie-airshow-weekend\">CLICK HERE</a></h2>\n<h2></h2>\n<h2><a href=\"https://downtownbarrie.ca\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-9511\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2022/06/2021_BBIA_Rebrand-02-103x103_2.png\" alt=\"\" width=\"103\" height=\"103\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2022/06/2021_BBIA_Rebrand-02-103x103_2.png 103w, https://barriefilmfestival.ca/wp-content/uploads/2022/06/2021_BBIA_Rebrand-02-103x103_2-99x99.png 99w\" sizes=\"(max-width: 103px) 100vw, 103px\" /></a></h2>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>",
+   "excerpt": "",
+   "slug": "airshow-screening-top-gun-maverick",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-06-12 21:15:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "06",
+    "day": "12",
+    "hour": "21",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "end_date": "2026-06-12 21:15:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "06",
+    "day": "12",
+    "hour": "21",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-06-13 01:15:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "06",
+    "day": "13",
+    "hour": "01",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-06-08 23:36:32",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "06",
+    "day": "08",
+    "hour": "23",
+    "minutes": "36",
+    "seconds": "32"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "Free",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "0"
+    ]
+   },
+   "website": "https://www.barrie.ca/community-recreation-environment/community-events/free-outdoor-movie-screening-barrie-airshow-weekend",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 4240,
+    "author": "2",
+    "status": "publish",
+    "date": "2018-05-08 16:15:32",
+    "date_utc": "2018-05-08 20:15:32",
+    "modified": "2022-06-24 16:03:36",
+    "modified_utc": "2022-06-24 20:03:36",
+    "url": "https://barriefilmfestival.ca/venue/meridian-place/",
+    "venue": "Meridian Place",
+    "slug": "meridian-place",
+    "address": "30 Simcoe Street",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "ON",
+    "zip": "L4M 1A7",
+    "stateprovince": "ON",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=4240",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=4240"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 11941,
+     "author": "2",
+     "status": "publish",
+     "date": "2025-06-20 11:12:21",
+     "date_utc": "2025-06-20 15:12:21",
+     "modified": "2025-06-20 11:12:21",
+     "modified_utc": "2025-06-20 15:12:21",
+     "url": "https://barriefilmfestival.ca/organizer/downtown-barrie-bia/",
+     "organizer": "Downtown Barrie BIA",
+     "slug": "downtown-barrie-bia",
+     "phone": "(705) 734-1414",
+     "website": "https://downtownbarrie.ca",
+     "global_id": "barriefilmfestival.ca?id=11941",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=11941"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12692,
+   "global_id": "barriefilmfestival.ca?id=12692",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12692"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-06-24 10:45:16",
+   "date_utc": "2026-06-24 14:45:16",
+   "modified": "2026-06-24 11:34:53",
+   "modified_utc": "2026-06-24 15:34:53",
+   "url": "https://barriefilmfestival.ca/now-playing/next-goal-wins-outdoor-screening/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12692",
+   "title": "NEXT GOAL WINS &#8211; Outdoor Screening",
+   "description": "<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/NGWptr-375.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-12693 size-full\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/NGWptr-375.jpg\" alt=\"\" width=\"375\" height=\"562\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/NGWptr-375.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2026/06/NGWptr-375-200x300.jpg 200w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p>Lawn Chair Luminata | Outdoor screening</p>\n<h1 style=\"font-weight: 400;\"><strong>NEXT GOAL WINS</strong></h1>\n<blockquote>\n<p style=\"font-weight: 400;\"><strong>Wednesday, July 8, 2026<br />\n</strong><strong>Meridian Place, Downtown Barrie<br />\n</strong><strong>Admission: Free</strong></p>\n<div>\n<div><span lang=\"EN-GB\">Starts at dusk, weather permitting (rain date July 9)</span></div>\n</div>\n</blockquote>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Comedy/Drama | PG | 103 min. | 2023</p>\n<p style=\"font-weight: 400;\"><em>Rated </em><i>PG for language and some crude material, suggested for ages 10+</i></p>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Directed by Taika Waititi<br />\nCast: Michael Fassbender, Oscar Kightley, Kaimana, David Fane, Rachel House, Beulah Koale, Elisabeth Moss, Will Arnett, Taika Waititi</p>\n<p>&nbsp;</p>\n<p><strong>Synopsis:</strong></p>\n<p style=\"font-weight: 400;\">Story of the American Samoa soccer team, who suffered the worst loss in World Cup history, losing to Australia 31-0 in 2001. With the 2014 World Cup Qualifiers approaching, the team hires down-on-his-luck, maverick coach Thomas Rongen (Michael Fassbender) hoping he will turn the world&#8217;s worst soccer team around in this humorous and heartfelt underdog story.</p>\n<p style=\"font-weight: 400;\">Inspired by a true story.</p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"NEXT GOAL WINS Trailer | TIFF 2023\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/Yvb4FIB2AjA?start=11&#038;feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<p>&nbsp;</p>\n<hr />\n<p>&nbsp;</p>\n<h1 style=\"font-weight: 400;\"><strong><em>Presented in partnership with the Downtown Barrie BIA and the Barrie Film Festival. Supported by the City of Barrie and 107.5 KOOL FM</em></strong></h1>\n<h2></h2>\n<p>&nbsp;</p>\n<p><em><strong>Presenting Partners</strong></em></p>\n<p>&nbsp;</p>\n<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-10467\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg\" alt=\"\" width=\"558\" height=\"172\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg 639w, https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF-300x92.jpg 300w\" sizes=\"(max-width: 558px) 100vw, 558px\" /></a></p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p><em><strong>Supported by</strong></em></p>\n<p>&nbsp;</p>\n<p><a href=\"https://1075koolfm.com\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-9585\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2022/07/KoolfFM-stacked-logotagline-150-pixels.png\" alt=\"\" width=\"150\" height=\"106\" />\u00a0\u00a0\u00a0\u00a0 </a><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2020/06/City-of-Barrie-logo.jpg\">\u00a0 \u00a0 \u00a0 \u00a0 \u00a0 \u00a0<img loading=\"lazy\" class=\"alignnone wp-image-7450\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2020/06/City-of-Barrie-logo.jpg\" alt=\"\" width=\"178\" height=\"65\" /></a></p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>",
+   "excerpt": "",
+   "slug": "next-goal-wins-outdoor-screening",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-07-08 21:15:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "07",
+    "day": "08",
+    "hour": "21",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "end_date": "2026-07-08 21:15:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "07",
+    "day": "08",
+    "hour": "21",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-07-09 01:15:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "07",
+    "day": "09",
+    "hour": "01",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-07-09 01:15:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "07",
+    "day": "09",
+    "hour": "01",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "Free",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "0"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 4240,
+    "author": "2",
+    "status": "publish",
+    "date": "2018-05-08 16:15:32",
+    "date_utc": "2018-05-08 20:15:32",
+    "modified": "2022-06-24 16:03:36",
+    "modified_utc": "2022-06-24 20:03:36",
+    "url": "https://barriefilmfestival.ca/venue/meridian-place/",
+    "venue": "Meridian Place",
+    "slug": "meridian-place",
+    "address": "30 Simcoe Street",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "ON",
+    "zip": "L4M 1A7",
+    "stateprovince": "ON",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=4240",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=4240"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 11941,
+     "author": "2",
+     "status": "publish",
+     "date": "2025-06-20 11:12:21",
+     "date_utc": "2025-06-20 15:12:21",
+     "modified": "2025-06-20 11:12:21",
+     "modified_utc": "2025-06-20 15:12:21",
+     "url": "https://barriefilmfestival.ca/organizer/downtown-barrie-bia/",
+     "organizer": "Downtown Barrie BIA",
+     "slug": "downtown-barrie-bia",
+     "phone": "(705) 734-1414",
+     "website": "https://downtownbarrie.ca",
+     "global_id": "barriefilmfestival.ca?id=11941",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=11941"
+     ]
+    },
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12700,
+   "global_id": "barriefilmfestival.ca?id=12700",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12700"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-06-24 10:54:46",
+   "date_utc": "2026-06-24 14:54:46",
+   "modified": "2026-06-24 11:34:09",
+   "modified_utc": "2026-06-24 15:34:09",
+   "url": "https://barriefilmfestival.ca/now-playing/lilo-stitch-outdoor-screening/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12700",
+   "title": "LILO &#038; STITCH &#8211; Outdoor Screening",
+   "description": "<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/LiloStitch-ptr-375.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-12701 size-full\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/LiloStitch-ptr-375.jpg\" alt=\"\" width=\"375\" height=\"555\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/LiloStitch-ptr-375.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2026/06/LiloStitch-ptr-375-203x300.jpg 203w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p>Lawn Chair Luminata | Outdoor screening</p>\n<h1 style=\"font-weight: 400;\"><strong>LILO &amp; STITCH </strong></h1>\n<blockquote>\n<p style=\"font-weight: 400;\"><strong>Wednesday, July 22, 2026<br />\n</strong><strong>Meridian Place, Downtown Barrie<br />\n</strong><strong>Admission: Free</strong></p>\n<div>\n<div><span lang=\"EN-GB\">Starts at dusk, weather permitting (rain date July 23)</span></div>\n</div>\n</blockquote>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Action/Adventure/Comedy | PG | 108 min. | 2025</p>\n<p style=\"font-weight: 400;\"><em>Rated </em><i>PG for action, peril and thematic elements</i><i>, suggested for ages 6+</i></p>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Directed by Dean Fleischer Camp<br />\nCast: Maia Kealoha, Sydney Elizebeth Agudong, Billy Magnussen, Amy Hill, Tia Carrere, Hannah Waddingham, Chris Sanders, Courtney B. Vance, Zach Galifianakis</p>\n<p>&nbsp;</p>\n<p><strong>Synopsis:</strong></p>\n<p style=\"font-weight: 400;\">A live-action retelling of Disney\u2019s 2002 animated classic, \u201cLilo &amp; Stitch\u201d is the wildly funny and touching story of a lonely Hawaiian girl and the fugitive alien who helps to mend her broken family.</p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"Lilo &amp; Stitch | Official Trailer | In Theaters May 23\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/VWqJifMMgZE?feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<p>&nbsp;</p>\n<hr />\n<p>&nbsp;</p>\n<h1 style=\"font-weight: 400;\"><strong><em>Presented in partnership with the Downtown Barrie BIA and the Barrie Film Festival. Supported by the City of Barrie and 107.5 KOOL FM</em></strong></h1>\n<h2></h2>\n<p>&nbsp;</p>\n<p><em><strong>Presenting Partners</strong></em></p>\n<p>&nbsp;</p>\n<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-10467\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg\" alt=\"\" width=\"558\" height=\"172\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg 639w, https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF-300x92.jpg 300w\" sizes=\"(max-width: 558px) 100vw, 558px\" /></a></p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p><em><strong>Supported by</strong></em></p>\n<p>&nbsp;</p>\n<p><a href=\"https://1075koolfm.com\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-9585\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2022/07/KoolfFM-stacked-logotagline-150-pixels.png\" alt=\"\" width=\"150\" height=\"106\" />\u00a0\u00a0\u00a0\u00a0 </a><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2020/06/City-of-Barrie-logo.jpg\">\u00a0 \u00a0 \u00a0 \u00a0 \u00a0 \u00a0<img loading=\"lazy\" class=\"alignnone wp-image-7450\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2020/06/City-of-Barrie-logo.jpg\" alt=\"\" width=\"178\" height=\"65\" /></a></p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>",
+   "excerpt": "",
+   "slug": "lilo-stitch-outdoor-screening",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-07-22 21:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "07",
+    "day": "22",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-07-22 21:00:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "07",
+    "day": "22",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-07-23 01:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "07",
+    "day": "23",
+    "hour": "01",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-07-23 01:00:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "07",
+    "day": "23",
+    "hour": "01",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "Free",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "0"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 4240,
+    "author": "2",
+    "status": "publish",
+    "date": "2018-05-08 16:15:32",
+    "date_utc": "2018-05-08 20:15:32",
+    "modified": "2022-06-24 16:03:36",
+    "modified_utc": "2022-06-24 20:03:36",
+    "url": "https://barriefilmfestival.ca/venue/meridian-place/",
+    "venue": "Meridian Place",
+    "slug": "meridian-place",
+    "address": "30 Simcoe Street",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "ON",
+    "zip": "L4M 1A7",
+    "stateprovince": "ON",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=4240",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=4240"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 11941,
+     "author": "2",
+     "status": "publish",
+     "date": "2025-06-20 11:12:21",
+     "date_utc": "2025-06-20 15:12:21",
+     "modified": "2025-06-20 11:12:21",
+     "modified_utc": "2025-06-20 15:12:21",
+     "url": "https://barriefilmfestival.ca/organizer/downtown-barrie-bia/",
+     "organizer": "Downtown Barrie BIA",
+     "slug": "downtown-barrie-bia",
+     "phone": "(705) 734-1414",
+     "website": "https://downtownbarrie.ca",
+     "global_id": "barriefilmfestival.ca?id=11941",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=11941"
+     ]
+    },
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12704,
+   "global_id": "barriefilmfestival.ca?id=12704",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12704"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-06-24 11:02:38",
+   "date_utc": "2026-06-24 15:02:38",
+   "modified": "2026-06-24 11:33:16",
+   "modified_utc": "2026-06-24 15:33:16",
+   "url": "https://barriefilmfestival.ca/now-playing/the-devil-wears-prada-outdoor-screening/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12704",
+   "title": "THE DEVIL WEARS PRADA &#8211; Outdoor Screening",
+   "description": "<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/TDWPrada-ptr-375.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-12705 size-full\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/TDWPrada-ptr-375.jpg\" alt=\"\" width=\"375\" height=\"554\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/TDWPrada-ptr-375.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2026/06/TDWPrada-ptr-375-203x300.jpg 203w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p>Lawn Chair Luminata | Outdoor screening</p>\n<h1 style=\"font-weight: 400;\"><strong>THE DEVIL WEARS PRADA</strong></h1>\n<blockquote>\n<p style=\"font-weight: 400;\"><strong>Wednesday, August 5, 2026<br />\n</strong><strong>Meridian Place, Downtown Barrie<br />\n</strong><strong>Admission: Free</strong></p>\n<div>\n<div><span lang=\"EN-GB\">Starts at dusk, weather permitting (rain date August 6)</span></div>\n</div>\n</blockquote>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Comedy/Drama | PG | 110 min. | 2006</p>\n<p style=\"font-weight: 400;\"><em>Rated </em><i>PG for some sensuality, mature content, suggested for ages 13+</i></p>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Directed by David Frankel<br />\nCast: Meryl Streep, Anne Hathaway, Stanley Tucci, Simon Baker, Emily Blunt, Adrian Grenier</p>\n<p>&nbsp;</p>\n<p><strong>Synopsis:</strong></p>\n<p style=\"font-weight: 400;\">Andy, a smart but sensible young journalist, starts working as an assistant to the cynical high fashion magazine editor Miranda Priestly.</p>\n<p>&nbsp;</p>\n<p><strong>Awards:</strong> 21 wins, 53 nominations including 2 Oscar nominations</p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"The Devil Wears Prada (2006) Trailer #1 | Movieclips Classic Trailers\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/6ZOZwUQKu3E?feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<p>&nbsp;</p>\n<hr />\n<p>&nbsp;</p>\n<h1 style=\"font-weight: 400;\"><strong><em>Presented in partnership with the Downtown Barrie BIA and the Barrie Film Festival. Supported by the City of Barrie and 107.5 KOOL FM</em></strong></h1>\n<h2></h2>\n<p>&nbsp;</p>\n<p><em><strong>Presenting Partners</strong></em></p>\n<p>&nbsp;</p>\n<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-10467\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg\" alt=\"\" width=\"558\" height=\"172\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg 639w, https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF-300x92.jpg 300w\" sizes=\"(max-width: 558px) 100vw, 558px\" /></a></p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p><em><strong>Supported by</strong></em></p>\n<p>&nbsp;</p>\n<p><a href=\"https://1075koolfm.com\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-9585\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2022/07/KoolfFM-stacked-logotagline-150-pixels.png\" alt=\"\" width=\"150\" height=\"106\" />\u00a0\u00a0\u00a0\u00a0 </a><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2020/06/City-of-Barrie-logo.jpg\">\u00a0 \u00a0 \u00a0 \u00a0 \u00a0 \u00a0<img loading=\"lazy\" class=\"alignnone wp-image-7450\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2020/06/City-of-Barrie-logo.jpg\" alt=\"\" width=\"178\" height=\"65\" /></a></p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>",
+   "excerpt": "",
+   "slug": "the-devil-wears-prada-outdoor-screening",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-08-05 21:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "05",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-08-05 21:00:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "05",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-08-06 01:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "06",
+    "hour": "01",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-08-06 01:00:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "06",
+    "hour": "01",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "Free",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "0"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 4240,
+    "author": "2",
+    "status": "publish",
+    "date": "2018-05-08 16:15:32",
+    "date_utc": "2018-05-08 20:15:32",
+    "modified": "2022-06-24 16:03:36",
+    "modified_utc": "2022-06-24 20:03:36",
+    "url": "https://barriefilmfestival.ca/venue/meridian-place/",
+    "venue": "Meridian Place",
+    "slug": "meridian-place",
+    "address": "30 Simcoe Street",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "ON",
+    "zip": "L4M 1A7",
+    "stateprovince": "ON",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=4240",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=4240"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 11941,
+     "author": "2",
+     "status": "publish",
+     "date": "2025-06-20 11:12:21",
+     "date_utc": "2025-06-20 15:12:21",
+     "modified": "2025-06-20 11:12:21",
+     "modified_utc": "2025-06-20 15:12:21",
+     "url": "https://barriefilmfestival.ca/organizer/downtown-barrie-bia/",
+     "organizer": "Downtown Barrie BIA",
+     "slug": "downtown-barrie-bia",
+     "phone": "(705) 734-1414",
+     "website": "https://downtownbarrie.ca",
+     "global_id": "barriefilmfestival.ca?id=11941",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=11941"
+     ]
+    },
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12747,
+   "global_id": "barriefilmfestival.ca?id=12747",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12747"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-08-04 13:48:32",
+   "date_utc": "2026-08-04 17:48:32",
+   "modified": "2026-08-13 11:17:00",
+   "modified_utc": "2026-08-13 15:17:00",
+   "url": "https://barriefilmfestival.ca/now-playing/jack-johnson-surfilmusic-outdoor-screening/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12747",
+   "title": "JACK JOHNSON: SURFILMUSIC &#8211; Outdoor Screening",
+   "description": "<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2026/08/19980600_Tahiti_TTW_KJohnson_1A.webp\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-12749\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/08/19980600_Tahiti_TTW_KJohnson_1A.webp\" alt=\"\" width=\"1000\" height=\"667\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/08/19980600_Tahiti_TTW_KJohnson_1A.webp 1000w, https://barriefilmfestival.ca/wp-content/uploads/2026/08/19980600_Tahiti_TTW_KJohnson_1A-300x200.webp 300w, https://barriefilmfestival.ca/wp-content/uploads/2026/08/19980600_Tahiti_TTW_KJohnson_1A-768x512.webp 768w\" sizes=\"(max-width: 1000px) 100vw, 1000px\" /></a></p>\n<p>&nbsp;</p>\n<p><a href=\"https://downtownbarrie.ca/troubadour-festival/\"><span class=\"s2\">Troubadour Festival</span></a><span class=\"s2\"> | Outdoor screening</span></p>\n<p>&nbsp;</p>\n<h2><span class=\"s3\">JACK JOHNSON: SURFILMUSIC</span></h2>\n<blockquote><p><strong><span class=\"s4\">Friday, August 14, 2026<br />\n</span></strong><strong><span class=\"s4\">Meridian Place, Downtown Barrie<br />\n</span></strong><strong><span class=\"s4\">Admission: Free</span></strong></p>\n<p><span class=\"s5\">Starts at dusk, weather permitting</span></p></blockquote>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Documentary | Not Rated | 75 min.</p>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">A\u00a0new documentary chronicling Jack Johnson\u2019s evolution from surfer to filmmaker to world-renowned musician. The film traces how Johnson\u2019s early years making surf films with close friends became a foundation for a much broader creative life, capturing moments in and out of the water that later surfaced in his songwriting. Blending rare footage from those formative surf films and Johnson&#8217;s personal and family archives with present-day reflections, the film weaves together how lived experience, friendship, and exploration shaped the sound and stories behind the music.</p>\n<p style=\"font-weight: 400;\">Directed by Emmett Malloy, featuring Jack Johnson, Kelly Slater, Rob Machado, Gerry Lopez, Chris Malloy, G. Love, Ben Harper, John Florence, Emmett Malloy, Kim Johnson, and more, with a beautiful score by Jack Johnson and Hermanos Guti\u00e9rrez.\u00a0In loving memory of Tamayo Perry.</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p><em><strong>Prior to the movie:</strong></em></p>\n<p><a href=\"https://downtownbarrie.ca/troubadour-festival/\"><strong>JACK JOHNSON TRIBUTE BAND with JON BRYANT</strong></a>, starts at 7:30 pm</p>\n<p>Bio: Over a career spanning more than fifteen years, <strong>Jon Bryant</strong> has established himself as a master of emotional transparency. Bryant has amassed over 150 million global streams, driven by fan-favorite tracks like \u201cHeadphones,\u201d \u201cLight,\u201d \u201cWilderness,\u201d and \u201cAt Home.\u201d His acclaimed discography includes landmark LPs such as Two Coasts For Comfort [2009], What Takes You [2012], Twenty Something [2017], and Cult Classic [2019], alongside celebrated EPs like Half Bad and Psychedelic Salutations. Earning praise from tastemakers such as The Line of Best Fit and Atwood Magazine, Bryant\u2019s creative output spans beyond music into visual art and acting, with screen appearances in Riverdale, Fire Country, Tracker, and Marvel\u2019s Sentinel of the Spaceways, as well as voicing Bitores Mendez in Capcom&#8217;s 2023 remake of Resident Evil 4. In an era dominated by algorithms and artificial polish, Bryant remains defiantly, beautifully human, crafting songs defined by grounded authenticity and raw connection.</p>\n<p>&nbsp;</p>\n<p>Trailer for JACK JOHNSON: SURFILMUSIC:</p>\n<p><iframe loading=\"lazy\" title=\"Jack Johnson - SURFILMUSIC Trailer (2026)\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/f6VztuVWGI0?feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<p>&nbsp;</p>\n<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-crop.jpg\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-10423\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-crop.jpg\" alt=\"\" width=\"133\" height=\"131\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-crop.jpg 133w, https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-crop-99x99.jpg 99w\" sizes=\"(max-width: 133px) 100vw, 133px\" /></a></p>\n<p style=\"text-align: center;\" data-wp-editing=\"1\">",
+   "excerpt": "",
+   "slug": "jack-johnson-surfilmusic-outdoor-screening",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-08-14 21:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "14",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-08-14 21:00:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "14",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-08-15 01:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "15",
+    "hour": "01",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-08-15 01:00:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "15",
+    "hour": "01",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "Free",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "0"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 4240,
+    "author": "2",
+    "status": "publish",
+    "date": "2018-05-08 16:15:32",
+    "date_utc": "2018-05-08 20:15:32",
+    "modified": "2022-06-24 16:03:36",
+    "modified_utc": "2022-06-24 20:03:36",
+    "url": "https://barriefilmfestival.ca/venue/meridian-place/",
+    "venue": "Meridian Place",
+    "slug": "meridian-place",
+    "address": "30 Simcoe Street",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "ON",
+    "zip": "L4M 1A7",
+    "stateprovince": "ON",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=4240",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=4240"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 11941,
+     "author": "2",
+     "status": "publish",
+     "date": "2025-06-20 11:12:21",
+     "date_utc": "2025-06-20 15:12:21",
+     "modified": "2025-06-20 11:12:21",
+     "modified_utc": "2025-06-20 15:12:21",
+     "url": "https://barriefilmfestival.ca/organizer/downtown-barrie-bia/",
+     "organizer": "Downtown Barrie BIA",
+     "slug": "downtown-barrie-bia",
+     "phone": "(705) 734-1414",
+     "website": "https://downtownbarrie.ca",
+     "global_id": "barriefilmfestival.ca?id=11941",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=11941"
+     ]
+    },
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12710,
+   "global_id": "barriefilmfestival.ca?id=12710",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12710"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-06-24 11:32:23",
+   "date_utc": "2026-06-24 15:32:23",
+   "modified": "2026-08-18 15:13:31",
+   "modified_utc": "2026-08-18 19:13:31",
+   "url": "https://barriefilmfestival.ca/now-playing/the-fantastic-four-first-steps-outdoor-screening/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12710",
+   "title": "THE FANTASTIC FOUR: FIRST STEPS &#8211; Outdoor Screening",
+   "description": "<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/F4FirstSteps-ptr-375.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-12711 size-full\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/F4FirstSteps-ptr-375.jpg\" alt=\"\" width=\"375\" height=\"469\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/06/F4FirstSteps-ptr-375.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2026/06/F4FirstSteps-ptr-375-240x300.jpg 240w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p>Lawn Chair Luminata | Outdoor screening</p>\n<h1 style=\"font-weight: 400;\"><strong>THE FANTASTIC FOUR: FIRST STEPS</strong></h1>\n<blockquote>\n<p style=\"font-weight: 400;\"><strong>Wednesday, August 19, 2026<br />\n</strong><strong>Meridian Place, Downtown Barrie<br />\n</strong><strong>Admission: Free</strong></p>\n<div>\n<p style=\"font-weight: 400;\">Starts at dusk, weather permitting (rain date August 20)</p>\n</div>\n</blockquote>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">Action/Sci-fi | PG | 115 min. | 2025</p>\n<p style=\"font-weight: 400;\"><em>Rated PG-13 &#8211; for action/violence and some language, suggested for ages 10+ depending on sensitivity</em></p>\n<p style=\"font-weight: 400;\"><em>.</em></p>\n<p style=\"font-weight: 400;\">Directed by Matt Shakman<br />\nCast: Pedro Pascal, Vanessa Kirby, Joseph Quinn, Ebon Moss-Bachrach, Julia Garner, Ralph Ineson</p>\n<p>&nbsp;</p>\n<p><strong>Synopsis:</strong></p>\n<p>Forced to balance their roles as heroes with the strength of their family bond, the Fantastic Four must defend Earth from a ravenous space god called Galactus and his enigmatic herald, the Silver Surfer.</p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"The Fantastic Four: First Steps | Final Trailer | Only in Theaters July 25\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/18QQWa5MEcs?start=4&#038;feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<p>&nbsp;</p>\n<hr />\n<p>&nbsp;</p>\n<h1 style=\"font-weight: 400;\"><strong><em>Presented in partnership with the Downtown Barrie BIA and the Barrie Film Festival. Supported by the City of Barrie and 107.5 KOOL FM</em></strong></h1>\n<h2></h2>\n<p>&nbsp;</p>\n<p><em><strong>Presenting Partners</strong></em></p>\n<p>&nbsp;</p>\n<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-10467\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg\" alt=\"\" width=\"558\" height=\"172\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF.jpg 639w, https://barriefilmfestival.ca/wp-content/uploads/2023/06/BIA-and-BFF-300x92.jpg 300w\" sizes=\"(max-width: 558px) 100vw, 558px\" /></a></p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>\n<p><em><strong>Supported by</strong></em></p>\n<p>&nbsp;</p>\n<p><a href=\"https://1075koolfm.com\"><img loading=\"lazy\" class=\"alignnone size-full wp-image-9585\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2022/07/KoolfFM-stacked-logotagline-150-pixels.png\" alt=\"\" width=\"150\" height=\"106\" />\u00a0\u00a0\u00a0\u00a0 </a><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2020/06/City-of-Barrie-logo.jpg\">\u00a0 \u00a0 \u00a0 \u00a0 \u00a0 \u00a0<img loading=\"lazy\" class=\"alignnone wp-image-7450\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2020/06/City-of-Barrie-logo.jpg\" alt=\"\" width=\"178\" height=\"65\" /></a></p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>",
+   "excerpt": "",
+   "slug": "the-fantastic-four-first-steps-outdoor-screening",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-08-19 20:45:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "19",
+    "hour": "20",
+    "minutes": "45",
+    "seconds": "00"
+   },
+   "end_date": "2026-08-19 20:45:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "19",
+    "hour": "20",
+    "minutes": "45",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-08-20 00:45:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "20",
+    "hour": "00",
+    "minutes": "45",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-08-19 04:00:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "08",
+    "day": "19",
+    "hour": "04",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "Free",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "0"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 4240,
+    "author": "2",
+    "status": "publish",
+    "date": "2018-05-08 16:15:32",
+    "date_utc": "2018-05-08 20:15:32",
+    "modified": "2022-06-24 16:03:36",
+    "modified_utc": "2022-06-24 20:03:36",
+    "url": "https://barriefilmfestival.ca/venue/meridian-place/",
+    "venue": "Meridian Place",
+    "slug": "meridian-place",
+    "address": "30 Simcoe Street",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "ON",
+    "zip": "L4M 1A7",
+    "stateprovince": "ON",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=4240",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=4240"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 11941,
+     "author": "2",
+     "status": "publish",
+     "date": "2025-06-20 11:12:21",
+     "date_utc": "2025-06-20 15:12:21",
+     "modified": "2025-06-20 11:12:21",
+     "modified_utc": "2025-06-20 15:12:21",
+     "url": "https://barriefilmfestival.ca/organizer/downtown-barrie-bia/",
+     "organizer": "Downtown Barrie BIA",
+     "slug": "downtown-barrie-bia",
+     "phone": "(705) 734-1414",
+     "website": "https://downtownbarrie.ca",
+     "global_id": "barriefilmfestival.ca?id=11941",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=11941"
+     ]
+    },
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12781,
+   "global_id": "barriefilmfestival.ca?id=12781",
+   "global_id_lineage": [
+    "barriefilmfestival.ca?id=12781"
+   ],
+   "author": "2",
+   "status": "publish",
+   "date": "2026-08-13 14:51:20",
+   "date_utc": "2026-08-13 18:51:20",
+   "modified": "2026-08-20 10:29:10",
+   "modified_utc": "2026-08-20 14:29:10",
+   "url": "https://barriefilmfestival.ca/now-playing/tuner-galaxy-cinemas/",
+   "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/12781",
+   "title": "TUNER &#8211; Galaxy Cinemas",
+   "description": "<p><a href=\"https://barriefilmfestival.ca/wp-content/uploads/2026/08/tuner-poster-375.jpg\"><img loading=\"lazy\" class=\"alignnone wp-image-12782 size-full\" src=\"https://barriefilmfestival.ca/wp-content/uploads/2026/08/tuner-poster-375.jpg\" alt=\"\" width=\"375\" height=\"549\" srcset=\"https://barriefilmfestival.ca/wp-content/uploads/2026/08/tuner-poster-375.jpg 375w, https://barriefilmfestival.ca/wp-content/uploads/2026/08/tuner-poster-375-205x300.jpg 205w\" sizes=\"(max-width: 375px) 100vw, 375px\" /></a></p>\n<p style=\"font-weight: 400;\"><strong>Wed, September 9, 2026<br />\n</strong><strong>4:00 pm and </strong><strong>7:00 pm<br />\nGalaxy Cinemas, 72 Commerce Park Drive, Barrie, ON\u00a0 L4N 8W8<br />\nTickets: $12 (includes HST)</strong></p>\n<p style=\"font-weight: 400;\">Thriller | 109 Min. | USA/Canada | 14A</p>\n<p style=\"font-weight: 400;\">Rated 14A \u2013 <em>coarse language, some violence, brief nudity</em></p>\n<p style=\"font-weight: 400;\">Director: Daniel Roher<br />\nStarring: Leo Woodall, Dustin Hoffman, Havana Rose Liu</p>\n<p>&nbsp;</p>\n<a class=\"maxbutton-130 maxbutton maxbutton-tuner\" href=\"https://prod1.agileticketing.net/websales/pages/info.aspx?evtinfo=575887~dbb1d4c7-ba2b-4a34-ae19-d193b30ba517&amp;epguid=9faeb82e-3c21-442f-9aa0-4e674f03476c&amp;mdy=9/9/2026&amp;\"><span class='mb-text'>BUY TICKETS</span></a>\n<p>&nbsp;</p>\n<p style=\"font-weight: 400;\">A talented piano tuner who suffers from hyperacusis discovers an unexpected aptitude for cracking safes, turning his life upside down.</p>\n<p>&nbsp;</p>\n<p><iframe loading=\"lazy\" title=\"TUNER | Official Trailer HD\" width=\"500\" height=\"281\" src=\"https://www.youtube.com/embed/zW1cRf5X8Hk?feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe></p>\n<hr />\n<p><strong>Seating is first-come, first-serve.</strong> Tickets: $12 (includes HST). Tickets are available in advance online through the &#8220;Buy Tickets&#8221; links above, or in person the day of screening, subject to availability. Service fees apply to online sales. Box Office opens one hour before showtime. Tickets are not sold through Cineplex.</p>",
+   "excerpt": "",
+   "slug": "tuner-galaxy-cinemas",
+   "image": false,
+   "all_day": true,
+   "start_date": "2026-09-09 00:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "09",
+    "day": "09",
+    "hour": "00",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-09-09 23:59:59",
+   "end_date_details": {
+    "year": "2026",
+    "month": "09",
+    "day": "09",
+    "hour": "23",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "utc_start_date": "2026-09-09 04:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "09",
+    "day": "09",
+    "hour": "04",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-09-10 03:59:59",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "09",
+    "day": "10",
+    "hour": "03",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "timezone": "America/Toronto",
+   "timezone_abbr": "EDT",
+   "cost": "$12",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "prefix",
+    "values": [
+     "12"
+    ]
+   },
+   "website": "",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [],
+   "tags": [],
+   "venue": {
+    "id": 8866,
+    "author": "2",
+    "status": "publish",
+    "date": "2021-09-12 16:49:07",
+    "date_utc": "2021-09-12 20:49:07",
+    "modified": "2021-09-12 16:49:07",
+    "modified_utc": "2021-09-12 20:49:07",
+    "url": "https://barriefilmfestival.ca/venue/galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8/",
+    "venue": "Galaxy Cinemas Barrie, 72 Commerce Park Dr, Barrie, ON L4N 8W8",
+    "slug": "galaxy-cinemas-barrie-72-commerce-park-dr-barrie-on-l4n-8w8",
+    "address": "72 Commerce Park Drive",
+    "city": "Barrie",
+    "country": "Canada",
+    "province": "Ontario",
+    "zip": "L4N 8W8",
+    "stateprovince": "Ontario",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "barriefilmfestival.ca?id=8866",
+    "global_id_lineage": [
+     "barriefilmfestival.ca?id=8866"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 399,
+     "author": "2",
+     "status": "publish",
+     "date": "2015-03-20 22:26:04",
+     "date_utc": "2015-03-20 22:26:04",
+     "modified": "2015-03-20 22:26:04",
+     "modified_utc": "2015-03-20 22:26:04",
+     "url": "https://barriefilmfestival.ca/organizer/barrie-film-festival/",
+     "organizer": "Barrie Film Festival",
+     "slug": "barrie-film-festival",
+     "website": "www.barriefilmfestival.ca",
+     "global_id": "barriefilmfestival.ca?id=399",
+     "global_id_lineage": [
+      "barriefilmfestival.ca?id=399"
+     ]
+    }
+   ]
+  }
+ ],
+ "rest_url": "https://barriefilmfestival.ca/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=2026-01-01 00:00:00&end_date=2027-03-31 23:59:59&status=publish",
+ "total": 12,
+ "total_pages": 1
+}

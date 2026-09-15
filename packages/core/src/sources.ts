@@ -1,4 +1,5 @@
 import type { Source, SourceConfig, SourceKind } from './types.ts'
+import { TICKETMASTER_VENUES } from './ticketmaster-venues.ts'
 
 const TZ = 'America/Toronto'
 
@@ -14,10 +15,16 @@ export const PRIORITY: Record<SourceKind, number> = {
   // An event someone typed into the admin console on purpose outranks every scraped copy
   // of it, so its title, time and details are the ones a merged cluster shows.
   manual: 5,
+  // A festival or gallery knows its own programme best, better than a town calendar's
+  // repost of it; the two rarely overlap anything else.
+  organization: 8,
   municipal: 10,
   county: 20,
   library: 30,
   tourism: 40,
+  // Organizers type these themselves, so the time is usually right, but the titles are
+  // sales copy; they beat a news site's user-typed copy and lose to everything official.
+  ticketing: 45,
   media: 50,
 }
 
@@ -208,6 +215,18 @@ export const SOURCES: Source[] = [
     enabled: false,
   }),
 
+  // ---- Organizations' own calendars ---------------------------------------------------
+  row({
+    // Suggested through the site's form. Enabled before its October programme is posted:
+    // a new source returning nothing is not an outage to reconcile(), only a quiet one.
+    slug: 'barrie-film-festival',
+    name: 'Barrie Film Festival',
+    kind: 'organization',
+    municipalitySlug: 'barrie',
+    config: { platform: 'tribe', origin: 'https://barriefilmfestival.ca' },
+    homepage: 'https://barriefilmfestival.ca/now-playing/',
+  }),
+
   // ---- Local media: Metroland simcoe.com on CitySpark --------------------------------
   row({
     slug: 'simcoe-com',
@@ -219,6 +238,26 @@ export const SOURCES: Source[] = [
     // gazetteer cannot place them in a Simcoe municipality.
     config: { platform: 'cityspark', portal: 'Simcoe', ppid: 9299, lat: 44.389, lng: -79.69, distanceKm: 75 },
     homepage: 'https://www.simcoe.com/events/',
+  }),
+
+  // ---- Ticketing platforms ------------------------------------------------------------
+  row({
+    slug: 'eventbrite',
+    name: 'Eventbrite',
+    kind: 'ticketing',
+    municipalitySlug: null,
+    // West of Collingwood to east of Ramara, south of Bradford to north of Midland. The box
+    // reaches Newmarket and Shelburne too; the adapter drops what the gazetteer cannot place.
+    config: { platform: 'eventbrite', bbox: '-80.45,43.95,-79.1,44.95' },
+    homepage: 'https://www.eventbrite.ca/d/canada--barrie/events/',
+  }),
+  row({
+    slug: 'ticketmaster',
+    name: 'Ticketmaster',
+    kind: 'ticketing',
+    municipalitySlug: null,
+    config: { platform: 'ticketmaster', venueIds: TICKETMASTER_VENUES.map((v) => v.id) },
+    homepage: 'https://www.ticketmaster.ca/',
   }),
 ]
 

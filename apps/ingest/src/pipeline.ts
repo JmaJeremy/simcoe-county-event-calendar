@@ -3,6 +3,7 @@ import {
   normalizeAll,
   reconcile,
   shiftDate,
+  type AdapterContext,
   type Listing,
   type ReconcilePlan,
   type Source,
@@ -23,6 +24,12 @@ export function defaultWindow(today = new Date()): SyncWindow {
   return { from: shiftDate(iso, -DEFAULT_LOOKBACK_DAYS), to: shiftDate(iso, DEFAULT_LOOKAHEAD_DAYS) }
 }
 
+/** Credentials for the adapters that need them, from the worker's env or process.env. */
+export function adapterContextFrom(env: Record<string, unknown>): AdapterContext {
+  const secret = (name: string): string | undefined => (typeof env[name] === 'string' && env[name] ? (env[name] as string) : undefined)
+  return { secrets: { EVENTBRITE_TOKEN: secret('EVENTBRITE_TOKEN'), TICKETMASTER_CONSUMER_KEY: secret('TICKETMASTER_CONSUMER_KEY') } }
+}
+
 export interface SourceResult {
   source: Source
   ok: boolean
@@ -40,13 +47,18 @@ export interface SourceResult {
  * would change. Returns a result rather than throwing so that one broken site never takes
  * down the run for the other twenty-four.
  */
-export async function syncSource(source: Source, window: SyncWindow, existing?: StoredListing[]): Promise<SourceResult> {
+export async function syncSource(
+  source: Source,
+  window: SyncWindow,
+  existing?: StoredListing[],
+  context?: AdapterContext,
+): Promise<SourceResult> {
   const startedAt = Date.now()
   resetHttpStats()
   const base = { source, fetched: 0, listings: [], skipped: [], durationMs: 0, requests: 0 }
 
   try {
-    const raw = await adapterFor(source.platform)(source, window)
+    const raw = await adapterFor(source.platform)(source, window, context)
     const { listings, skipped } = normalizeAll(source, raw)
     const plan = existing ? reconcile(listings, existing) : undefined
     return {
