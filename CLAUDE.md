@@ -285,6 +285,13 @@ when it breaks, so nothing here is checked by eye.
   in. `ADMIN_ADDRESS` in `worker.ts` belongs in mail headers only. `test/no-email.test.ts`
   scans every served file and the worker's replies for anything email-shaped — including
   an example address in a comment.
+- **Messenger is in the share dialog but only on touch devices.** Facebook's Send Dialog
+  needs a registered app id, so the only unauthenticated route is the `fb-messenger://`
+  deep link, which nothing on a desktop can open. `share.js` builds the button and hides it
+  unless `(pointer: coarse)` matches, rather than showing one that silently does nothing;
+  `.share-targets` is an auto-fit grid for the same reason, since the count changes. If an
+  app id ever exists (see the Facebook page ticket), the Send Dialog would work everywhere
+  and the gate could go.
 - **Never give an element the id `turnstile`.** An id becomes a global of the same name,
   so `window.turnstile` was the widget's own `<div>`: Turnstile warned "already has been
   loaded" and `render` was "not a function", and no widget ever appeared.

@@ -465,6 +465,27 @@ describeIfChrome('filter menus (real browser)', () => {
     })
   })
 
+  describe('share dialog', () => {
+    afterAll(async () => {
+      await page.evaluate(() => (document.querySelector('dialog.share-modal') as HTMLDialogElement | null)?.close())
+    })
+
+    it('offers only the targets this device can actually reach', async () => {
+      await page.click('[data-share]')
+      await page.waitForSelector('dialog.share-modal[open]')
+      const targets = await page.$$eval('.share-target', (els) =>
+        els.map((e) => ({ id: e.id, label: e.textContent!.trim(), hidden: (e as HTMLElement).hidden, href: e.getAttribute('href') })),
+      )
+      expect(targets.filter((t) => !t.hidden).map((t) => t.label)).toEqual(['Facebook', 'X', 'Email'])
+      // Messenger's only unauthenticated route is the app's own deep link, which nothing
+      // on a desktop can open, so it is built but hidden wherever the pointer is not
+      // coarse. The href is still correct, because a touch device shows the same markup.
+      const messenger = targets.find((t) => t.id === 'share-messenger')!
+      expect(messenger.hidden).toBe(true)
+      expect(messenger.href).toMatch(/^fb-messenger:\/\/share\?link=http/)
+    })
+  })
+
   describe('returning from an event', () => {
     // The stub has no /e/ route, so leaving lands on its 404. That is enough: what is
     // being tested is what the list remembers on the way out and restores on the way in.
