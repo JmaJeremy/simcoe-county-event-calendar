@@ -1,4 +1,4 @@
-import { adapterFor, httpStats, resetHttpStats } from '@scec/adapters'
+import { HttpError, adapterFor, httpStats, resetHttpStats } from '@scec/adapters'
 import {
   normalizeAll,
   reconcile,
@@ -73,6 +73,18 @@ export async function syncSource(
       requests: httpStats.requests,
     }
   } catch (err) {
+    /*
+     * A refusal is worth more than its status line. Eight govStack calendars answer 403 to
+     * the scheduled run and 200 to every manual one, so what the block page says — and
+     * which WAF rule `x-azure-ref` names — is the evidence for why. `sync_runs.error` keeps
+     * only the message; this puts the rest in the Worker log beside it.
+     */
+    if (err instanceof HttpError) {
+      console.error(
+        `source ${source.slug}: HTTP ${err.status} from ${err.url}` +
+          ` headers=${JSON.stringify(err.headers)} body=${JSON.stringify(err.body.replace(/\s+/g, ' ').slice(0, 300))}`,
+      )
+    }
     return { ...base, ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - startedAt, requests: httpStats.requests }
   }
 }

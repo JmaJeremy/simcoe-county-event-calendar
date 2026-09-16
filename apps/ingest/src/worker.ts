@@ -188,10 +188,33 @@ export function summarize(report: IngestReport): string {
   )
 }
 
+/**
+ * Where this invocation is running, for the log.
+ *
+ * Cron triggers run wherever Cloudflare has capacity, which need not be Canada, while a
+ * manual /run executes near whoever called it. Eight govStack calendars refuse the first
+ * and serve the second, so the data centre is the missing half of that comparison. One
+ * subrequest, and a failure here never touches the run.
+ */
+async function logWhereWeAre(trigger: 'scheduled' | 'manual'): Promise<void> {
+  try {
+    const res = await fetch('https://cloudflare.com/cdn-cgi/trace', { signal: AbortSignal.timeout(5_000) })
+    const trace = Object.fromEntries(
+      (await res.text())
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => line.split('=') as [string, string]),
+    )
+    console.log(`run location: trigger=${trigger} colo=${trace.colo} loc=${trace.loc} ip=${trace.ip} ts=${new Date().toISOString()}`)
+  } catch (err) {
+    console.warn('run location: could not read the trace', err instanceof Error ? err.message : String(err))
+  }
+}
+
 export default {
   async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) {
     ctx.waitUntil(
-      ingestAll(env).then((report) => {
+      logWhereWeAre('scheduled').then(() => ingestAll(env)).then((report) => {
         console.log(summarize(report))
         for (const f of report.sources.filter((o) => !o.ok)) console.error(`  FAILED ${f.slug}: ${f.error}`)
       }),
@@ -211,6 +234,7 @@ export default {
     if (!env.INGEST_TOKEN || url.searchParams.get('token') !== env.INGEST_TOKEN) {
       return new Response('Unauthorized', { status: 401 })
     }
+    await logWhereWeAre('manual')
     const only = url.searchParams.get('source')
     const sources = only ? enabledSources().filter((s) => s.slug === only) : undefined
     const report = await ingestAll(env, {

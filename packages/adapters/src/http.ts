@@ -23,14 +23,33 @@ export class HttpError extends Error {
   status: number
   url: string
   body: string
+  /** The few response headers worth seeing when a host refuses us; see BLOCK_HEADERS. */
+  headers: Record<string, string>
 
-  constructor(status: number, url: string, body: string) {
+  constructor(status: number, url: string, body: string, headers: Record<string, string> = {}) {
     super(`HTTP ${status} from ${url}`)
     this.name = 'HttpError'
     this.status = status
     this.url = url
     this.body = body
+    this.headers = headers
   }
+}
+
+/**
+ * What a refusal is worth reading. Azure Front Door, which fronts the govStack calendars,
+ * names the WAF rule that blocked a request in `x-azure-ref`; the rest say who answered
+ * and whether a CDN or a bot manager was in the way.
+ */
+const BLOCK_HEADERS = ['x-azure-ref', 'x-msedge-ref', 'server', 'cf-ray', 'cf-mitigated', 'x-cache', 'via', 'retry-after', 'content-type']
+
+const blockHeaders = (res: Response): Record<string, string> => {
+  const out: Record<string, string> = {}
+  for (const name of BLOCK_HEADERS) {
+    const value = res.headers.get(name)
+    if (value) out[name] = value
+  }
+  return out
 }
 
 interface FetchOptions {
@@ -76,7 +95,7 @@ export async function request(url: string, options: FetchOptions = {}): Promise<
           redirect: 'follow',
         })
         const text = await res.text()
-        if (!res.ok) throw new HttpError(res.status, url, text.slice(0, 500))
+        if (!res.ok) throw new HttpError(res.status, url, text.slice(0, 500), blockHeaders(res))
         return text
       } finally {
         clearTimeout(timer)
