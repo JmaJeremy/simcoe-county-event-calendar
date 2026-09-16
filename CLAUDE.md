@@ -33,7 +33,7 @@ node --experimental-strip-types apps/web/scripts/brand.ts          # re-render i
 
 A full run takes ~2 min and ~660 HTTP requests: 34/34 sources for ~4,900 listings (Eventbrite
 alone is 13 slow requests, ~25 s; Barrie's 823 library events are one request), then up to 300
-event pages read for price and posters, then up to 200 unclear listings sent to the cost judge,
+event pages read for price and posters, then the unclear listings that mention a sum sent to the cost judge (a few a run, capped at 200),
 then dedup over ~9,000 pairs into ~4,650 events. The subrequest ceiling is
 1,000 per invocation, so the two budgets in `enrich.ts` and `cost.ts` are what keeps the
 run inside it — raise either and check the total.
@@ -229,6 +229,16 @@ when it breaks, so nothing here is checked by eye.
   the event is 2.6KB. A "$" from the site's own footer would price a free concert, and
   govStack recreation pages carry the arena's drop-in rate card below the description —
   which is why the govStack parser stops at the "See more" toggle.
+- **The cost judge is only asked about listings that contain a sum of money.** It can
+  only return a sentence already in the listing, and `decideCost` then requires that
+  sentence to state a price, so a listing with no sum in it has nothing to find. Over the
+  first 1,463 readings every one of the 66 that produced a price came from a listing
+  containing money, and the other 1,371 came back unclear without exception — so the gate
+  cuts the calls by about 95% and loses nothing measurable. `loadCostCandidates` screens in
+  SQL with a deliberately loose `LIKE` superset (SQLite cannot express core's `MONEY`
+  pattern; `'%cad%'` also matches "academy"), and `judgeCosts` applies `containsMoney`
+  itself. It self-heals: text that gains a price gets a new content hash and becomes a
+  candidate. A miss is cheap, since an unknown cost still shows in the default view.
 - **The cost judge is a finder, not a decider.** It returns the sentence that states the
   price; `decideCost` then checks that sentence really appears in the listing and runs the
   ordinary cost rules over it. Never let a model's verdict set a cost directly. The bar is

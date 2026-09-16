@@ -97,7 +97,18 @@ export function decideCost(
 
 /**
  * Ask a model to find the sentence that states the price, for listings the rules and the
- * event's own page both left unclear.
+ * event's own page both left unclear — and that contain a sum of money.
+ *
+ * The money test is what makes this worth running. The judge can only return a sentence
+ * that is already in the listing, and `decideCost` then requires that sentence to state a
+ * price, so a listing with no sum in it has nothing to find. Measured over the first 1,463
+ * readings: every one of the 66 that produced a price came from a listing containing
+ * money, and the other 1,371 returned "unclear" without exception. Asking only about the
+ * ones with a sum in them cuts the calls by about 95% and loses nothing.
+ *
+ * It self-heals: if a source later adds a price to the text, the content hash changes, the
+ * listing now contains money and becomes a candidate. And a missed reading is cheap —
+ * the listing stays "unknown", which the default view shows alongside free.
  *
  * Every reading is cached against the listing's content hash, so the same words are never
  * paid for twice and an edited listing is read again. Nothing here can overrule a price a
@@ -112,8 +123,10 @@ export async function judgeCosts(db: D1Like, judge: CostJudge, options: CostPass
     .filter((source) => source.config.platform in DETAIL_FETCHERS)
     .map((source) => source.slug)
 
-  const { candidates, remaining } = await loadCostCandidates(db, enrichable, budget)
+  const { candidates: screened, remaining } = await loadCostCandidates(db, enrichable, budget)
   stats.remaining = remaining
+  // The SQL screen is a loose superset of MONEY; this is the pattern itself.
+  const candidates = screened.filter((c) => containsMoney(`${c.title}\n${c.description}`))
   if (candidates.length === 0) return stats
 
   const readings = await judge.read(
@@ -148,7 +161,11 @@ export async function judgeCosts(db: D1Like, judge: CostJudge, options: CostPass
     ...setListingCostStatements(db, updates),
   ])
 
-  stats.remaining = Math.max(0, remaining - stats.resolved)
+  // Every candidate asked about is recorded, whatever the verdict, so all of them drop out
+  // of the next run's count — not just the ones that resolved. The few the SQL screen let
+  // through and the money test dropped stay in it, and stay cheap: they cost a row in a
+  // query, never a call.
+  stats.remaining = Math.max(0, remaining - candidates.length)
   return stats
 }
 

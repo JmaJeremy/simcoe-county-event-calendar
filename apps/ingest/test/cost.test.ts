@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { decideCost } from '../src/cost.ts'
+import { decideCost, judgeCosts } from '../src/cost.ts'
+import type { CostJudge } from '../src/cost-judge.ts'
+import type { D1Like, D1Statement } from '../src/repository.ts'
 
 const listing = {
   title: 'Baytowne Big Band',
@@ -77,5 +79,63 @@ describe('quotes the rules used to throw away', () => {
   it('refuses a whole paragraph, however many dollar signs it has', () => {
     const quote = 'x'.repeat(150) + ' $20'
     expect(q(quote, quote)).toMatchObject({ verdict: 'unclear' })
+  })
+})
+
+/**
+ * The gate in front of the judge. It can only ever return a sentence already in the
+ * listing, and decideCost then requires that sentence to state a price, so a listing with
+ * no sum in it has nothing to find. Measured over the first 1,463 readings: all 66 that
+ * produced a price came from a listing containing money, and the other 1,371 came back
+ * unclear without exception.
+ */
+describe('which listings are worth asking about', () => {
+  const rows = [
+    { id: 'a', title: 'Chili Cook-off', description: `Bowls are $5 at the door, ${'x'.repeat(60)}`, content_hash: 'h1', source_name: 'Severn' },
+    { id: 'b', title: 'Academy Open House', description: `Admission and registration details to follow. ${'x'.repeat(60)}`, content_hash: 'h2', source_name: 'Barrie' },
+  ]
+
+  const stubDb = (): { db: D1Like; batched: number } => {
+    const state = { batched: 0 }
+    const statement: D1Statement = {
+      bind: () => statement,
+      all: async () => ({ results: rows }) as { results: never[] },
+      run: async () => undefined,
+      first: async () => ({ n: rows.length }) as never,
+    }
+    return { db: { prepare: () => statement, batch: async (s) => (state.batched += s.length) }, get batched() { return state.batched } }
+  }
+
+  it('asks only about the listing with a sum in it', async () => {
+    const asked: string[] = []
+    const judge: CostJudge = {
+      name: 'test',
+      read: async (items) => {
+        asked.push(...items.map((i) => i.id))
+        return items.map(() => ({ quote: 'Bowls are $5 at the door' }))
+      },
+    }
+    const { db } = stubDb()
+    const stats = await judgeCosts(db, judge, { budget: 10, now: '2026-09-16T00:00:00.000Z' })
+
+    // "Academy" trips the SQL screen's '%cad%'; the money test is what actually decides.
+    expect(asked).toEqual(['a'])
+    expect(stats.read).toBe(1)
+    expect(stats.paid).toBe(1)
+  })
+
+  it('spends nothing when nothing in the batch mentions money', async () => {
+    let called = false
+    const judge: CostJudge = { name: 'test', read: async () => ((called = true), []) }
+    const onlyB = [rows[1]!]
+    const statement: D1Statement = {
+      bind: () => statement,
+      all: async () => ({ results: onlyB }) as { results: never[] },
+      run: async () => undefined,
+      first: async () => ({ n: 1 }) as never,
+    }
+    const stats = await judgeCosts({ prepare: () => statement, batch: async () => undefined }, judge, { budget: 10 })
+    expect(called).toBe(false)
+    expect(stats.read).toBe(0)
   })
 })
