@@ -51,5 +51,6 @@
   "p2-suggestion-accept": "SCEC-64",
   "p2-suggest-top": "SCEC-65",
   "p2-ticketmaster": "SCEC-66",
-  "p2-ca-fetch-proxy": "SCEC-67"
+  "p2-ca-fetch-proxy": "SCEC-67",
+  "p2-facebook-outreach": "SCEC-68"
 }
