@@ -23,6 +23,11 @@ export interface Env {
   /** Credentials for the eventbrite and ticketmaster sources; each fails without its own. */
   EVENTBRITE_TOKEN?: string
   TICKETMASTER_CONSUMER_KEY?: string
+  /** The Canadian fetch proxy (Lambda, ca-central-1), for calendars that refuse the rest of the world. */
+  FETCH_PROXY_FUNCTION?: string
+  FETCH_PROXY_REGION?: string
+  FETCH_PROXY_ACCESS_KEY_ID?: string
+  FETCH_PROXY_SECRET_ACCESS_KEY?: string
   /** Claude API key for the de-duplication judge. Without it, ambiguous pairs stay apart. */
   ANTHROPIC_API_KEY?: string
   /** The admin console's hostname; requests to it are the console and nothing else. */

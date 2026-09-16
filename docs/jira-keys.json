@@ -50,5 +50,6 @@
   "p2-barrie-film-festival": "SCEC-63",
   "p2-suggestion-accept": "SCEC-64",
   "p2-suggest-top": "SCEC-65",
-  "p2-ticketmaster": "SCEC-66"
+  "p2-ticketmaster": "SCEC-66",
+  "p2-ca-fetch-proxy": "SCEC-67"
 }

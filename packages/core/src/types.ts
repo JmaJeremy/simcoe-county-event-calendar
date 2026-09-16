@@ -246,7 +246,18 @@ export interface SyncWindow {
  * empty calendar.
  */
 export interface AdapterContext {
-  secrets: Partial<Record<'EVENTBRITE_TOKEN' | 'TICKETMASTER_CONSUMER_KEY', string>>
+  secrets: Partial<
+    Record<
+      | 'EVENTBRITE_TOKEN'
+      | 'TICKETMASTER_CONSUMER_KEY'
+      | 'FETCH_PROXY_FUNCTION'
+      | 'FETCH_PROXY_REGION'
+      | 'FETCH_PROXY_ACCESS_KEY_ID'
+      | 'FETCH_PROXY_SECRET_ACCESS_KEY'
+      | 'FETCH_PROXY_FORCE',
+      string
+    >
+  >
 }
 
 export type Adapter = (source: Source, window: SyncWindow, context?: AdapterContext) => Promise<RawEvent[]>

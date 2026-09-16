@@ -78,6 +78,9 @@ printf '%s' "$INGEST_TOKEN" | npx wrangler secret put INGEST_TOKEN --config apps
 printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY --config apps/ingest/wrangler.jsonc
 printf '%s' "$EVENTBRITE_TOKEN" | npx wrangler secret put EVENTBRITE_TOKEN --config apps/ingest/wrangler.jsonc
 printf '%s' "$TICKETMASTER_CONSUMER_KEY" | npx wrangler secret put TICKETMASTER_CONSUMER_KEY --config apps/ingest/wrangler.jsonc
+for k in FETCH_PROXY_FUNCTION FETCH_PROXY_REGION FETCH_PROXY_ACCESS_KEY_ID FETCH_PROXY_SECRET_ACCESS_KEY; do
+  printf '%s' "${(P)k}" | npx wrangler secret put "$k" --config apps/ingest/wrangler.jsonc   # zsh
+done
 
 # Trigger a run by hand and read the summary
 curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TOKEN"
@@ -379,6 +382,29 @@ when it breaks, so nothing here is checked by eye.
 - **An organization's own calendar outranks the town's copy.** `PRIORITY.organization = 8`
   (the Barrie Film Festival): a festival knows its own programme better than a municipal
   repost. `ticketing = 45` sits between tourism and media.
+- **Eight municipal calendars refuse requests from outside Canada.** Measured 2026-09-16
+  against `calendar.midland.ca`: a Canadian laptop, a home server, ca-central-1 EC2 and
+  ca-central-1 Lambda all get 200; us-east-2 EC2 gets 403. Cloudflare runs cron triggers
+  wherever it has capacity, so from 2026-09-14 every scheduled run lost Midland, Orillia,
+  Orillia Public Library, Oro-Medonte, Ramara, Severn, Springwater and Wasaga Beach, while
+  every manual run from Toronto kept them. Placement settings cannot fix it: they "only
+  affect the execution of fetch event handlers", never `scheduled`.
+- **So a 403 is retried through a Lambda in ca-central-1** (`infra/ca-fetch-proxy`, function
+  `scec-ca-fetch-proxy` in AWS account 635886974472). Retrying, rather than always proxying,
+  keeps every other request direct and lets a town that lifts its block go back to being
+  fetched directly with no change here. Public function URLs are blocked in that account, so
+  `http.ts` signs a Lambda Invoke (`sigv4.ts`, Web Crypto, two signed headers) as the IAM
+  user `scec-ingest-proxy`, which may do nothing but invoke that one function. The Lambda
+  answers `{ status, body, headers }` and the calendar's own refusal is rethrown as if it
+  came direct. The host allowlist lives in the Lambda, so widening it is a deploy there:
+  `zip -j function.zip infra/ca-fetch-proxy/index.mjs && aws --profile jeremy lambda
+  update-function-code --function-name scec-ca-fetch-proxy --region ca-central-1 --zip-file
+  fileb://function.zip`.
+- **`FETCH_PROXY_FORCE=1` sends every GET through the proxy.** The point of the switch is to
+  prove that path from a machine nobody blocks: `FETCH_PROXY_FORCE=1 node
+  --experimental-strip-types apps/ingest/src/cli.ts --source midland` fetched the same 102
+  listings as the direct run. Never set it on the worker; it would route every source
+  through Canada for nothing.
 - **Adding a route to a worker turns its workers.dev URL off** unless `workers_dev: true`
   is set. `apps/ingest/wrangler.jsonc` sets it, because `/run` is called on workers.dev.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.

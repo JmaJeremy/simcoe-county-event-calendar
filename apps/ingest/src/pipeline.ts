@@ -1,4 +1,4 @@
-import { HttpError, adapterFor, httpStats, resetHttpStats } from '@scec/adapters'
+import { HttpError, adapterFor, httpStats, resetHttpStats, setFetchProxy } from '@scec/adapters'
 import {
   normalizeAll,
   reconcile,
@@ -27,7 +27,17 @@ export function defaultWindow(today = new Date()): SyncWindow {
 /** Credentials for the adapters that need them, from the worker's env or process.env. */
 export function adapterContextFrom(env: Record<string, unknown>): AdapterContext {
   const secret = (name: string): string | undefined => (typeof env[name] === 'string' && env[name] ? (env[name] as string) : undefined)
-  return { secrets: { EVENTBRITE_TOKEN: secret('EVENTBRITE_TOKEN'), TICKETMASTER_CONSUMER_KEY: secret('TICKETMASTER_CONSUMER_KEY') } }
+  return {
+    secrets: {
+      EVENTBRITE_TOKEN: secret('EVENTBRITE_TOKEN'),
+      TICKETMASTER_CONSUMER_KEY: secret('TICKETMASTER_CONSUMER_KEY'),
+      FETCH_PROXY_FUNCTION: secret('FETCH_PROXY_FUNCTION'),
+      FETCH_PROXY_REGION: secret('FETCH_PROXY_REGION'),
+      FETCH_PROXY_ACCESS_KEY_ID: secret('FETCH_PROXY_ACCESS_KEY_ID'),
+      FETCH_PROXY_SECRET_ACCESS_KEY: secret('FETCH_PROXY_SECRET_ACCESS_KEY'),
+      FETCH_PROXY_FORCE: secret('FETCH_PROXY_FORCE'),
+    },
+  }
 }
 
 export interface SourceResult {
@@ -55,6 +65,14 @@ export async function syncSource(
 ): Promise<SourceResult> {
   const startedAt = Date.now()
   resetHttpStats()
+  // Hosts that refuse anything outside Canada are retried through the proxy; see http.ts.
+  setFetchProxy({
+    functionName: context?.secrets.FETCH_PROXY_FUNCTION,
+    region: context?.secrets.FETCH_PROXY_REGION,
+    accessKeyId: context?.secrets.FETCH_PROXY_ACCESS_KEY_ID,
+    secretAccessKey: context?.secrets.FETCH_PROXY_SECRET_ACCESS_KEY,
+    force: context?.secrets.FETCH_PROXY_FORCE === '1',
+  })
   const base = { source, fetched: 0, listings: [], skipped: [], durationMs: 0, requests: 0 }
 
   try {

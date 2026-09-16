@@ -1,3 +1,5 @@
+import { signLambdaInvoke } from './sigv4.ts'
+
 /**
  * Shared fetch helpers for all adapters.
  *
@@ -58,6 +60,72 @@ interface FetchOptions {
   headers?: Record<string, string>
   timeoutMs?: number
   retries?: number
+  /** Set when this call is already going through the proxy, so a 403 cannot loop. */
+  viaProxy?: boolean
+}
+
+/*
+ * A fetch proxy that runs in Canada.
+ *
+ * Eight of the twelve govStack municipal calendars refuse requests from outside the
+ * country: measured 2026-09-16, a Canadian laptop, a home server, ca-central-1 EC2 and
+ * ca-central-1 Lambda all got 200 from calendar.midland.ca, us-east-2 EC2 got 403. That is
+ * why the scheduled ingest fails on exactly those eight while every manual run from Toronto
+ * succeeds — Cloudflare runs cron triggers wherever it has capacity.
+ *
+ * So a 403 is retried once through a small Lambda in ca-central-1 (infra/ca-fetch-proxy).
+ * Retrying rather than always proxying keeps every other request direct, and means a town
+ * that lifts its block goes back to being fetched directly with no change here.
+ */
+export interface FetchProxyConfig {
+  functionName?: string
+  region?: string
+  accessKeyId?: string
+  secretAccessKey?: string
+  /** Send every allowed host through the proxy, to prove the path from a machine that is not blocked. */
+  force?: boolean
+}
+
+let proxy: Required<Omit<FetchProxyConfig, 'force'>> & { force: boolean } | null = null
+
+export function setFetchProxy(config: FetchProxyConfig | null): void {
+  const { functionName, region, accessKeyId, secretAccessKey } = config ?? {}
+  proxy =
+    functionName && region && accessKeyId && secretAccessKey
+      ? { functionName, region, accessKeyId, secretAccessKey, force: config?.force ?? false }
+      : null
+}
+
+export const fetchProxyConfigured = (): boolean => proxy !== null
+
+/** What the Lambda answers: the calendar's own status, body and the headers worth keeping. */
+interface ProxyResult {
+  status?: number
+  body?: string
+  headers?: Record<string, string>
+  proxyError?: string
+}
+
+async function fetchThroughProxy(url: string, accept: string): Promise<string> {
+  const config = proxy!
+  const signed = await signLambdaInvoke(config, config.functionName, { url, userAgent: USER_AGENT, accept })
+  httpStats.requests++
+  const res = await fetch(signed.url, { method: 'POST', headers: signed.headers, body: signed.body })
+  const text = await res.text()
+  if (!res.ok) throw new Error(`fetch proxy: Lambda answered ${res.status} ${text.slice(0, 200)}`)
+  if (res.headers.get('x-amz-function-error')) throw new Error(`fetch proxy: the Lambda failed: ${text.slice(0, 200)}`)
+
+  let result: ProxyResult
+  try {
+    result = JSON.parse(text) as ProxyResult
+  } catch {
+    throw new Error('fetch proxy: the Lambda answered something that is not JSON')
+  }
+  if (result.proxyError) throw new Error(`fetch proxy: ${result.proxyError}`)
+  if (typeof result.status !== 'number') throw new Error('fetch proxy: the Lambda answered without a status')
+  // The calendar's own refusal, carried back whole, so it reads like a direct one.
+  if (result.status < 200 || result.status >= 300) throw new HttpError(result.status, url, (result.body ?? '').slice(0, 500), result.headers ?? {})
+  return result.body ?? ''
 }
 
 /** A 5xx or a network blip is worth retrying; a 404 means the shape changed and never will be. */
@@ -75,6 +143,9 @@ export const resetHttpStats = (): void => {
 
 export async function request(url: string, options: FetchOptions = {}): Promise<string> {
   const { method = 'GET', body, headers = {}, timeoutMs = 20_000, retries = 2 } = options
+
+  // FETCH_PROXY_FORCE: prove the proxy path from a machine the calendars do not block.
+  if (proxy?.force && method === 'GET' && !options.viaProxy) return fetchThroughProxy(url, headers.Accept ?? '*/*')
 
   let lastError: unknown
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -102,6 +173,11 @@ export async function request(url: string, options: FetchOptions = {}): Promise<
       }
     } catch (err) {
       lastError = err
+      if (err instanceof HttpError && err.status === 403 && proxy && !options.viaProxy) {
+        const host = URL.parse(url)?.hostname ?? url
+        console.log(`http: ${host} answered 403; retrying through the Canadian proxy`)
+        return fetchThroughProxy(url, headers.Accept ?? '*/*')
+      }
       if (!isRetryable(err)) throw err
     }
   }
