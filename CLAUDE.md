@@ -31,9 +31,9 @@ node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
 
-A full run takes ~2 min and ~640 HTTP requests: 28/28 sources for ~2,700 listings (Eventbrite
+A full run takes ~2 min and ~650 HTTP requests: 30/30 sources for ~3,200 listings (Eventbrite
 alone is 13 slow requests, ~25 s), then up to 300 event pages read for price and posters, then
-up to 200 unclear listings sent to the cost judge, then dedup over ~3,400 pairs into ~2,500
+up to 200 unclear listings sent to the cost judge, then dedup over ~4,700 pairs into ~3,000
 events. The subrequest ceiling is
 1,000 per invocation, so the two budgets in `enrich.ts` and `cost.ts` are what keeps the
 run inside it — raise either and check the total.
@@ -56,7 +56,7 @@ still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load
 dedup rewrites every event from its representative listing, so anything the middle two
 passes learn reaches the site in the same run instead of two hours later.
 
-**Adapters are per platform, sources are per site.** Eight adapters cover 28 sources; adding a
+**Adapters are per platform, sources are per site.** Eight adapters cover 30 sources; adding a
 site on a supported platform is a row in `packages/core/src/sources.ts`. Eventbrite and
 Ticketmaster need credentials, passed to adapters as an `AdapterContext` the worker builds
 from its secrets and the dry-run CLI from the environment (`adapterContextFrom`).
@@ -382,6 +382,11 @@ when it breaks, so nothing here is checked by eye.
 - **An organization's own calendar outranks the town's copy.** `PRIORITY.organization = 8`
   (the Barrie Film Festival): a festival knows its own programme better than a municipal
   repost. `ticketing = 45` sits between tourism and media.
+- **A library's events may already be arriving through its township.** Tay and Severn put
+  their library programs on the township govStack calendar — 40 of Tay's 75 active listings —
+  so those libraries need no source of their own, and adding one would only make dedup work.
+  Penetanguishene, Wasaga Beach, Ramara, Tiny and Oro-Medonte have no separate library site
+  at all. Check the township's listings before adding a library (SCEC-28 has the survey).
 - **Eight municipal calendars refuse requests from outside Canada.** Measured 2026-09-16
   against `calendar.midland.ca`: a Canadian laptop, a home server, ca-central-1 EC2 and
   ca-central-1 Lambda all get 200; us-east-2 EC2 gets 403. Cloudflare runs cron triggers

@@ -168,6 +168,26 @@ export const SOURCES: Source[] = [
 
   // ---- Libraries ----------------------------------------------------------------------
   govstack('orillia-library', 'Orillia Public Library', 'orillia', 'events.orilliapubliclibrary.ca', 'library'),
+  row({
+    // The Events Calendar, like New Tecumseth's town calendar: 237 events in the window,
+    // mostly storytimes, clubs and workshops the town calendar never carries.
+    slug: 'midland-library',
+    name: 'Midland Public Library',
+    kind: 'library',
+    municipalitySlug: 'midland',
+    config: { platform: 'tribe', origin: 'https://midlandlibrary.com' },
+    homepage: 'https://midlandlibrary.com/events/',
+  }),
+  row({
+    // Four branches across the town, and the only library here that states a price: most
+    // of its events say "Free" outright.
+    slug: 'new-tecumseth-library',
+    name: 'New Tecumseth Public Library',
+    kind: 'library',
+    municipalitySlug: 'new-tecumseth',
+    config: { platform: 'tribe', origin: 'https://ntpl.ca' },
+    homepage: 'https://ntpl.ca/events-calendar/',
+  }),
 
   // ---- Local media: Village Media SPACES ----------------------------------------------
   // Each *Today site fronts a `<town>.spaces.ca` instance; the news sites themselves
