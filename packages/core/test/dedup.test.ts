@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DISTINCT_THRESHOLD,
+  MERGE_THRESHOLD,
   buildClusters,
   candidatePairs,
   datesSpanned,
@@ -95,9 +96,45 @@ describe('signals', () => {
 })
 
 describe('candidatePairs', () => {
-  it('never pairs two listings from the same source', () => {
+  it('pairs two listings from one source when the place and the time both agree', () => {
+    // A source duplicating itself: BarrieToday carried one concert under both
+    // "arts-culture" and "live-music", and nothing merged them because same-source pairs
+    // were never scored at all.
     const pairs = candidatePairs([listing({ id: 'a', sourceSlug: 'severn' }), listing({ id: 'b', sourceSlug: 'severn' })])
-    expect(pairs).toHaveLength(0)
+    expect(pairs).toHaveLength(1)
+  })
+
+  it('never pairs one source\u2019s listings at different branches, however alike they read', () => {
+    // Barrie Public Library runs "Kindergarten School Skills" at 10:00 at three branches
+    // on one morning. Scored, they merge \u2014 the shared word "Branch" is enough to lift
+    // them to 0.94 \u2014 so the gate has to stop them before scoring.
+    const atBranch = (id: string, venueName: string) =>
+      listing({ id, sourceSlug: 'barrie-library', municipalitySlug: 'barrie', title: 'Kindergarten School Skills', venueName })
+    const branches = [atBranch('a', 'Downtown Branch'), atBranch('b', 'Painswick Branch'), atBranch('c', 'Holly Branch')]
+    expect(candidatePairs(branches)).toHaveLength(0)
+    // The score they would have got, had they been allowed through.
+    expect(scorePair(branches[0]!, branches[1]!).score).toBeGreaterThan(MERGE_THRESHOLD)
+
+    const newTecumseth = [
+      listing({ id: 'd', sourceSlug: 'new-tecumseth-library', title: 'Let\u2019s Play: Chess', venueName: 'Pam Kirkpatrick Branch (Tottenham)' }),
+      listing({ id: 'e', sourceSlug: 'new-tecumseth-library', title: 'Let\u2019s Play: Chess', venueName: 'D A Jones Branch (Beeton)' }),
+    ]
+    expect(candidatePairs(newTecumseth)).toHaveLength(0)
+  })
+
+  it('never pairs one source\u2019s listings at different times', () => {
+    // Two showings of "Friday Flicks" at one branch, and 40-minute tech-help slots.
+    const flicks = (id: string, localTime: string, startsAtUtc: string) =>
+      listing({ id, sourceSlug: 'barrie-library', title: 'Friday Flicks', venueName: 'Painswick Branch', localTime, startsAtUtc })
+    expect(candidatePairs([flicks('a', '14:30', '2026-09-26T18:30:00.000Z'), flicks('b', '18:30', '2026-09-26T22:30:00.000Z')])).toHaveLength(0)
+    expect(candidatePairs([flicks('c', '15:00', '2026-09-26T19:00:00.000Z'), flicks('d', '15:40', '2026-09-26T19:40:00.000Z')])).toHaveLength(0)
+  })
+
+  it('pairs one source\u2019s all-day listings, and treats a silent venue as no disagreement', () => {
+    const allDay = (id: string) => listing({ id, sourceSlug: 'orilliamatters', allDay: true, timePrecision: 'date-only' })
+    expect(candidatePairs([allDay('a'), allDay('b')])).toHaveLength(1)
+    // One side names a venue, the other says nothing: unknown, not different.
+    expect(candidatePairs([listing({ id: 'c', sourceSlug: 'tay', venueName: 'Victoria Harbour Legion' }), listing({ id: 'd', sourceSlug: 'tay' })])).toHaveLength(1)
   })
 
   it('never pairs listings placed in different municipalities, even with identical titles and times', () => {
@@ -148,6 +185,22 @@ describe('scorePair and verdicts', () => {
     })
     expect(verdictByRules(scorePair(township, county))).toBe('same')
     expect(scorePair(township, news).score).toBeGreaterThan(DISTINCT_THRESHOLD)
+  })
+
+  it('reaches at least the judge for the same concert posted twice by one news site', () => {
+    // The real pair, verbatim: BarrieToday 69807 and 69808, one titled with the address
+    // appended. Both venue and address are null, as user-submitted SPACES listings are.
+    const spaces = (id: string, title: string, url: string) =>
+      listing({ id: `barrietoday:${id}@2026-09-16`, sourceSlug: 'barrietoday', sourceKind: 'media', municipalitySlug: 'barrie', title, url,
+        localDate: '2026-09-16', localTime: '12:00', startsAtUtc: '2026-09-16T16:00:00.000Z', endsAtUtc: '2026-09-16T17:00:00.000Z' })
+    const a = spaces('69807', 'Barrie Sax Quartet\u2019s "Merry Go Round of Life" at Bethel Community Church',
+      'https://barrie.spaces.ca/arts-culture/barrie-sax-quartets-merry-go-round-of-life-at-bethel-community-church-69807')
+    const b = spaces('69808', 'Barrie Sax Quartet\u2019s "Merry Go Round of Life" at Bethel Community Church, 128 St. Vincent St, Barrie',
+      'https://barrie.spaces.ca/live-music/barrie-sax-quartets-merry-go-round-of-life-at-bethel-community-church-128-st-vincent-st-barrie-69808')
+    expect(candidatePairs([a, b])).toHaveLength(1)
+    // The appended address costs it enough title similarity to land short of an automatic
+    // merge, which is what the judge is for. What matters is that it is no longer distinct.
+    expect(verdictByRules(scorePair(a, b))).not.toBe('distinct')
   })
 
   it('keeps different events on the same day apart', () => {

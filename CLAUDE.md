@@ -183,6 +183,23 @@ when it breaks, so nothing here is checked by eye.
   and refuses one that would join two different placed municipalities. Listings that start
   on different dates never auto-merge (a theatre run vs one performance) — the judge decides.
   Changing any scoring rule means bumping `RULES_VERSION` so cached rule verdicts recompute.
+- **A source duplicates itself, so same-source pairs are scored too** — but behind a
+  stricter gate (`sameSourceCandidate`). BarrieToday carried one concert under both
+  "arts-culture" and "live-music", Collingwood the same big band three times, Tay its own
+  cribbage tournament twice, Eventbrite two ticket pages for one library programme; none
+  could ever merge, because the pair was never a candidate. The gate is stricter than the
+  cross-source score on purpose: across sources a differing venue is usually wording
+  ("Downtown Branch" vs "Barrie Public Library, 60 Worsley St"), but within one source the
+  naming is consistent, so a difference is real. Barrie Public Library runs "Kindergarten
+  School Skills" at 10:00 at three branches at once and the ordinary score merges all
+  three — the shared word "Branch" alone lifts them to 0.94. So one source's listings pair
+  only when the place matches exactly (or one side is silent) and the time agrees exactly;
+  two showings of "Friday Flicks" and 40-minute tech-help slots stay apart. The gate is
+  most of the value: ~8,400 same-source pairs share a date, and it throws out all but ~286
+  of them (9,006 candidate pairs became 9,292), so the judge budget barely moves. It needs
+  no `RULES_VERSION` bump: `scorePair` is unchanged, so cached verdicts stay valid and the
+  new pairs have none. Measured on the first run: 28 self-duplicate clusters across 12
+  sources, 18 judge calls.
 - **The judge is optional and cached.** Without `ANTHROPIC_API_KEY` ambiguous pairs stay
   unmerged (`unresolved` in the run stats) and are retried next run. A verdict is stored per
   pair per content hash, so the model sees each pair once.

@@ -55,5 +55,7 @@
   "p2-facebook-outreach": "SCEC-68",
   "p2-libcal": "SCEC-69",
   "p2-whofi": "SCEC-70",
-  "p2-bibliocommons": "SCEC-71"
+  "p2-bibliocommons": "SCEC-71",
+  "p2-self-duplicates": "SCEC-72",
+  "p2-govstack-month-url": "SCEC-73"
 }
