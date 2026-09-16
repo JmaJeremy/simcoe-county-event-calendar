@@ -13,7 +13,19 @@
  *     the site shows.
  */
 
-export type Platform = 'govstack' | 'drupal-events' | 'eventon' | 'tribe' | 'spaces' | 'cityspark' | 'eventbrite' | 'ticketmaster' | 'manual'
+export type Platform =
+  | 'govstack'
+  | 'drupal-events'
+  | 'eventon'
+  | 'tribe'
+  | 'spaces'
+  | 'cityspark'
+  | 'eventbrite'
+  | 'ticketmaster'
+  | 'communico'
+  | 'libcal'
+  | 'ics'
+  | 'manual'
 
 /** Who publishes a calendar. Drives the representative choice when listings merge. */
 /**
@@ -84,6 +96,12 @@ export type SourceConfig =
   | { platform: 'eventbrite'; bbox: string }
   /** Ticketmaster's Discovery API, asked by venue. Needs TICKETMASTER_CONSUMER_KEY. */
   | { platform: 'ticketmaster'; venueIds: string[] }
+  /** Communico, the library events platform, read through the calendar its own page calls. */
+  | { platform: 'communico'; host: string }
+  /** Springshare LibCal, read through the iCal feed of each listed calendar. */
+  | { platform: 'libcal'; host: string; calendarIds: number[] }
+  /** Any published iCalendar feed: Tockify, Google Calendar, a venue's own .ics. */
+  | { platform: 'ics'; urls: string[] }
   /** Entered by hand in the admin console. Nothing to fetch. */
   | { platform: 'manual' }
 

@@ -1,0 +1,226 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Springshare//LibCal//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Events & Programs
+X-WR-CALDESC:
+X-WR-TIMEZONE:America/New_York
+X-PUBLISHED-TTL:PT15M
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260731
+DTEND;VALUE=DATE:20260801
+DTSTAMP:20260731T000000Z
+SUMMARY:Summer Passport Challenge Registration NOW OPEN (Ages 10 &up)
+DESCRIPTION:\n\nYouth Passport Challenge & Reading Bookmark Challenge (Ages 
+ 10 and up)\n\nRegistration begins online on June 12th. The Grand Prize draw 
+ will take place on Aug 25th @ noon.\n\nRegister online or in-person from 
+ June 12th until Aug 25th at noon. Visit your local branch to pick up your 
+ passport booklet of activities and get started on your summer challenge. 
+ Don't forget to visit the library to pick up your prizes as you complete 
+ each 'Challenge Stop' on your passport booklet. Hand in your completed 
+ booklet so it can be entered into the Grand Prize draw on Aug 25th. FYI 
+ Reading Bookmarks will be available throughout the summer\, you are welcome 
+ to complete as many as you like. Take & Make Kits will be available only 
+ while supplies last. For further details\, email Elaine at 
+ ehamerton@clearview.ca\n\nSee separate registration dates for the Youth 
+ Summer Workshops.
+LOCATION:Creemore Branch\, New Lowell Branch\, Stayner Branch
+ORGANIZER;CN="Elaine Hamerton":MAILTO:ehamerton@clearview.ca
+CATEGORIES:
+UID:LibCal-8690-4026194
+URL:https://clearviewlibrary.libcal.com/event/4026194
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260818T170000Z
+DTEND:20260818T200000Z
+DTSTAMP:20260818T000000Z
+SUMMARY:Computer Help - Stayner Branch
+DESCRIPTION:Computer Help with Clearview Public Library volunteer Judah. 
+ All ages!  This program runs the 2nd\, 3rd & 4th Tuesday of each month at 
+ the Stayner Branch. Contact the Stayner Branch for more details (705) 
+ 428-3595.
+LOCATION:Stayner Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:
+UID:LibCal-8690-4035134
+URL:https://clearviewlibrary.libcal.com/event/4035134
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260819T140000Z
+DTEND:20260819T160000Z
+DTSTAMP:20260819T000000Z
+SUMMARY:Enchanting Sea Cake Decorating Workshop - Creemore Branch - Ages 10 & Up
+DESCRIPTION:Enchanting Sea Cake Decorating Workshop - Creemore Branch - 
+ Ages 10 & Up\n\n
+LOCATION:Creemore Branch
+ORGANIZER;CN="Elaine Hamerton":MAILTO:ehamerton@clearview.ca
+CATEGORIES:Teens
+UID:LibCal-8690-4028580
+URL:https://clearviewlibrary.libcal.com/event/4028580
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260819T173000Z
+DTEND:20260819T193000Z
+DTSTAMP:20260819T000000Z
+SUMMARY:Enchanting Sea Cake Decorating Workshop - New Lowell Branch - Ages 10 & Up
+DESCRIPTION:Enchanting Sea Cake Decorating Workshop - New Lowell Branch - 
+ Ages 10 & Up\n\n
+LOCATION:New Lowell Branch
+ORGANIZER;CN="Elaine Hamerton":MAILTO:ehamerton@clearview.ca
+CATEGORIES:Teens
+UID:LibCal-8690-4028581
+URL:https://clearviewlibrary.libcal.com/event/4028581
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260822T140000Z
+DTEND:20260822T160000Z
+DTSTAMP:20260822T000000Z
+SUMMARY:Enchanting Sea Cake Decorating Workshop - Stayner Branch - Ages 10 & Up
+DESCRIPTION:Sea Shell Creations Workshop - Stayner Branch - Ages 10 & 
+ Up\n\n
+LOCATION:Stayner Branch
+ORGANIZER;CN="Elaine Hamerton":MAILTO:ehamerton@clearview.ca
+CATEGORIES:Teens
+UID:LibCal-8690-4028582
+URL:https://clearviewlibrary.libcal.com/event/4028582
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260825T160000Z
+DTEND:20260825T160500Z
+DTSTAMP:20260825T000000Z
+SUMMARY:Youth Program GRAND PRIZE DRAW - All branches @ Noon
+DESCRIPTION:Youth Program GRAND PRIZE DRAW - All branches @ Noon\n\n
+LOCATION:Creemore Branch\, New Lowell Branch\, Stayner Branch
+ORGANIZER;CN="Elaine Hamerton":MAILTO:ehamerton@clearview.ca
+CATEGORIES:
+UID:LibCal-8690-4028593
+URL:https://clearviewlibrary.libcal.com/event/4028593
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260825T170000Z
+DTEND:20260825T200000Z
+DTSTAMP:20260825T000000Z
+SUMMARY:Computer Help - Stayner Branch
+DESCRIPTION:Computer Help with Clearview Public Library volunteer Judah. 
+ All ages!  This program runs the 2nd\, 3rd & 4th Tuesday of each month at 
+ the Stayner Branch. Contact the Stayner Branch for more details (705) 
+ 428-3595.
+LOCATION:Stayner Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:
+UID:LibCal-8690-4035135
+URL:https://clearviewlibrary.libcal.com/event/4035135
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260825T173000Z
+DTEND:20260825T183000Z
+DTSTAMP:20260825T000000Z
+SUMMARY:Baby Rhyme Time with EarlyON
+DESCRIPTION:Register: 
+ https://www.missioninc.com/cso/simcoe/en-ca/earlyon/events/9389_20260825T133000Z\nTuesday\, 
+ August 25\, 2026\n\n-\n\n1:30 to 2:30 PM\n\nTuesday\, September 1\, 
+ 2026\n\n-\n\n1:30 to 2:30 PM\n\nTuesday\, September 8\, 2026\n\n-\n\n1:30 
+ to 2:30 PM\n\nTuesday\, September 15\, 2026\n\n-\n\n1:30 to 2:30 
+ PM\n\nTuesday\, September 22\, 2026\n\n-\n\n1:30 to 2:30 PM\n\nTuesday\, 
+ September 29\, 2026\n\n-\n\n1:30 to 2:30 PM\n\nPrenatal/Birth to 12 months 
+ of age\n\nEarlyON Child and Family Centre - Clearview Library - Sunnidale 
+ Branch\n\n5237 County Rd 9\, New Lowell\, ON L0M 1N0\n\nPre-Registration 
+ REQUIRED\n\nIntroduce your baby to the sounds of language through rhymes\, 
+ songs and simple stories. For babies - newborn to 12 months - with a 
+ caregiver.
+LOCATION:New Lowell Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:Special Programs
+UID:LibCal-8690-4052109
+URL:https://clearviewlibrary.libcal.com/event/4052109
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260827
+DTEND;VALUE=DATE:20260828
+DTSTAMP:20260827T000000Z
+SUMMARY:Last day for TDSRC Ballots to be entered!
+DESCRIPTION:
+LOCATION:Creemore Branch\, New Lowell Branch\, Stayner Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:Special Programs, Special Programs > Children events
+UID:LibCal-8690-4053302
+URL:https://clearviewlibrary.libcal.com/event/4053302
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260827T143000Z
+DTEND:20260828T033000Z
+DTSTAMP:20260827T000000Z
+SUMMARY:Reptilia Presentation
+DESCRIPTION:Join us at the Stayner Branch of Clearview Public Library for a 
+ free\, fun and fantastic Reptilia Presentation.\n\nDon't forget your free 
+ complementary and required ticket to see our show. \n\nContact Stayner 
+ Branch at 705-428-3595 or come in to see us if you want a Free ticket to 
+ our Reptilia Presentation.  \n\n
+LOCATION:Stayner Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:Outreach
+UID:LibCal-8690-4052456
+URL:https://clearviewlibrary.libcal.com/event/4052456
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260827T170000Z
+DTEND:20260827T180000Z
+DTSTAMP:20260827T000000Z
+SUMMARY:Reptilia Presentation
+DESCRIPTION:Join us at the Creemore Branch of Clearview Public Library for 
+ a free\, fun and fantastic Reptilia Presentation.\n\nDon't forget your free 
+ complementary and required ticket to see our show. \n\nContact Creemore 
+ Branch at 705-466-3011 or come in to see us if you want a Free ticket to 
+ our Reptilia Presentation.
+LOCATION:Creemore Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:Outreach
+UID:LibCal-8690-4052473
+URL:https://clearviewlibrary.libcal.com/event/4052473
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260827T190000Z
+DTEND:20260827T200000Z
+DTSTAMP:20260827T000000Z
+SUMMARY:Reptilia Presentation
+DESCRIPTION:Join us at the New Lowell Branch of Clearview Public Library 
+ for a free\, fun and fantastic Reptilia Presentation.\n\nDon't forget your 
+ free complementary and required ticket to see our show. \n\nContact New 
+ Lowell Branch at 705-424-6288 or come in to see us if you want a Free 
+ ticket to our Reptilia Presentation.
+LOCATION:New Lowell Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:Outreach
+UID:LibCal-8690-4052475
+URL:https://clearviewlibrary.libcal.com/event/4052475
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260828
+DTEND;VALUE=DATE:20260829
+DTSTAMP:20260828T000000Z
+SUMMARY:Giant Floor Water Map Leaves Stayner Branch
+DESCRIPTION:Last chance to explore our Giant World Water Map!\n\nOur map 
+ from Ocean Week Canada is leaving this Friday! Patrons have loved this 
+ fun\, interactive experience\, and we’ve been so excited to have 
+ something this special at our Stayner Branch. 💙\n\nStop in and explore 
+ before it’s gone!
+LOCATION:Stayner Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:Special Programs
+UID:LibCal-8690-4056226
+URL:https://clearviewlibrary.libcal.com/event/4056226
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260828
+DTEND;VALUE=DATE:20260829
+DTSTAMP:20260828T000000Z
+SUMMARY:TDSRC Grand Prize Draw!
+DESCRIPTION:
+LOCATION:Creemore Branch\, New Lowell Branch\, Stayner Branch
+ORGANIZER;CN="Shannon Lougheed":MAILTO:slougheed@clearview.ca
+CATEGORIES:Childrens
+UID:LibCal-8690-4045932
+URL:https://clearviewlibrary.libcal.com/event/4045932
+END:VEVENT
+END:VCALENDAR

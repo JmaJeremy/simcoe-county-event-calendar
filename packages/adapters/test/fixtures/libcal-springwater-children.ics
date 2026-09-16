@@ -1,0 +1,254 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Springshare//LibCal//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Children's Programs
+X-WR-CALDESC:
+X-WR-TIMEZONE:America/New_York
+X-PUBLISHED-TTL:PT15M
+BEGIN:VEVENT
+DTSTART:20260817T143000Z
+DTEND:20260817T153000Z
+DTSTAMP:20260817T000000Z
+SUMMARY:Lego Challenge: Elmvale and Midhurst Branches
+DESCRIPTION:Get ready to build\, design and imagine during the library Lego 
+ Challenge where each week features a new theme to inspire inventive 
+ creations and exciting ideas. Kids will use their problem solving skills 
+ and imagination.\n\nMondays 10:30am at Elmvale and Midhurst 
+ Branches\n\nCost: Free\n\nNo registration required for this drop-in 
+ program.
+LOCATION:Elmvale and Midhurst Branch 
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4024558
+URL:https://springwater-ca.libcal.com/event/4024558
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260818T143000Z
+DTEND:20260818T153000Z
+DTSTAMP:20260818T000000Z
+SUMMARY:You're "Otter"ly Amazing! Elmvale Branch (NOW FULL)
+DESCRIPTION:This program is NOW FULL but we have a second session at 5:30pm 
+ available for sign up\n\nSnuggle up for a paws-itively adorable program at 
+ the library filled with otter-themed crafts and games that are sure to make 
+ a splash. Kids will enjoy silly\, fun sweet stories and hands-on adventures 
+ inspired by everyone's favourite furry little swimmers.\n\nTuesday August 
+ 18\, 10:30am at Elmvale Branch \n\nCost: Free\n\nRegistration required.
+LOCATION:The McGuire Meeting Room
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4024546
+URL:https://springwater-ca.libcal.com/event/4024546
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260818T213000Z
+DTEND:20260818T223000Z
+DTSTAMP:20260818T000000Z
+SUMMARY:You're "Otter"ly Amazing! Elmvale Branch (evening session)
+DESCRIPTION:Snuggle up for a paws-itively adorable program at the library 
+ filled with otter-themed crafts and games that are sure to make a splash. 
+ Kids will enjoy silly\, fun sweet stories and hands-on adventures inspired 
+ by everyone's favourite furry little swimmers.\n\nTuesday August 18\, 
+ 5:30pm at Elmvale Branch (this program has an earlier session at 10:30am - 
+ please sign up for only ONE timeslot as the programs are 
+ identical)\n\nCost: Free\n\nRegistration required.
+LOCATION:The McGuire Meeting Room
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4024547
+URL:https://springwater-ca.libcal.com/event/4024547
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260819T170000Z
+DTEND:20260819T180000Z
+DTSTAMP:20260819T000000Z
+SUMMARY:STEM Program Midhurst Branch NOW FULL
+DESCRIPTION:Discover the wonders of Science\, Technology\, Engineering and 
+ Math through hands-on experiments and creative challenges at the library 
+ STEM Program. Open to curious minds\, each week will explore new 
+ things!\n\nWednesdays at 1pm in July and August at Midhurst Branch (please 
+ register for each week you would like to attend)\n\nCost: 
+ Free\n\nRegistration required.
+LOCATION:Midhurst Meeting Room
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4024570
+URL:https://springwater-ca.libcal.com/event/4024570
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260820T143000Z
+DTEND:20260820T153000Z
+DTSTAMP:20260820T000000Z
+SUMMARY:You're "Otter"ly Amazing! Midhurst Branch NOW FULL (morning session)
+DESCRIPTION:Snuggle up for a paws-itively adorable program at the library 
+ filled with otter-themed crafts and games that are sure to make a splash. 
+ Kids will enjoy silly\, fun sweet stories and hands-on adventures inspired 
+ by everyone's favourite furry little swimmers.\n\nThursday August 20\, 
+ 10:30am at Midhurst Branch (this program has a second session at 5:30pm - 
+ please sign up for only ONE timeslot as the programs are 
+ identical)\n\nCost: Free\n\nRegistration required.
+LOCATION:Midhurst Meeting Room
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4024548
+URL:https://springwater-ca.libcal.com/event/4024548
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260820T213000Z
+DTEND:20260820T223000Z
+DTSTAMP:20260820T000000Z
+SUMMARY:You're "Otter"ly Amazing! Midhurst Branch (evening session)
+DESCRIPTION:Snuggle up for a paws-itively adorable program at the library 
+ filled with otter-themed crafts and games that are sure to make a splash. 
+ Kids will enjoy silly\, fun sweet stories and hands-on adventures inspired 
+ by everyone's favourite furry little swimmers.\n\nThursday August 20\, 
+ 5:30pm at Midhurst Branch (this program has an earlier session at 10:30am - 
+ please sign up for only ONE timeslot as the programs are 
+ identical)\n\nCost: Free\n\nRegistration required.
+LOCATION:Midhurst Meeting Room
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4024549
+URL:https://springwater-ca.libcal.com/event/4024549
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260820T213000Z
+DTEND:20260820T230000Z
+DTSTAMP:20260820T000000Z
+SUMMARY:Knit and Crochet Kids
+DESCRIPTION:Junior knitters and crochet enthusiasts are welcome to come 
+ create and be proud at this drop in program at the library. Parent 
+ supervision is required.\n\nLearn from your peers (there is also a 30 
+ minute overlap with the adult Knit and Crochet group for extra 
+ help).\n\nBring your own materials.\n\nThursdays 5:30pm-7pm at Elmvale 
+ Branch.\n\nCost: Free\n\nNo registration required.
+LOCATION:Elmvale Branch
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4040484
+URL:https://springwater-ca.libcal.com/event/4040484
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260821T170000Z
+DTEND:20260821T180000Z
+DTSTAMP:20260821T000000Z
+SUMMARY:STEM Program Elmvale Branch
+DESCRIPTION:Discover the wonders of Science\, Technology\, Engineering and 
+ Math through hands-on experiments and creative challenges at the library 
+ STEM Program. Open to curious minds\, each week will explore new 
+ things!\n\nFridays at 1pm in July and August at Elmvale Branch (please 
+ register for each week you would like to attend)\n\nCost: 
+ Free\n\nRegistration required.
+LOCATION:The McGuire Meeting Room
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4024643
+URL:https://springwater-ca.libcal.com/event/4024643
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260824T143000Z
+DTEND:20260824T153000Z
+DTSTAMP:20260824T000000Z
+SUMMARY:Lego Challenge: Elmvale and Midhurst Branches
+DESCRIPTION:Get ready to build\, design and imagine during the library Lego 
+ Challenge where each week features a new theme to inspire inventive 
+ creations and exciting ideas. Kids will use their problem solving skills 
+ and imagination.\n\nMondays 10:30am at Elmvale and Midhurst 
+ Branches\n\nCost: Free\n\nNo registration required for this drop-in 
+ program.
+LOCATION:Elmvale and Midhurst Branch 
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4024559
+URL:https://springwater-ca.libcal.com/event/4024559
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260827T213000Z
+DTEND:20260827T230000Z
+DTSTAMP:20260827T000000Z
+SUMMARY:Knit and Crochet Kids
+DESCRIPTION:Junior knitters and crochet enthusiasts are welcome to come 
+ create and be proud at this drop in program at the library. Parent 
+ supervision is required.\n\nLearn from your peers (there is also a 30 
+ minute overlap with the adult Knit and Crochet group for extra 
+ help).\n\nBring your own materials.\n\nThursdays 5:30pm-7pm at Elmvale 
+ Branch.\n\nCost: Free\n\nNo registration required.
+LOCATION:Elmvale Branch
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4040485
+URL:https://springwater-ca.libcal.com/event/4040485
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260901T140000Z
+DTEND:20260925T210000Z
+DTSTAMP:20260901T000000Z
+SUMMARY:Family Boo-k Boxes All Branches
+DESCRIPTION:Sign up and receive a Family Book Box filled with crafts and 
+ cool freebies! This month's Family Book Boxes have the theme of Halloween 
+ and include a witch wreath craft.\n\nEach box will contain:\n\n\n	Two 
+ picture books (please return these books to the library as they are part of 
+ our collection)\n	A craft to make together\n	Surprise stack of free items 
+ that may include stickers\, treats and more!\n\n\nThis program will run 
+ bi-monthly at all three branch locations in October\, December\, February\, 
+ April and June.\n\nBoxes can be picked up the 1st of the month (Thursday 
+ October 1)\n\nCost: Free\n\nRegistration required.
+LOCATION:All Branches
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Family Program
+UID:LibCal-8312-4056050
+URL:https://springwater-ca.libcal.com/event/4056050
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260903T213000Z
+DTEND:20260903T230000Z
+DTSTAMP:20260903T000000Z
+SUMMARY:Knit and Crochet Kids
+DESCRIPTION:Junior knitters and crochet enthusiasts are welcome to come 
+ create and be proud at this drop in program at the library. Parent 
+ supervision is required.\n\nLearn from your peers (there is also a 30 
+ minute overlap with the adult Knit and Crochet group for extra 
+ help).\n\nBring your own materials.\n\nThursdays 5:30pm-7pm at Elmvale 
+ Branch.\n\nCost: Free\n\nNo registration required.
+LOCATION:Elmvale Branch
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4040486
+URL:https://springwater-ca.libcal.com/event/4040486
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260910T193000Z
+DTEND:20260910T213000Z
+DTSTAMP:20260910T000000Z
+SUMMARY:After School Open Play Minesing Branch
+DESCRIPTION:Every Thursday in the Minesing Community Hall\, come on in for 
+ our open play session. Games\, toys\, LEGO\, and colouring are all 
+ available to use with friends and family. The library will provide the 
+ games and toys or you can bring your own! All ages are welcome to join the 
+ fun!\n\nThursdays 3:30pm-5:30pm at Minesing Branch\n\nCost: Free\n\nNo 
+ registration required for this drop-in program.
+LOCATION:Minesing Branch
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4056022
+URL:https://springwater-ca.libcal.com/event/4056022
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260910T213000Z
+DTEND:20260910T230000Z
+DTSTAMP:20260910T000000Z
+SUMMARY:Knit and Crochet Kids
+DESCRIPTION:Junior knitters and crochet enthusiasts are welcome to come 
+ create and be proud at this drop in program at the library. Parent 
+ supervision is required.\n\nLearn from your peers (there is also a 30 
+ minute overlap with the adult Knit and Crochet group for extra 
+ help).\n\nBring your own materials.\n\nThursdays 5:30pm-7pm at Elmvale 
+ Branch.\n\nCost: Free\n\nNo registration required.
+LOCATION:Elmvale Branch
+ORGANIZER;CN="Springwater Library":MAILTO:springwaterlibrary@gmail.com
+CATEGORIES:Childrens Programming
+UID:LibCal-8312-4040487
+URL:https://springwater-ca.libcal.com/event/4040487
+END:VEVENT
+END:VCALENDAR

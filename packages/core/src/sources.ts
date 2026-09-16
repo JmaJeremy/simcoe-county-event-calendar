@@ -169,6 +169,42 @@ export const SOURCES: Source[] = [
   // ---- Libraries ----------------------------------------------------------------------
   govstack('orillia-library', 'Orillia Public Library', 'orillia', 'events.orilliapubliclibrary.ca', 'library'),
   row({
+    // Communico. The events page is a JS app; the calendar behind it answers the whole
+    // window in one request. 827 of 848 events are in person, across three branches.
+    slug: 'barrie-library',
+    name: 'Barrie Public Library',
+    kind: 'library',
+    municipalitySlug: 'barrie',
+    config: { platform: 'communico', host: 'barrielibrary.libnet.info' },
+    homepage: 'https://www.barrielibrary.ca/events',
+  }),
+  row({
+    // LibCal, one feed per calendar: children's, adult, teen.
+    slug: 'springwater-library',
+    name: 'Springwater Public Library',
+    kind: 'library',
+    municipalitySlug: 'springwater',
+    config: { platform: 'libcal', host: 'springwater-ca.libcal.com', calendarIds: [8312, 8313, 8317] },
+    homepage: 'https://springwaterlibrary.ca/programs-and-events/',
+  }),
+  row({
+    // Tockify, which publishes the whole board as iCal: 613 events, 370 in the window.
+    slug: 'bradford-library',
+    name: 'Bradford West Gwillimbury Public Library',
+    kind: 'library',
+    municipalitySlug: 'bradford-west-gwillimbury',
+    config: { platform: 'ics', urls: ['https://tockify.com/api/feeds/ics/bwgplcc'] },
+    homepage: 'https://tockify.com/bwgplcc/agenda',
+  }),
+  row({
+    slug: 'clearview-library',
+    name: 'Clearview Public Library',
+    kind: 'library',
+    municipalitySlug: 'clearview',
+    config: { platform: 'libcal', host: 'clearviewlibrary.libcal.com', calendarIds: [8690] },
+    homepage: 'https://clearviewpubliclibrary.ca/',
+  }),
+  row({
     // The Events Calendar, like New Tecumseth's town calendar: 237 events in the window,
     // mostly storytimes, clubs and workshops the town calendar never carries.
     slug: 'midland-library',

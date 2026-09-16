@@ -1,10 +1,13 @@
 import type { Adapter, EventDetail, Platform, Source } from '@scec/core'
 import { fetchCitySpark } from './cityspark.ts'
+import { fetchCommunico } from './communico.ts'
 import { fetchDrupal, fetchDrupalDetail } from './drupal.ts'
 import { fetchEventbrite } from './eventbrite.ts'
 import { fetchEventon } from './eventon.ts'
 import { fetchSpaces } from './spaces.ts'
 import { fetchGovstack, fetchGovstackDetail } from './govstack.ts'
+import { fetchIcs } from './ics.ts'
+import { fetchLibcal } from './libcal.ts'
 import { fetchTicketmaster } from './ticketmaster.ts'
 import { fetchTribe } from './tribe.ts'
 
@@ -22,6 +25,9 @@ export const ADAPTERS: Partial<Record<Platform, Adapter>> = {
   cityspark: fetchCitySpark,
   eventbrite: fetchEventbrite,
   ticketmaster: fetchTicketmaster,
+  communico: fetchCommunico,
+  libcal: fetchLibcal,
+  ics: fetchIcs,
 }
 
 /**
@@ -46,11 +52,15 @@ export const adapterFor = (platform: Platform): Adapter => {
 }
 
 export * from './cityspark.ts'
+export * from './communico.ts'
 export * from './drupal.ts'
 export * from './eventbrite.ts'
 export * from './eventon.ts'
 export * from './spaces.ts'
 export * from './govstack.ts'
+export * from './ical-read.ts'
+export * from './ics.ts'
+export * from './libcal.ts'
 export * from './ticketmaster.ts'
 export * from './tribe.ts'
 export * from './html.ts'

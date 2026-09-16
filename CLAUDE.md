@@ -31,10 +31,10 @@ node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
 
-A full run takes ~2 min and ~650 HTTP requests: 30/30 sources for ~3,200 listings (Eventbrite
-alone is 13 slow requests, ~25 s), then up to 300 event pages read for price and posters, then
-up to 200 unclear listings sent to the cost judge, then dedup over ~4,700 pairs into ~3,000
-events. The subrequest ceiling is
+A full run takes ~2 min and ~660 HTTP requests: 34/34 sources for ~4,900 listings (Eventbrite
+alone is 13 slow requests, ~25 s; Barrie's 823 library events are one request), then up to 300
+event pages read for price and posters, then up to 200 unclear listings sent to the cost judge,
+then dedup over ~9,000 pairs into ~4,650 events. The subrequest ceiling is
 1,000 per invocation, so the two budgets in `enrich.ts` and `cost.ts` are what keeps the
 run inside it — raise either and check the total.
 
@@ -56,7 +56,7 @@ still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load
 dedup rewrites every event from its representative listing, so anything the middle two
 passes learn reaches the site in the same run instead of two hours later.
 
-**Adapters are per platform, sources are per site.** Eight adapters cover 30 sources; adding a
+**Adapters are per platform, sources are per site.** Eleven adapters cover 34 sources; adding a
 site on a supported platform is a row in `packages/core/src/sources.ts`. Eventbrite and
 Ticketmaster need credentials, passed to adapters as an `AdapterContext` the worker builds
 from its secrets and the dry-run CLI from the environment (`adapterContextFrom`).
@@ -382,6 +382,25 @@ when it breaks, so nothing here is checked by eye.
 - **An organization's own calendar outranks the town's copy.** `PRIORITY.organization = 8`
   (the Barrie Film Festival): a festival knows its own programme better than a municipal
   repost. `ticketing = 45` sits between tourism and media.
+- **A room named after a town will move an event to that town.** Barrie's Downtown branch has
+  an Angus Ross Room, and Angus is a hamlet in Essa, so passing the room to the gazetteer put
+  those events a township away. The Communico adapter sends the branch and never the room,
+  and only an outside venue (`venue_name`) becomes a municipality hint. Any adapter that has
+  room or space names should do the same.
+- **iCal is a source format, not just an output.** `ical-read.ts` parses a published feed
+  (unfolding, escapes, VALUE=DATE, UTC vs floating vs TZID, X- properties) and `ics.ts` maps
+  it: LibCal builds its own URLs per calendar (`libcal.ts`), Tockify is a plain `ics` source
+  with one URL. UIDs are the per-occurrence identity, DTEND on an all-day event is the
+  morning after so it is pulled back to 23:59 the day before, and times arrive as UTC
+  instants and are converted to wall time once, here. No feed of ours carries RRULE; one that
+  did would need expansion added rather than silently losing its repeats.
+- **A feed's LOCATION is free text.** LibCal writes a branch name, Tockify writes a room and
+  then the street address; `splitLocation` keeps the first segment as the venue and the whole
+  string as the address when a street number follows, because an event page without an
+  address is a structured-data error.
+- **Barrie Public Library says every programme is free**, structurally: 848 events, every one
+  `registration_cost: "0"` with billing off. That is taken at its word. Its online events are
+  dropped, both the 21 typed ONLINE and the few in-person ones held at the "Online branch".
 - **A library's events may already be arriving through its township.** Tay and Severn put
   their library programs on the township govStack calendar — 40 of Tay's 75 active listings —
   so those libraries need no source of their own, and adding one would only make dedup work.
