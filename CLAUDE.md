@@ -67,6 +67,13 @@ the same thing; its id is the representative listing's id at creation and never 
 
 ## Deployment
 
+**`main` is production.** Every change goes on its own branch with a PR; merging to `main`
+runs `.github/workflows/deploy.yml`, which tests, applies D1 migrations, deploys both
+workers and checks `/health`. It needs the repository secrets `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`; the workers' own secrets live in Cloudflare and survive a deploy.
+Never merge a branch that is behind what is live: the push deploys `main` exactly as it is.
+The commands below are for deploying by hand.
+
 Two Workers on the shared `scec` D1 database (id `2a5bb740-6719-4498-9c0d-4f8eb7b601b9`):
 
 ```bash
@@ -176,8 +183,23 @@ when it breaks, so nothing here is checked by eye.
   clock instead; keep it that way.
 - **Never merge on title + time alone across different municipalities.** Two townships'
   "Farmers' Market" at 9:00 are two events. The municipality gate in dedup enforces this.
-- **Generic source categories ("Community Events") say nothing.** `classifyCategory`
-  ignores them and reads the title.
+- **A category is read from what an event is about, in order of how much each input says.**
+  `classifyCategory` tries the source's subject labels ("Performing & Visual Arts"), then
+  the title with place names removed ("Wasaga Beach Chess Club" is about chess), then
+  audience and catch-all labels ("Seniors", "Adults", "Drop-in", "Community Event"), then
+  gives up with `other`. Labels that say nothing ("Events", "Orillia events") and
+  department names (Severn's "Recreation, Parks, and Facilities events") are skipped
+  entirely: read first, "Parks" made 227 yoga, beading and chess sessions outdoors, and
+  "Seniors" made a chair-yoga class community. Children's labels stay decisive on purpose,
+  since `family` is itself an audience category. Measured on 5,153 live listings when it
+  changed: about 1,070 moved, outdoors fell from 320 to 98.
+- **A rule change reaches existing listings through `reclassified`, never a full update.**
+  Reconciliation only rewrites a listing whose source text or time changed, so a better
+  category or placement rule used to apply to new listings alone. Now a listing whose
+  content hash is unchanged but whose `category` or `municipality_slug` comes out
+  differently is written as those two columns only (`reclassifyListingStatements`). A full
+  upsert would overwrite the description, price and poster the enrichment pass added, and
+  with the content hash unchanged nothing would ever read the event page again.
 - **Dedup: a listing with no municipality must never bridge two towns.** News-site copies
   (SPACES) often have `municipalitySlug = null`; `buildClusters` applies edges strongest-first
   and refuses one that would join two different placed municipalities. Listings that start
@@ -455,7 +477,8 @@ when it breaks, so nothing here is checked by eye.
   longer names first, so "80 Bradford Street, Barrie" went to Bradford West Gwillimbury and
   "Horseshoe Valley Road" to the Oro-Medonte hamlet. `STREET_WORDS` in `municipalities.ts`
   now stops a name matching when "Street", "Rd", "Line" and the like follow it. Measured
-  against 4,008 live listings it changed 8 placements, and all 8 were corrections.
+  against 4,008 live listings it changed 8 placements, and all 8 were corrections — which
+  reached existing listings only once reclassification existed (see above).
 - **A feed's LOCATION is free text.** LibCal writes a branch name, Tockify writes a room and
   then the street address; `splitLocation` keeps the first segment as the venue and the whole
   string as the address when a street number follows, because an event page without an
