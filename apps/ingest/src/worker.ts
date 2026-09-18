@@ -9,6 +9,7 @@ import { adapterContextFrom, defaultWindow, syncSource } from './pipeline.ts'
 import {
   loadExisting,
   recordRun,
+  reclassifyListingStatements,
   removeListingStatements,
   runBatched,
   upsertListingStatements,
@@ -71,9 +72,11 @@ async function ingestOne(env: Env, source: Source): Promise<SourceOutcome> {
       ...upsertListingStatements(env.DB, plan.inserts, now),
       ...upsertListingStatements(env.DB, plan.updates.map((u) => u.event), now),
       ...removeListingStatements(env.DB, plan.removals, now),
+      ...reclassifyListingStatements(env.DB, plan.reclassified),
     ])
     inserted = plan.inserts.length
-    updated = plan.updates.length
+    // Reclassified rows are updates too, of two columns.
+    updated = plan.updates.length + plan.reclassified.length
     removed = plan.removals.length
   }
 

@@ -1,4 +1,4 @@
-import type { EventStatus, Listing } from './types.ts'
+import type { Category, EventStatus, Listing } from './types.ts'
 
 /**
  * Sync reconciliation.
@@ -23,6 +23,16 @@ export interface StoredListing {
   startsAtUtc: string
   status: EventStatus
   active: boolean
+  /** What normalization made of it last time. Absent in callers that do not track it. */
+  category?: Category
+  municipalitySlug?: string | null
+}
+
+/** A listing whose source text is unchanged but whose derived fields now come out differently. */
+export interface Reclassification {
+  id: string
+  category: Category
+  municipalitySlug: string | null
 }
 
 export interface ReconcilePlan {
@@ -33,6 +43,13 @@ export interface ReconcilePlan {
   updates: Array<{ event: Listing; previous: StoredListing; changes: string[] }>
   /** Ids of listings to mark inactive. Never deleted — a shared link should still resolve. */
   removals: string[]
+  /**
+   * Unchanged at the source, but classified differently because the rules changed. Written
+   * as those two columns alone: a full update would overwrite the description, price and
+   * poster the enrichment pass filled in after normalization, and since the content hash is
+   * unchanged nothing would ever read the event page again to restore them.
+   */
+  reclassified: Reclassification[]
   unchanged: number
 }
 
@@ -42,6 +59,7 @@ const EMPTY_PLAN = (abortReason: string): ReconcilePlan => ({
   inserts: [],
   updates: [],
   removals: [],
+  reclassified: [],
   unchanged: 0,
 })
 
@@ -64,7 +82,7 @@ export function reconcile(incoming: Listing[], existing: StoredListing[]): Recon
 
   const byExternalId = new Map(existing.map((e) => [e.externalId, e]))
   const seen = new Set<string>()
-  const plan: ReconcilePlan = { ok: true, inserts: [], updates: [], removals: [], unchanged: 0 }
+  const plan: ReconcilePlan = { ok: true, inserts: [], updates: [], removals: [], reclassified: [], unchanged: 0 }
 
   for (const event of incoming) {
     seen.add(event.externalId)
@@ -81,7 +99,12 @@ export function reconcile(incoming: Listing[], existing: StoredListing[]): Recon
     if (previous.status !== event.status && !changes.includes('content')) changes.push('status')
 
     if (changes.length === 0) {
-      plan.unchanged++
+      const tracked = previous.category !== undefined
+      if (tracked && (previous.category !== event.category || (previous.municipalitySlug ?? null) !== event.municipalitySlug)) {
+        plan.reclassified.push({ id: previous.id, category: event.category, municipalitySlug: event.municipalitySlug })
+      } else {
+        plan.unchanged++
+      }
       continue
     }
     plan.updates.push({ event: { ...event, status: nextStatus(previous, event, changes), active: true }, previous, changes })

@@ -109,6 +109,39 @@ describe('classifyCategory', () => {
     expect(classifyCategory('Township of Ramara Council Meeting', ['Public Meeting'])).toBe('civic-meeting')
     expect(classifyCategory('Something Unusual', [])).toBe('other')
   })
+
+  it('skips a department name, which says who runs it, not what it is', () => {
+    // Severn files every programme under this, and "Parks" made 227 of them outdoors.
+    const severn = ['Recreation, Parks, and Facilities events']
+    expect(classifyCategory('Yoga for Resilient Aging', severn)).toBe('sports')
+    expect(classifyCategory('Bead Crazy!', severn)).toBe('arts')
+    expect(classifyCategory('Introduction to Free Weights', severn)).toBe('sports')
+    expect(classifyCategory('Zumba Dance Fitness', severn)).toBe('sports')
+  })
+
+  it('reads the title without place names', () => {
+    // "Wasaga Beach" is a town, not a beach.
+    expect(classifyCategory('Wasaga Beach Chess Club', ['Gaming', 'Hobbies & Special Interest'])).toBe('community')
+    expect(classifyCategory('Balm Beach Cleanup', [])).toBe('other')
+  })
+
+  it('consults audience and catch-all labels only after the title', () => {
+    expect(classifyCategory('Chair Yoga', ['Seniors'])).toBe('sports')
+    expect(classifyCategory('Knitting Circle', ['Adults', 'Drop-in'])).toBe('arts')
+    expect(classifyCategory('Coffee Hour', ['Seniors'])).toBe('community')
+    expect(classifyCategory('Township of Tiny Charity Pickleball Tournament', ['External Community Event'])).toBe('sports')
+    expect(classifyCategory('Orillia Pirate Party', ['Community Event'])).toBe('community')
+  })
+
+  it('keeps a child audience decisive, since family is the kids\u2019 category', () => {
+    expect(classifyCategory('Storytime', ['Children', 'Early Literacy'])).toBe('family')
+  })
+
+  it('does not take a jewellery sale or a tree lighting for a craft class or a hike', () => {
+    expect(classifyCategory('Bradford Jewellery & Coins Buying Event', [])).not.toBe('arts')
+    expect(classifyCategory('Tree Lighting Ceremony', [])).toBe('community')
+    expect(classifyCategory('We Walk The Line - Tribute to Johnny Cash', [])).toBe('music')
+  })
 })
 
 describe('resolveMunicipality', () => {
