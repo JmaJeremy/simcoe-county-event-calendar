@@ -67,6 +67,13 @@ the same thing; its id is the representative listing's id at creation and never 
 
 ## Deployment
 
+**`main` is production.** Every change goes on its own branch with a PR; merging to `main`
+runs `.github/workflows/deploy.yml`, which tests, applies D1 migrations, deploys both
+workers and checks `/health`. It needs the repository secrets `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`; the workers' own secrets live in Cloudflare and survive a deploy.
+Never merge a branch that is behind what is live: the push deploys `main` exactly as it is.
+The commands below are for deploying by hand.
+
 Two Workers on the shared `scec` D1 database (id `2a5bb740-6719-4498-9c0d-4f8eb7b601b9`):
 
 ```bash
