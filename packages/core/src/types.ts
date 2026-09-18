@@ -25,6 +25,7 @@ export type Platform =
   | 'communico'
   | 'libcal'
   | 'ics'
+  | 'sitefinity'
   | 'manual'
 
 /** Who publishes a calendar. Drives the representative choice when listings merge. */
@@ -102,6 +103,9 @@ export type SourceConfig =
   | { platform: 'libcal'; host: string; calendarIds: number[] }
   /** Any published iCalendar feed: Tockify, Google Calendar, a venue's own .ics. */
   | { platform: 'ics'; urls: string[] }
+  /** Progress Sitefinity's Events module, read through its OData service. `detailPath` is
+   * where the site mounts an event's page, joined to the item's own URL. */
+  | { platform: 'sitefinity'; origin: string; detailPath: string }
   /** Entered by hand in the admin console. Nothing to fetch. */
   | { platform: 'manual' }
 

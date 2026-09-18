@@ -8,6 +8,7 @@ import { fetchSpaces } from './spaces.ts'
 import { fetchGovstack, fetchGovstackDetail } from './govstack.ts'
 import { fetchIcs } from './ics.ts'
 import { fetchLibcal } from './libcal.ts'
+import { fetchSitefinity } from './sitefinity.ts'
 import { fetchTicketmaster } from './ticketmaster.ts'
 import { fetchTribe } from './tribe.ts'
 
@@ -28,6 +29,7 @@ export const ADAPTERS: Partial<Record<Platform, Adapter>> = {
   communico: fetchCommunico,
   libcal: fetchLibcal,
   ics: fetchIcs,
+  sitefinity: fetchSitefinity,
 }
 
 /**
@@ -61,6 +63,7 @@ export * from './govstack.ts'
 export * from './ical-read.ts'
 export * from './ics.ts'
 export * from './libcal.ts'
+export * from './sitefinity.ts'
 export * from './ticketmaster.ts'
 export * from './tribe.ts'
 export * from './html.ts'

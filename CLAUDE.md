@@ -31,7 +31,7 @@ node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
 
-A full run takes ~2 min and ~660 HTTP requests: 34/34 sources for ~4,900 listings (Eventbrite
+A full run takes ~2 min and ~660 HTTP requests: 35/35 sources for ~5,000 listings (Eventbrite
 alone is 13 slow requests, ~25 s; Barrie's 823 library events are one request), then up to 300
 event pages read for price and posters, then the unclear listings that mention a sum sent to the cost judge (a few a run, capped at 200),
 then dedup over ~9,000 pairs into ~4,650 events. The subrequest ceiling is
@@ -56,7 +56,7 @@ still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load
 dedup rewrites every event from its representative listing, so anything the middle two
 passes learn reaches the site in the same run instead of two hours later.
 
-**Adapters are per platform, sources are per site.** Eleven adapters cover 34 sources; adding a
+**Adapters are per platform, sources are per site.** Twelve adapters cover 35 sources; adding a
 site on a supported platform is a row in `packages/core/src/sources.ts`. Eventbrite and
 Ticketmaster need credentials, passed to adapters as an `AdapterContext` the worker builds
 from its secrets and the dry-run CLI from the environment (`adapterContextFrom`).
@@ -428,6 +428,20 @@ when it breaks, so nothing here is checked by eye.
   morning after so it is pulled back to 23:59 the day before, and times arrive as UTC
   instants and are converted to wall time once, here. No feed of ours carries RRULE; one that
   did would need expansion added rather than silently losing its repeats.
+- **Tourism Barrie is Sitefinity, read through its OData service** (`sitefinity.ts`,
+  `/api/default/events`, paged by `$skip` because `$top` above 100 is a 400). Read the wall
+  clock from `EventStartWithOffset` with its `Z` stripped, never `EventStart`: entries saved
+  with TimeZoneId "UTC" store the typed wall clock as if it were UTC, so Doors Open Barrie
+  would open at 6:00. An all-day end is the midnight after, a 00:00 start on a timed event
+  means no time was given, and `DisplayTimeOnEventDetails` is only a display switch. Most
+  listings are season-long spans; anything not yet over is kept. The source is regional
+  (Cookstown to Penetanguishene) so it claims no municipality. No event on record has ever
+  been recurring; the adapter throws on one rather than keep only the first date.
+- **A place name followed by a street word is the street.** `resolveMunicipality` tries
+  longer names first, so "80 Bradford Street, Barrie" went to Bradford West Gwillimbury and
+  "Horseshoe Valley Road" to the Oro-Medonte hamlet. `STREET_WORDS` in `municipalities.ts`
+  now stops a name matching when "Street", "Rd", "Line" and the like follow it. Measured
+  against 4,008 live listings it changed 8 placements, and all 8 were corrections.
 - **A feed's LOCATION is free text.** LibCal writes a branch name, Tockify writes a room and
   then the street address; `splitLocation` keeps the first segment as the venue and the whole
   string as the address when a street number follows, because an event page without an

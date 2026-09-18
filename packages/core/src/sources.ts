@@ -283,6 +283,19 @@ export const SOURCES: Source[] = [
     homepage: 'https://barriefilmfestival.ca/now-playing/',
   }),
 
+  // ---- Tourism ------------------------------------------------------------------------
+  row({
+    // Sitefinity's OData service: 100 upcoming events in one request (2026-09-18), 48 of
+    // them on no other source we read. Regional despite the name, from Cookstown to
+    // Penetanguishene, so events are placed one by one and the source claims no town.
+    slug: 'tourism-barrie',
+    name: 'Tourism Barrie',
+    kind: 'tourism',
+    municipalitySlug: null,
+    config: { platform: 'sitefinity', origin: 'https://www.tourismbarrie.com', detailPath: '/festivals-events/details' },
+    homepage: 'https://www.tourismbarrie.com/festivals-events',
+  }),
+
   // ---- Local media: Metroland simcoe.com on CitySpark --------------------------------
   row({
     slug: 'simcoe-com',
