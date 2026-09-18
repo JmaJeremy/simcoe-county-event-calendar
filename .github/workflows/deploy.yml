@@ -1,0 +1,63 @@
+# Deploy to the live site on every push to main.
+#
+# main is production: a merged PR is a release. The tests run first and a failure stops
+# the deploy. Migrations go before either worker, because the web worker's suggestion form
+# INSERTs columns a migration adds (see CLAUDE.md, "Suggestions are stored before they are
+# mailed"). Worker secrets live in Cloudflare and survive `wrangler deploy`; the only
+# secrets this workflow needs are the two that let wrangler act on the account.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # A way to redeploy main by hand, without an empty commit.
+  workflow_dispatch:
+
+# One deploy at a time, and never cancel one half-way: a cancelled run can leave the
+# ingest worker on a new version and the web worker on the old one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # The UI suite finds Chrome at /usr/bin/google-chrome on GitHub's Ubuntu runners.
+      - run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Apply D1 migrations
+        run: npx wrangler d1 migrations apply scec --remote --config apps/ingest/wrangler.jsonc
+      - name: Deploy the ingest worker
+        run: npx wrangler deploy --config apps/ingest/wrangler.jsonc
+      - name: Deploy the web worker
+        run: npx wrangler deploy --config apps/web/wrangler.jsonc
+      - name: Check the live site answers
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' https://outinsimcoe.ca/health)
+          echo "health: $status"
+          test "$status" = 200
