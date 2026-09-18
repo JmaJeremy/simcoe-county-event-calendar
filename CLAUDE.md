@@ -433,7 +433,9 @@ when it breaks, so nothing here is checked by eye.
   clock from `EventStartWithOffset` with its `Z` stripped, never `EventStart`: entries saved
   with TimeZoneId "UTC" store the typed wall clock as if it were UTC, so Doors Open Barrie
   would open at 6:00. An all-day end is the midnight after, a 00:00 start on a timed event
-  means no time was given, and `DisplayTimeOnEventDetails` is only a display switch. Most
+  means no time was given. `DisplayTimeOnEventDetails` is off on 98 of 100 and then the site
+  shows dates only; the clocks are kept because most are right, but the source does not
+  vouch for them and at least one is a placeholder (Pumpkinferno, "13:00"). Most
   listings are season-long spans; anything not yet over is kept. The source is regional
   (Cookstown to Penetanguishene) so it claims no municipality. No event on record has ever
   been recurring; the adapter throws on one rather than keep only the first date.

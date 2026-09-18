@@ -19,8 +19,13 @@ import type { RawEvent, Source, SyncWindow } from '@scec/core'
  *     Days", Sep 18 00:00 to Oct 4 23:00), not a midnight start.
  *   - Most listings are spans — 55 of 100, many season-long (Pumpkin Mania, Sep 19 to
  *     Oct 25). Anything not yet over is kept, so a festival already under way still shows.
- *   - `DisplayTimeOnEventDetails` is off for nearly all of them and is only a display
- *     switch: the times are real.
+ *   - `DisplayTimeOnEventDetails` is off for 98 of 100, and then the site shows only dates:
+ *     it does not vouch for the clock. The clocks are kept anyway, because most are right
+ *     — 52 of 86 timed events repeat theirs in the description, and most of the rest are
+ *     plausible curtain times — while at least one is a placeholder (Pumpkinferno, a
+ *     month of evenings stored as 13:00 to 14:00). No rule tried separated the two: the
+ *     same month-long shape holds theatre runs whose nightly 20:00 is real. A wrong
+ *     clock here is a console override away.
  *   - `Street` often starts with the venue ("Rounds Ranch, 1922 County Road 92") and
  *     `City` is free text, blank for 7 of 100. `Location` is only filled for a few.
  *   - The service can describe a recurring event (`IsRecurrent`, `RecurrenceExpression`);
