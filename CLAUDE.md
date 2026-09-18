@@ -31,10 +31,10 @@ node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
 
-A full run takes ~2 min and ~640 HTTP requests: 28/28 sources for ~2,700 listings (Eventbrite
-alone is 13 slow requests, ~25 s), then up to 300 event pages read for price and posters, then
-up to 200 unclear listings sent to the cost judge, then dedup over ~3,400 pairs into ~2,500
-events. The subrequest ceiling is
+A full run takes ~2 min and ~660 HTTP requests: 35/35 sources for ~5,000 listings (Eventbrite
+alone is 13 slow requests, ~25 s; Barrie's 823 library events are one request), then up to 300
+event pages read for price and posters, then the unclear listings that mention a sum sent to the cost judge (a few a run, capped at 200),
+then dedup over ~9,000 pairs into ~4,650 events. The subrequest ceiling is
 1,000 per invocation, so the two budgets in `enrich.ts` and `cost.ts` are what keeps the
 run inside it — raise either and check the total.
 
@@ -56,7 +56,7 @@ still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load
 dedup rewrites every event from its representative listing, so anything the middle two
 passes learn reaches the site in the same run instead of two hours later.
 
-**Adapters are per platform, sources are per site.** Eight adapters cover 28 sources; adding a
+**Adapters are per platform, sources are per site.** Twelve adapters cover 35 sources; adding a
 site on a supported platform is a row in `packages/core/src/sources.ts`. Eventbrite and
 Ticketmaster need credentials, passed to adapters as an `AdapterContext` the worker builds
 from its secrets and the dry-run CLI from the environment (`adapterContextFrom`).
@@ -183,6 +183,23 @@ when it breaks, so nothing here is checked by eye.
   and refuses one that would join two different placed municipalities. Listings that start
   on different dates never auto-merge (a theatre run vs one performance) — the judge decides.
   Changing any scoring rule means bumping `RULES_VERSION` so cached rule verdicts recompute.
+- **A source duplicates itself, so same-source pairs are scored too** — but behind a
+  stricter gate (`sameSourceCandidate`). BarrieToday carried one concert under both
+  "arts-culture" and "live-music", Collingwood the same big band three times, Tay its own
+  cribbage tournament twice, Eventbrite two ticket pages for one library programme; none
+  could ever merge, because the pair was never a candidate. The gate is stricter than the
+  cross-source score on purpose: across sources a differing venue is usually wording
+  ("Downtown Branch" vs "Barrie Public Library, 60 Worsley St"), but within one source the
+  naming is consistent, so a difference is real. Barrie Public Library runs "Kindergarten
+  School Skills" at 10:00 at three branches at once and the ordinary score merges all
+  three — the shared word "Branch" alone lifts them to 0.94. So one source's listings pair
+  only when the place matches exactly (or one side is silent) and the time agrees exactly;
+  two showings of "Friday Flicks" and 40-minute tech-help slots stay apart. The gate is
+  most of the value: ~8,400 same-source pairs share a date, and it throws out all but ~286
+  of them (9,006 candidate pairs became 9,292), so the judge budget barely moves. It needs
+  no `RULES_VERSION` bump: `scorePair` is unchanged, so cached verdicts stay valid and the
+  new pairs have none. Measured on the first run: 28 self-duplicate clusters across 12
+  sources, 18 judge calls.
 - **The judge is optional and cached.** Without `ANTHROPIC_API_KEY` ambiguous pairs stay
   unmerged (`unresolved` in the run stats) and are retried next run. A verdict is stored per
   pair per content hash, so the model sees each pair once.
@@ -212,6 +229,16 @@ when it breaks, so nothing here is checked by eye.
   the event is 2.6KB. A "$" from the site's own footer would price a free concert, and
   govStack recreation pages carry the arena's drop-in rate card below the description —
   which is why the govStack parser stops at the "See more" toggle.
+- **The cost judge is only asked about listings that contain a sum of money.** It can
+  only return a sentence already in the listing, and `decideCost` then requires that
+  sentence to state a price, so a listing with no sum in it has nothing to find. Over the
+  first 1,463 readings every one of the 66 that produced a price came from a listing
+  containing money, and the other 1,371 came back unclear without exception — so the gate
+  cuts the calls by about 95% and loses nothing measurable. `loadCostCandidates` screens in
+  SQL with a deliberately loose `LIKE` superset (SQLite cannot express core's `MONEY`
+  pattern; `'%cad%'` also matches "academy"), and `judgeCosts` applies `containsMoney`
+  itself. It self-heals: text that gains a price gets a new content hash and becomes a
+  candidate. A miss is cheap, since an unknown cost still shows in the default view.
 - **The cost judge is a finder, not a decider.** It returns the sentence that states the
   price; `decideCost` then checks that sentence really appears in the listing and runs the
   ordinary cost rules over it. Never let a model's verdict set a cost directly. The bar is
@@ -268,6 +295,13 @@ when it breaks, so nothing here is checked by eye.
   in. `ADMIN_ADDRESS` in `worker.ts` belongs in mail headers only. `test/no-email.test.ts`
   scans every served file and the worker's replies for anything email-shaped — including
   an example address in a comment.
+- **Messenger is in the share dialog but only on touch devices.** Facebook's Send Dialog
+  needs a registered app id, so the only unauthenticated route is the `fb-messenger://`
+  deep link, which nothing on a desktop can open. `share.js` builds the button and hides it
+  unless `(pointer: coarse)` matches, rather than showing one that silently does nothing;
+  `.share-targets` is an auto-fit grid for the same reason, since the count changes. If an
+  app id ever exists (see the Facebook page ticket), the Send Dialog would work everywhere
+  and the gate could go.
 - **Never give an element the id `turnstile`.** An id becomes a global of the same name,
   so `window.turnstile` was the widget's own `<div>`: Turnstile warned "already has been
   loaded" and `render` was "not a function", and no widget ever appeared.
@@ -382,6 +416,46 @@ when it breaks, so nothing here is checked by eye.
 - **An organization's own calendar outranks the town's copy.** `PRIORITY.organization = 8`
   (the Barrie Film Festival): a festival knows its own programme better than a municipal
   repost. `ticketing = 45` sits between tourism and media.
+- **A room named after a town will move an event to that town.** Barrie's Downtown branch has
+  an Angus Ross Room, and Angus is a hamlet in Essa, so passing the room to the gazetteer put
+  those events a township away. The Communico adapter sends the branch and never the room,
+  and only an outside venue (`venue_name`) becomes a municipality hint. Any adapter that has
+  room or space names should do the same.
+- **iCal is a source format, not just an output.** `ical-read.ts` parses a published feed
+  (unfolding, escapes, VALUE=DATE, UTC vs floating vs TZID, X- properties) and `ics.ts` maps
+  it: LibCal builds its own URLs per calendar (`libcal.ts`), Tockify is a plain `ics` source
+  with one URL. UIDs are the per-occurrence identity, DTEND on an all-day event is the
+  morning after so it is pulled back to 23:59 the day before, and times arrive as UTC
+  instants and are converted to wall time once, here. No feed of ours carries RRULE; one that
+  did would need expansion added rather than silently losing its repeats.
+- **Tourism Barrie is Sitefinity, read through its OData service** (`sitefinity.ts`,
+  `/api/default/events`, paged by `$skip` because `$top` above 100 is a 400). Read the wall
+  clock from `EventStartWithOffset` with its `Z` stripped, never `EventStart`: entries saved
+  with TimeZoneId "UTC" store the typed wall clock as if it were UTC, so Doors Open Barrie
+  would open at 6:00. An all-day end is the midnight after, a 00:00 start on a timed event
+  means no time was given. `DisplayTimeOnEventDetails` is off on 98 of 100 and then the site
+  shows dates only; the clocks are kept because most are right, but the source does not
+  vouch for them and at least one is a placeholder (Pumpkinferno, "13:00"). Most
+  listings are season-long spans; anything not yet over is kept. The source is regional
+  (Cookstown to Penetanguishene) so it claims no municipality. No event on record has ever
+  been recurring; the adapter throws on one rather than keep only the first date.
+- **A place name followed by a street word is the street.** `resolveMunicipality` tries
+  longer names first, so "80 Bradford Street, Barrie" went to Bradford West Gwillimbury and
+  "Horseshoe Valley Road" to the Oro-Medonte hamlet. `STREET_WORDS` in `municipalities.ts`
+  now stops a name matching when "Street", "Rd", "Line" and the like follow it. Measured
+  against 4,008 live listings it changed 8 placements, and all 8 were corrections.
+- **A feed's LOCATION is free text.** LibCal writes a branch name, Tockify writes a room and
+  then the street address; `splitLocation` keeps the first segment as the venue and the whole
+  string as the address when a street number follows, because an event page without an
+  address is a structured-data error.
+- **Barrie Public Library says every programme is free**, structurally: 848 events, every one
+  `registration_cost: "0"` with billing off. That is taken at its word. Its online events are
+  dropped, both the 21 typed ONLINE and the few in-person ones held at the "Online branch".
+- **A library's events may already be arriving through its township.** Tay and Severn put
+  their library programs on the township govStack calendar — 40 of Tay's 75 active listings —
+  so those libraries need no source of their own, and adding one would only make dedup work.
+  Penetanguishene, Wasaga Beach, Ramara, Tiny and Oro-Medonte have no separate library site
+  at all. Check the township's listings before adding a library (SCEC-28 has the survey).
 - **Eight municipal calendars refuse requests from outside Canada.** Measured 2026-09-16
   against `calendar.midland.ca`: a Canadian laptop, a home server, ca-central-1 EC2 and
   ca-central-1 Lambda all get 200; us-east-2 EC2 gets 403. Cloudflare runs cron triggers

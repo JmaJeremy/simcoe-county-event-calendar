@@ -1,0 +1,313 @@
+BEGIN:VCALENDAR
+METHOD:PUBLISH
+CALSCALE:GREGORIAN
+PRODID:-//tockify.com/1
+VERSION:2.0
+UID:68cc13d6a11d5803c53e5a62
+X-PUBLISHED-TTL:P15M
+REFRESH-INTERVAL:P15M
+X-WR-CALNAME:Library Programs and Events
+X-WR-TIMEZONE:America/Toronto
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/732/29811120/0/0
+DTSTART;VALUE=DATE:20260906
+DTEND;VALUE=DATE:20260908
+URL:https://tockify.com/bwgplcc/detail/732/1788667200000
+SUMMARY: CLOSED
+DESCRIPTION:Closed for Labour Day long weekend
+CATEGORIES:
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/6936f97cbdee87432d672408/scaled_384.jpg
+X-TKF-CUSTOM-PREVIEW:Closed for Labour Day long weekend
+CREATED:20260824T170503Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260824T170722Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/729/29845680/0/0
+DTSTART;VALUE=DATE:20260930
+DTEND;VALUE=DATE:20261001
+URL:https://tockify.com/bwgplcc/detail/729/1790740800000
+SUMMARY: CLOSED
+DESCRIPTION:Closed for National Day of Truth and Reconciliation
+CATEGORIES:
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/6936f97cbdee87432d672408/scaled_384.jpg
+X-TKF-CUSTOM-PREVIEW:Closed for National Day of Truth and Reconciliation
+CREATED:20260824T170212Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260824T170815Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/731/29861520/0/0
+DTSTART;VALUE=DATE:20261011
+DTEND;VALUE=DATE:20261013
+URL:https://tockify.com/bwgplcc/detail/731/1791691200000
+SUMMARY: CLOSED
+DESCRIPTION:Closed for Thanksgiving long weekend
+CATEGORIES:
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/6936f97cbdee87432d672408/scaled_384.jpg
+X-TKF-CUSTOM-PREVIEW:Closed for Thanksgiving long weekend
+CREATED:20260824T170241Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260824T170835Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/451/29782905/0/0
+DTSTART:20260817T134500Z
+DTEND:20260817T141500Z
+URL:https://tockify.com/bwgplcc/detail/451/1786974300000
+SUMMARY: Tales for 2
+DESCRIPTION:Join Michelle for stories and songs for children aged 2-3.
+CATEGORIES:Children,Drop-in,Storytime
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/68d3f77c22a0d722d96e892c/scaled_1024.jpg
+X-TKF-CUSTOM-PREVIEW:Join Michelle for stories and songs for children age
+ d 2-3.
+LOCATION:Zima Room\,425 Holland St W\, Bradford\, ON L3Z 0J2\, Canada
+CREATED:20260506T194935Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260714T135727Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/160/29782920/0/0
+DTSTART:20260817T140000Z
+DTEND:20260817T170000Z
+URL:https://tockify.com/bwgplcc/detail/160/1786975200000
+SUMMARY: S.H.I.F.T. Outreach Program
+DESCRIPTION:S.H.I.F.T’s Outreach Program is focused on preventing homeles
+ sness\, serving those living with low income throughout South Simcoe.\n\n
+ The program's goal is to connect individuals\, couples\, and families to 
+ urgently needed supplies\, services\, and supports as well as provide eme
+ rgency assistance to those at risk of or experiencing homelessness and/or
+  food insecurity (housed or otherwise).\n\nFor more information\, call or
+  text: 705-890-8173 email: outreach@shiftforgood.ca mailto:outreach@shift
+ forgood.ca mailto:outreach@shiftforgood.ca
+CATEGORIES:All-Ages,Drop-in,SocialSupport
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/696a5a184b635b324fa44868/scaled_512.png
+X-TKF-CUSTOM-PREVIEW:S.H.I.F.T’s Outreach Program is focused on preventin
+ g homelessness\, serving those living with low income throughout South Si
+ mcoe. The program's goal is to...
+CREATED:20260114T144530Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260206T180232Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/452/29782965/0/0
+DTSTART:20260817T144500Z
+DTEND:20260817T151500Z
+URL:https://tockify.com/bwgplcc/detail/452/1786977900000
+SUMMARY: School Age Storytime
+DESCRIPTION:Missing morning circle time? Join Michelle for stories and so
+ ngs just for school-aged kids. Ages 4-8
+CATEGORIES:Children,Drop-in,Storytime
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/68d3f77722a0d722d96e8929/scaled_1024.jpg
+X-TKF-CUSTOM-PREVIEW:Missing morning circle time? Join Michelle for stori
+ es and songs just for school-aged kids. Ages 4-8
+LOCATION:Zima Room\,425 Holland St W\, Bradford\, ON L3Z 0J2\, Canada
+CREATED:20260506T195247Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260506T195247Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/165/29783310/0/0
+DTSTART:20260817T203000Z
+DTEND:20260817T210000Z
+URL:https://tockify.com/bwgplcc/detail/165/1786998600000
+SUMMARY: Afternoon Stories
+DESCRIPTION:For kids aged 3+ and their caregivers.\n\nStop by the library
+  to explore new stories and a simple craft.
+CATEGORIES:Children,Drop-in,Storytime
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/68dab15522a0d722d97251f0/scaled_1024.jpg
+X-TKF-CUSTOM-PREVIEW:For kids aged 3+ and their caregivers. Stop by the l
+ ibrary to explore new stories and a simple craft.
+LOCATION:Pascal Room
+CREATED:20260119T153901Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260417T140959Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/538/29783430/0/0
+DTSTART:20260817T223000Z
+DTEND:20260817T233000Z
+URL:https://tockify.com/bwgplcc/detail/538/1787005800000
+SUMMARY: Trivia Night
+DESCRIPTION:Teens\, join us for a fun night of trivia\, snacks\, and frie
+ ndly competition! Drop-in with a team of 1-3 friends or just bring yourse
+ lf.\n\nEach member of the winning team takes home a prize. No more than 4
+  participants per team.\n\nFor teens aged 13-17.
+CATEGORIES:Drop-in,Teens
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a88f517f292
+ 0873d4ab61/69fe3a37b46865d621a6296a/scaled_384.jpg
+X-TKF-CUSTOM-PREVIEW:Teens\, join us for a fun night of trivia\, snacks\,
+  and friendly competition! Drop-in with a team of 1-3 friends or just bri
+ ng yourself. Each member of the...
+LOCATION:Pascall Room\,425 Holland St W\, Bradford\, ON L3Z 0J2\, Canada
+CREATED:20260520T140627Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260722T155456Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/537/29783445/0/0
+DTSTART:20260817T224500Z
+DTEND:20260817T231500Z
+URL:https://tockify.com/bwgplcc/detail/537/1787006700000
+SUMMARY: Reads and Rhymes
+DESCRIPTION:Stories\, rhymes and songs with Andréa! Recommended for child
+ ren ages 1-5. Drop-in\, free!
+CATEGORIES:Children,Drop-in,Storytime
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/68d3f79122a0d722d96e8940/scaled_1024.jpg
+X-TKF-CUSTOM-PREVIEW:Stories\, rhymes and songs with Andréa! Recommended 
+ for children ages 1-5. Drop-in\, free!
+LOCATION:Zima Room\,425 Holland St W\, Bradford\, ON L3Z 0J2\, Canada
+CREATED:20260520T140116Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260520T140116Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/580/29784600/0/0
+DTSTART:20260818T180000Z
+DTEND:20260818T190000Z
+URL:https://tockify.com/bwgplcc/detail/580/1787076000000
+SUMMARY: Make your Own Message in a Bottle: Dive into History
+DESCRIPTION:This afternoon\, we'll be making a message in a bottle craft 
+ from recycled and found objects!\n\nFor children aged 5-12.
+CATEGORIES:Children,Drop-in
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a88f517f292
+ 0873d4ab61/6a0e131cbf50ac3e01141f48/scaled_256.png
+X-TKF-CUSTOM-PREVIEW:This afternoon\, we'll be making a message in a bott
+ le craft from recycled and found objects! For children aged 5-12.
+LOCATION:Zima Room\,425 Holland St W\, Bradford\, ON L3Z 0J2\, Canada
+CREATED:20260520T200232Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260722T161534Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/540/29784750/0/0
+DTSTART:20260818T203000Z
+DTEND:20260818T213000Z
+URL:https://tockify.com/bwgplcc/detail/540/1787085000000
+SUMMARY: Kids Knitting
+DESCRIPTION:Kids 10+ learn the basics of knitting in a small group.\n\nSp
+ ace is limited register on Eventbrite https://www.eventbrite.com/e/199000
+ 1825028?aff=oddtdtcreator to attend.
+CATEGORIES:Children,Registered
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/6952ad212848687927251986/scaled_1024.jpg
+X-TKF-CUSTOM-PREVIEW:Kids 10+ learn the basics of knitting in a small gro
+ up. Space is limited register on Eventbrite https://www.eventbrite.com/e/
+ 1990001825028?aff=oddtdtcreator...
+LOCATION:Pascall Room\,425 Holland St W\, Bradford\, ON L3Z 0J2\, Canada
+CREATED:20260520T141557Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260520T141557Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/539/29784870/0/0
+DTSTART:20260818T223000Z
+DTEND:20260818T233000Z
+URL:https://tockify.com/bwgplcc/detail/539/1787092200000
+SUMMARY: Knit Happens
+DESCRIPTION:It’s back! Join fellow yarn enthusiasts for an hour of stitch
+ es and chats. Bring your works in progress and get support and encouragem
+ ent.
+CATEGORIES:Adults,Drop-in,Teens,Seniors
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/6952ad212848687927251986/scaled_1024.jpg
+X-TKF-CUSTOM-PREVIEW:It’s back! Join fellow yarn enthusiasts for an hour 
+ of stitches and chats. Bring your works in progress and get support and e
+ ncouragement.
+LOCATION:Pascall Room\,425 Holland St W\, Bradford\, ON L3Z 0J2\, Canada
+CREATED:20260520T140947Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260713T202838Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/160/29785800/0/0
+DTSTART:20260819T140000Z
+DTEND:20260819T170000Z
+URL:https://tockify.com/bwgplcc/detail/160/1787148000000
+SUMMARY: S.H.I.F.T. Outreach Program
+DESCRIPTION:S.H.I.F.T’s Outreach Program is focused on preventing homeles
+ sness\, serving those living with low income throughout South Simcoe.\n\n
+ The program's goal is to connect individuals\, couples\, and families to 
+ urgently needed supplies\, services\, and supports as well as provide eme
+ rgency assistance to those at risk of or experiencing homelessness and/or
+  food insecurity (housed or otherwise).\n\nFor more information\, call or
+  text: 705-890-8173 email: outreach@shiftforgood.ca mailto:outreach@shift
+ forgood.ca mailto:outreach@shiftforgood.ca
+CATEGORIES:All-Ages,Drop-in,SocialSupport
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a6d6317f292
+ 0873d48d9f/696a5a184b635b324fa44868/scaled_512.png
+X-TKF-CUSTOM-PREVIEW:S.H.I.F.T’s Outreach Program is focused on preventin
+ g homelessness\, serving those living with low income throughout South Si
+ mcoe. The program's goal is to...
+CREATED:20260114T144530Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260206T180232Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:TKF/68cc13d6a11d5803c53e5a62/497/29785830/0/0
+DTSTART:20260819T143000Z
+DTEND:20260819T153000Z
+URL:https://tockify.com/bwgplcc/detail/497/1787149800000
+SUMMARY: Mermaid Story Time with Mermaid Serenity
+DESCRIPTION:Join us for a fun and fantastical mermaid storytime featuring
+  Mermaid Serenity! In addition to storytime\, children will have an oppor
+ tunity to take photos on the giant inflatable shell throne\, enjoy some m
+ ermaid themed colouring\, and check out our interactive floor map on loan
+  from Ocean Week Canada https://oceanweekcan.ca/ .\n\nRegistration is req
+ uired for all attendees: kids and parents. Register on Eventbrite https:/
+ /www.eventbrite.ca/e/mermaid-storytime-with-mermaid-serenity-tickets-1989
+ 232807877?aff=oddtdtcreator to attend.\n\nMermaid Serenity loves to bring
+  joy\, education and music to everyone she meets. Sitting on a giant shel
+ l\, she reads stories about the magical underwater worlds on our planet\,
+  teaches about mermaid folklore\, sings enchanting songs and plays her be
+ autiful pan drum. After story time you can sit for a photo with Serenity 
+ on her shell and pose with a mermaid crown to capture the magic forever.\
+ n\nFor children aged 2-5
+CATEGORIES:Children,Registered
+X-TKF-FEATURED-IMAGE:https://d3flpus5evl89n.cloudfront.net/678a88f517f292
+ 0873d4ab61/6a020381f54301b2e400b2b6/scaled_1024.jpg
+X-TKF-CUSTOM-PREVIEW:Join us for a fun and fantastical mermaid storytime 
+ featuring Mermaid Serenity! In addition to storytime\, children will have
+  an opportunity to take photos on...
+LOCATION:Zima Room\,425 Holland St W\, Bradford\, ON L3Z 0J2\, Canada
+CREATED:20260511T163958Z
+DTSTAMP:20260916T064016Z
+LAST-MODIFIED:20260722T160128Z
+TRANSP:OPAQUE
+CLASS:PUBLIC
+END:VEVENT
+END:VCALENDAR

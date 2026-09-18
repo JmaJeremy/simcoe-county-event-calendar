@@ -465,6 +465,27 @@ describeIfChrome('filter menus (real browser)', () => {
     })
   })
 
+  describe('share dialog', () => {
+    afterAll(async () => {
+      await page.evaluate(() => (document.querySelector('dialog.share-modal') as HTMLDialogElement | null)?.close())
+    })
+
+    it('offers only the targets this device can actually reach', async () => {
+      await page.click('[data-share]')
+      await page.waitForSelector('dialog.share-modal[open]')
+      const targets = await page.$$eval('.share-target', (els) =>
+        els.map((e) => ({ id: e.id, label: e.textContent!.trim(), hidden: (e as HTMLElement).hidden, href: e.getAttribute('href') })),
+      )
+      expect(targets.filter((t) => !t.hidden).map((t) => t.label)).toEqual(['Facebook', 'X', 'Email'])
+      // Messenger's only unauthenticated route is the app's own deep link, which nothing
+      // on a desktop can open, so it is built but hidden wherever the pointer is not
+      // coarse. The href is still correct, because a touch device shows the same markup.
+      const messenger = targets.find((t) => t.id === 'share-messenger')!
+      expect(messenger.hidden).toBe(true)
+      expect(messenger.href).toMatch(/^fb-messenger:\/\/share\?link=http/)
+    })
+  })
+
   describe('returning from an event', () => {
     // The stub has no /e/ route, so leaving lands on its 404. That is enough: what is
     // being tested is what the list remembers on the way out and restores on the way in.
@@ -605,8 +626,8 @@ describeIfChrome('calendar view (real browser)', () => {
     await server?.close()
   })
 
-  const openCalendar = async (query = '') => {
-    await page.goto(`${server.url}/?view=calendar&month=${MONTH}${query}`, { waitUntil: 'networkidle0' })
+  const openCalendar = async (query = '', month = MONTH) => {
+    await page.goto(`${server.url}/?view=calendar&month=${month}${query}`, { waitUntil: 'networkidle0' })
     await page.waitForSelector('.cal-grid')
   }
 
@@ -803,9 +824,14 @@ describeIfChrome('calendar view (real browser)', () => {
   })
 
   it('applies the filters to the grid', async () => {
-    await openCalendar('&m=tay')
+    // Each town's stub events sit a fixed number of days out, so the month holding Tay's
+    // moves with today (after mid-month they are all in the next one). Open that month,
+    // not the first, or the count is 0 and the page rightly says "No events".
+    const tayMonth = VISIBLE.find((e) => e.municipalitySlug === 'tay')!.localDate.slice(0, 7)
+    await openCalendar('&m=tay', tayMonth)
     const titles = await page.$$eval('.cal-day .chip-title', (els) => els.map((e) => e.textContent!.trim()))
-    const tayCount = VISIBLE.filter((e) => e.municipalitySlug === 'tay' && e.localDate.startsWith(MONTH)).length
+    const tayCount = VISIBLE.filter((e) => e.municipalitySlug === 'tay' && e.localDate.startsWith(tayMonth)).length
+    expect(tayCount).toBeGreaterThan(0)
     expect(titles).toHaveLength(tayCount)
     expect(await page.$eval('#month-count', (el) => el.textContent!.trim())).toContain(String(tayCount))
   })

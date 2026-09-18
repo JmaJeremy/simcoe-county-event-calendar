@@ -42,6 +42,10 @@ function build() {
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.5-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.45 2.91h-2.33V22c4.78-.76 8.44-4.92 8.44-9.94Z"/></svg>
             <span>Facebook</span>
           </a>
+          <a class="share-target" id="share-messenger">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.19.16.15.26.35.27.57l.05 1.78c.02.57.6.94 1.12.71l1.98-.87c.17-.07.36-.09.53-.04 1.06.29 2.2.45 3.41.45 5.64 0 10-4.13 10-9.79C22 6.13 17.64 2 12 2Zm6 7.46-2.94 4.66c-.47.74-1.47.93-2.18.41l-2.34-1.75a.6.6 0 0 0-.72 0l-3.16 2.4c-.42.32-.97-.18-.69-.63l2.94-4.66c.47-.74 1.47-.93 2.18-.41l2.34 1.75a.6.6 0 0 0 .72 0l3.16-2.4c.42-.32.97.18.69.63Z"/></svg>
+            <span>Messenger</span>
+          </a>
           <a class="share-target" id="share-x" target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.53 3h3.05l-6.67 7.62L21.75 21h-6.14l-4.81-6.29L5.3 21H2.25l7.13-8.15L2.25 3H8.5l4.35 5.75L17.53 3Zm-1.07 16.17h1.69L7.62 4.74H5.8l10.66 14.43Z"/></svg>
             <span>X</span>
@@ -61,6 +65,11 @@ function build() {
     if (ev.target === dialog) dialog.close()
   })
   dialog.addEventListener('close', () => document.body.classList.remove('modal-open'))
+  // Messenger has no web share endpoint that works unauthenticated: the Send Dialog needs
+  // a registered Facebook app id, so the only option is the app's own deep link, which
+  // nothing on a desktop can open. Offer it only where an app could answer, rather than
+  // show a button that silently does nothing.
+  if (!matchMedia('(pointer: coarse)').matches) dialog.querySelector('#share-messenger').hidden = true
   dialog.querySelector('#share-copy').onclick = copy
   dialog.querySelector('#share-url').onclick = (ev) => ev.target.select()
 }
@@ -89,6 +98,7 @@ function open(url, what) {
   dialog.querySelector('#share-status').textContent = ''
   dialog.querySelector('#share-fb').href =
     `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
+  dialog.querySelector('#share-messenger').href = `fb-messenger://share?link=${encodeURIComponent(url)}`
   dialog.querySelector('#share-x').href =
     `https://x.com/intent/post?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
   dialog.querySelector('#share-email').href =

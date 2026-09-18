@@ -56,3 +56,24 @@ describe('tribe adapter on the Barrie Film Festival', () => {
   })
 })
 
+describe('tribe adapter on a library calendar', () => {
+  const library: TribePage = JSON.parse(readFileSync(new URL('./fixtures/tribe-new-tecumseth-library.json', import.meta.url), 'utf8'))
+  const events = mapTribeEvents(library.events)
+
+  it('keeps the branch as the venue, since a library runs several', () => {
+    const branch = events.find((e) => e.venueName && e.venueName !== 'All Branches')!
+    expect(branch.venueName).toMatch(/Branch|Centre/)
+    expect(branch.municipalityHint).toBeTruthy()
+  })
+
+  it('carries the price these calendars actually state', () => {
+    // New Tecumseth's library is the one that says so outright, unlike Midland's.
+    expect(events.some((e) => e.costText === 'Free')).toBe(true)
+  })
+
+  it('maps every published event with a local start time', () => {
+    expect(events.length).toBeGreaterThan(5)
+    for (const e of events) expect(e.localStart).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+  })
+})
+

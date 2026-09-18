@@ -465,7 +465,7 @@ export interface CostDecisionRow {
 const MIN_TEXT = 60
 
 /**
- * Listings still unclear about price, with text worth reading and no reading on file.
+ * Listings still unclear about price, with a sum of money in them and no reading on file.
  *
  * Sources whose event pages we read are only eligible once that reading has happened:
  * asking about a description we already know is truncated would spend tokens on the half
@@ -486,6 +486,15 @@ export async function loadCostCandidates(
          AND l.source_slug <> 'manual'
          AND length(coalesce(l.description, '')) >= ?
          AND (l.source_slug NOT IN (${placeholders}) OR l.detail_hash = l.content_hash)
+         -- A coarse superset of core's MONEY pattern, which SQLite's LIKE cannot express.
+         -- Deliberately loose ('%cad%' also matches "academy"); judgeCosts applies the
+         -- real containsMoney test. Its only job is to keep the other 99% out of the
+         -- query, since a listing with no sum in it has no price sentence to find.
+         AND (
+              l.description LIKE '%$%'      OR l.title LIKE '%$%'
+           OR l.description LIKE '%dollar%' OR l.title LIKE '%dollar%'
+           OR l.description LIKE '%cad%'    OR l.title LIKE '%cad%'
+         )
          AND NOT EXISTS (
            SELECT 1 FROM cost_decisions d
             WHERE d.listing_id = l.id AND d.content_hash = l.content_hash

@@ -552,9 +552,11 @@ a { color: inherit; }
 .share-status { margin: 9px 0 0; min-height: 18px; font-size: 13px; color: var(--accent-deep); }
 
 .share-targets {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px;
+  /* auto-fit, not a fixed three, because Messenger only appears on touch devices. */
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 9px;
   margin-top: 6px; padding-top: 16px; border-top: 1px solid var(--line);
 }
+.share-target[hidden] { display: none; }
 .share-target {
   display: flex; flex-direction: column; align-items: center; gap: 7px;
   padding: 14px 8px; border: 1px solid var(--line); border-radius: var(--radius);

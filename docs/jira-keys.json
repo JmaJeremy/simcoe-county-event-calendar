@@ -51,5 +51,15 @@
   "p2-suggestion-accept": "SCEC-64",
   "p2-suggest-top": "SCEC-65",
   "p2-ticketmaster": "SCEC-66",
-  "p2-ca-fetch-proxy": "SCEC-67"
+  "p2-ca-fetch-proxy": "SCEC-67",
+  "p2-facebook-outreach": "SCEC-68",
+  "p2-libcal": "SCEC-69",
+  "p2-whofi": "SCEC-70",
+  "p2-bibliocommons": "SCEC-71",
+  "p2-self-duplicates": "SCEC-72",
+  "p2-govstack-month-url": "SCEC-73",
+  "p2-retired-permalink": "SCEC-74",
+  "p2-branch-stopword": "SCEC-76",
+  "p2-messenger-send-dialog": "SCEC-77",
+  "p2-tourism-barrie": "SCEC-96"
 }

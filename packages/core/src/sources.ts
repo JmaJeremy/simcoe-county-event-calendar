@@ -168,6 +168,62 @@ export const SOURCES: Source[] = [
 
   // ---- Libraries ----------------------------------------------------------------------
   govstack('orillia-library', 'Orillia Public Library', 'orillia', 'events.orilliapubliclibrary.ca', 'library'),
+  row({
+    // Communico. The events page is a JS app; the calendar behind it answers the whole
+    // window in one request. 827 of 848 events are in person, across three branches.
+    slug: 'barrie-library',
+    name: 'Barrie Public Library',
+    kind: 'library',
+    municipalitySlug: 'barrie',
+    config: { platform: 'communico', host: 'barrielibrary.libnet.info' },
+    homepage: 'https://www.barrielibrary.ca/events',
+  }),
+  row({
+    // LibCal, one feed per calendar: children's, adult, teen.
+    slug: 'springwater-library',
+    name: 'Springwater Public Library',
+    kind: 'library',
+    municipalitySlug: 'springwater',
+    config: { platform: 'libcal', host: 'springwater-ca.libcal.com', calendarIds: [8312, 8313, 8317] },
+    homepage: 'https://springwaterlibrary.ca/programs-and-events/',
+  }),
+  row({
+    // Tockify, which publishes the whole board as iCal: 613 events, 370 in the window.
+    slug: 'bradford-library',
+    name: 'Bradford West Gwillimbury Public Library',
+    kind: 'library',
+    municipalitySlug: 'bradford-west-gwillimbury',
+    config: { platform: 'ics', urls: ['https://tockify.com/api/feeds/ics/bwgplcc'] },
+    homepage: 'https://tockify.com/bwgplcc/agenda',
+  }),
+  row({
+    slug: 'clearview-library',
+    name: 'Clearview Public Library',
+    kind: 'library',
+    municipalitySlug: 'clearview',
+    config: { platform: 'libcal', host: 'clearviewlibrary.libcal.com', calendarIds: [8690] },
+    homepage: 'https://clearviewpubliclibrary.ca/',
+  }),
+  row({
+    // The Events Calendar, like New Tecumseth's town calendar: 237 events in the window,
+    // mostly storytimes, clubs and workshops the town calendar never carries.
+    slug: 'midland-library',
+    name: 'Midland Public Library',
+    kind: 'library',
+    municipalitySlug: 'midland',
+    config: { platform: 'tribe', origin: 'https://midlandlibrary.com' },
+    homepage: 'https://midlandlibrary.com/events/',
+  }),
+  row({
+    // Four branches across the town, and the only library here that states a price: most
+    // of its events say "Free" outright.
+    slug: 'new-tecumseth-library',
+    name: 'New Tecumseth Public Library',
+    kind: 'library',
+    municipalitySlug: 'new-tecumseth',
+    config: { platform: 'tribe', origin: 'https://ntpl.ca' },
+    homepage: 'https://ntpl.ca/events-calendar/',
+  }),
 
   // ---- Local media: Village Media SPACES ----------------------------------------------
   // Each *Today site fronts a `<town>.spaces.ca` instance; the news sites themselves
@@ -225,6 +281,19 @@ export const SOURCES: Source[] = [
     municipalitySlug: 'barrie',
     config: { platform: 'tribe', origin: 'https://barriefilmfestival.ca' },
     homepage: 'https://barriefilmfestival.ca/now-playing/',
+  }),
+
+  // ---- Tourism ------------------------------------------------------------------------
+  row({
+    // Sitefinity's OData service: 100 upcoming events in one request (2026-09-18), 48 of
+    // them on no other source we read. Regional despite the name, from Cookstown to
+    // Penetanguishene, so events are placed one by one and the source claims no town.
+    slug: 'tourism-barrie',
+    name: 'Tourism Barrie',
+    kind: 'tourism',
+    municipalitySlug: null,
+    config: { platform: 'sitefinity', origin: 'https://www.tourismbarrie.com', detailPath: '/festivals-events/details' },
+    homepage: 'https://www.tourismbarrie.com/festivals-events',
   }),
 
   // ---- Local media: Metroland simcoe.com on CitySpark --------------------------------

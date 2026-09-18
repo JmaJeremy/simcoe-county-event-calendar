@@ -15,8 +15,11 @@ import type { Event, Listing } from './types.ts'
  * are false merges, not misses. Two townships each holding a "Farmers' Market" at 9:00 on
  * the same Saturday are two events, and a weekly "Genealogy Club" is a different event
  * every week. So candidates are gated hard by DATE and MUNICIPALITY before any similarity
- * is computed, and same-source pairs are never candidates at all (a source's own repeats
- * are separate occurrences by construction).
+ * is computed.
+ *
+ * A source can also duplicate itself — an organiser posts the same concert under two
+ * categories, a town lists its own tournament twice — so same-source pairs are candidates
+ * too, behind the stricter gate in `sameSourceCandidate`.
  */
 
 export type Verdict = 'same' | 'distinct' | 'ambiguous'
@@ -207,8 +210,43 @@ export function compatibleMunicipality(a: Listing, b: Listing): boolean {
   return !a.municipalitySlug || !b.municipalitySlug || a.municipalitySlug === b.municipalitySlug
 }
 
+/** Everything a listing says about where it is, as one comparable string. */
+const venueKey = (l: Listing): string =>
+  `${l.venueName ?? ''} ${l.address ?? ''}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
 /**
- * Pairs worth scoring: different sources, a shared date, compatible municipality.
+ * May these two listings FROM ONE SOURCE be the same thing posted twice?
+ *
+ * Deliberately stricter than the cross-source scoring, because the reason that scoring is
+ * tolerant does not apply here. Across sources a place or time disagreement is usually
+ * wording — one site writes "Downtown Branch", another "Barrie Public Library, 60 Worsley
+ * St" — so `placeSimilarity` forgives a partial match. Within one source there is no such
+ * variance: it names its branches and its times the same way every time, so a
+ * disagreement is a real difference. Barrie Public Library runs "Kindergarten School
+ * Skills" at 10:00 at three branches on one morning, and the tolerant score merges all
+ * three (the shared word "Branch" alone scores them 0.94). Requiring the same place and
+ * the same time keeps those apart, at the price of missing a duplicate posted with a
+ * different time — the safe direction, as above.
+ */
+export function sameSourceCandidate(a: Listing, b: Listing): boolean {
+  const dated = (l: Listing) => l.allDay || l.timePrecision === 'date-only'
+  // Exact agreement only: two showings of "Friday Flicks" at 14:30 and 18:30 are two
+  // events, as are 40-minute tech-help slots. Two all-day listings still qualify.
+  if (!(dated(a) && dated(b)) && timeAgreement(a, b) < 1) return false
+  const ka = streetKey(a.address)
+  const kb = streetKey(b.address)
+  if (ka && kb) return ka === kb
+  const va = venueKey(a)
+  const vb = venueKey(b)
+  // One side saying nothing about where is not a disagreement; both silent is the common
+  // case for the news sites, where this duplication mostly happens.
+  if (!va || !vb) return true
+  return va === vb
+}
+
+/**
+ * Pairs worth scoring: a shared date and a compatible municipality, plus the stricter
+ * place-and-time gate when both come from the same source.
  * Returned with a.id < b.id so a pair has one identity for the decision cache.
  */
 export function candidatePairs(listings: Listing[]): Array<[Listing, Listing]> {
@@ -227,7 +265,7 @@ export function candidatePairs(listings: Listing[]): Array<[Listing, Listing]> {
     for (let i = 0; i < bucket.length; i++) {
       for (let j = i + 1; j < bucket.length; j++) {
         const [a, b] = bucket[i]!.id < bucket[j]!.id ? [bucket[i]!, bucket[j]!] : [bucket[j]!, bucket[i]!]
-        if (a.sourceSlug === b.sourceSlug) continue
+        if (a.sourceSlug === b.sourceSlug && !sameSourceCandidate(a, b)) continue
         if (!compatibleMunicipality(a, b)) continue
         const key = `${a.id} ${b.id}`
         if (seen.has(key)) continue
