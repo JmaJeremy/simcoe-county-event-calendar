@@ -1,4 +1,5 @@
 import type { Adapter, EventDetail, Platform, Source } from '@scec/core'
+import { fetchCfmws } from './cfmws.ts'
 import { fetchCitySpark } from './cityspark.ts'
 import { fetchCommunico } from './communico.ts'
 import { fetchDrupal, fetchDrupalDetail } from './drupal.ts'
@@ -30,6 +31,7 @@ export const ADAPTERS: Partial<Record<Platform, Adapter>> = {
   libcal: fetchLibcal,
   ics: fetchIcs,
   sitefinity: fetchSitefinity,
+  cfmws: fetchCfmws,
 }
 
 /**
@@ -53,6 +55,7 @@ export const adapterFor = (platform: Platform): Adapter => {
   return adapter
 }
 
+export * from './cfmws.ts'
 export * from './cityspark.ts'
 export * from './communico.ts'
 export * from './drupal.ts'

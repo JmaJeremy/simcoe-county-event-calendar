@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { mapTribeEvents, tribeUrl, type TribePage } from '../src/tribe.ts'
+import type { RawEvent } from '@scec/core'
+import { dropRunawaySeries, mapTribeEvents, tribeUrl, type TribePage } from '../src/tribe.ts'
 
 const page: TribePage = JSON.parse(readFileSync(new URL('./fixtures/tribe-new-tecumseth.json', import.meta.url), 'utf8'))
 
@@ -77,3 +78,28 @@ describe('tribe adapter on a library calendar', () => {
   })
 })
 
+
+describe('runaway daily series', () => {
+  const at = (title: string, date: string, venueName = 'Grounds'): RawEvent => ({
+    externalId: `${title}@${date}`, title, localStart: `${date} 00:00:00`, venueName, categories: [], url: 'https://example.invalid', raw: null,
+  })
+  const days = (start: string, n: number) =>
+    Array.from({ length: n }, (_, i) => new Date(Date.parse(`${start}T00:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10))
+
+  it('drops a series entered as daily for months — Barrie 360’s three-day festival, 195 times', () => {
+    const festival = days('2026-09-04', 195).map((d) => at('Gussapolooza Music Festival', d))
+    const { kept, dropped } = dropRunawaySeries([...festival, at('Harvest Supper', '2026-09-20')])
+    expect(kept.map((e) => e.title)).toEqual(['Harvest Supper'])
+    expect(dropped).toEqual(['Gussapolooza Music Festival'])
+  })
+
+  it('keeps a genuine daily run, the longest on record being 37 days', () => {
+    const pickleball = days('2026-07-01', 37).map((d) => at('Drop In Pickleball', d))
+    expect(dropRunawaySeries(pickleball).kept).toHaveLength(37)
+  })
+
+  it('keeps a long weekly series, which is not daily however many dates it has', () => {
+    const weekly = Array.from({ length: 120 }, (_, i) => at('Museum After Hours', days('2026-09-08', 1 + i * 7).at(-1)!))
+    expect(dropRunawaySeries(weekly).kept).toHaveLength(120)
+  })
+})
