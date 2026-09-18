@@ -1,9 +1,12 @@
 import type { Municipality } from './types.ts'
 
 /**
- * The 19 jurisdictions: the County of Simcoe, its 16 member municipalities, and the two
+ * The 19 jurisdictions — the County of Simcoe, its 16 member municipalities, and the two
  * separated cities (Barrie and Orillia) that sit inside the county's borders but are not
- * governed by it. Same list as civi-times, so the two sites can link to each other by slug.
+ * governed by it — plus CFB Borden. The 19 share civi-times' slugs; Borden has no council
+ * and no civi-times page, but it is a community people look for by name, and filing its
+ * events under Essa hid them. Nothing links to civi-times by place, so the extra entry
+ * breaks no link.
  */
 export const MUNICIPALITIES: Municipality[] = [
   { slug: 'simcoe-county', name: 'County of Simcoe', shortName: 'Simcoe County', level: 'county', parent: null },
@@ -25,6 +28,7 @@ export const MUNICIPALITIES: Municipality[] = [
   { slug: 'tay', name: 'Township of Tay', shortName: 'Tay', level: 'township', parent: 'simcoe-county' },
   { slug: 'tiny', name: 'Township of Tiny', shortName: 'Tiny', level: 'township', parent: 'simcoe-county' },
   { slug: 'wasaga-beach', name: 'Town of Wasaga Beach', shortName: 'Wasaga Beach', level: 'town', parent: 'simcoe-county' },
+  { slug: 'cfb-borden', name: 'CFB Borden', shortName: 'CFB Borden', level: 'base', parent: null },
 ]
 
 export const municipalityBySlug = (slug: string): Municipality | undefined =>
@@ -62,6 +66,8 @@ export const GAZETTEER: Record<string, string[]> = {
   tay: ['Tay', 'Victoria Harbour', 'Port McNicoll', 'Waubaushene', 'Waverley', 'Vasey'],
   tiny: ['Tiny', 'Lafontaine', 'Perkinsfield', 'Wyevale', 'Balm Beach', 'Woodland Beach', 'Wyebridge', 'Thunder Beach', 'Bluewater Beach'],
   'wasaga-beach': ['Wasaga Beach', 'Wasaga'],
+  // Not bare "Borden", which is also a surname (and a street).
+  'cfb-borden': ['CFB Borden', 'Canadian Forces Base Borden', 'Base Borden'],
 }
 
 interface GazetteerEntry {

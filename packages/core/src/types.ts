@@ -26,6 +26,7 @@ export type Platform =
   | 'libcal'
   | 'ics'
   | 'sitefinity'
+  | 'cfmws'
   | 'manual'
 
 /** Who publishes a calendar. Drives the representative choice when listings merge. */
@@ -35,7 +36,8 @@ export type Platform =
  */
 export type SourceKind = 'municipal' | 'county' | 'library' | 'organization' | 'media' | 'tourism' | 'ticketing' | 'manual'
 
-export type MunicipalityLevel = 'county' | 'city' | 'town' | 'township'
+/** `base` is CFB Borden: federal land, not a municipality, but a community of its own. */
+export type MunicipalityLevel = 'county' | 'city' | 'town' | 'township' | 'base'
 
 /**
  * What the SOURCE says about the event, read from its text ("CANCELLED - Fall Fair") or
@@ -106,6 +108,9 @@ export type SourceConfig =
   /** Progress Sitefinity's Events module, read through its OData service. `detailPath` is
    * where the site mounts an event's page, joined to the item's own URL. */
   | { platform: 'sitefinity'; origin: string; detailPath: string }
+  /** A CFMWS base's events page, which embeds its whole list as JSON. `place` names where
+   * events with no location of their own happen. */
+  | { platform: 'cfmws'; origin: string; eventsPath: string; place: string }
   /** Entered by hand in the admin console. Nothing to fetch. */
   | { platform: 'manual' }
 
