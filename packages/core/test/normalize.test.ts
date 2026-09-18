@@ -135,6 +135,17 @@ describe('resolveMunicipality', () => {
     expect(resolveMunicipality('Toronto')).toBeNull()
     expect(resolveMunicipality('Ivylea Court')).toBeNull()
   })
+  it('reads a place name followed by a street word as the street, not the place', () => {
+    // Longer names are tried first, so "Bradford" used to beat "Barrie" on the same line.
+    expect(resolveMunicipality('Barrie By The Bay Commercial Complex, 80 Bradford Street')).toBe('barrie')
+    expect(resolveMunicipality('268 Bradford Street, Barrie, ON L4N 3B7')).toBe('barrie')
+    expect(resolveMunicipality('300 Coldwater Road West, Orillia, ON L3V 6X5')).toBe('orillia')
+    expect(resolveMunicipality('737 Horseshoe Valley Rd W, Coldwater, ON L0K 1E0')).toBe('severn')
+    expect(resolveMunicipality('Anten Mills Park (3985 Horseshoe Valley Road West)')).toBe('springwater')
+    // The place itself still counts wherever it is not naming a street.
+    expect(resolveMunicipality('Bradford Leisure Centre')).toBe('bradford-west-gwillimbury')
+    expect(resolveMunicipality('Coldwater Legion')).toBe('severn')
+  })
 })
 
 describe('normalizeEvent', () => {
