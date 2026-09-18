@@ -1,0 +1,2030 @@
+
+
+
+<script type="text/javascript">
+	  function resetForm() {
+                $("form[name='filter_events']")[0].reset();
+                $("select[name='event']").val("-1");
+                $("select[name='event']").trigger("change");
+            }
+	$(document).ready( function(){
+
+		
+		function sort_days(days) {
+			//var day_of_week = 0;// new Date().getDay();
+			//console.log(day_of_week);
+			var list = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+			//var sorted_list = list.slice(day_of_week).concat(list.slice(0,day_of_week));
+			return days.sort(function(a,b) { return list.indexOf(a) - list.indexOf(b); });
+		}
+		function sortByMonth(arr) {
+		  var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+					"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+		return  arr.sort(function(a, b){
+				
+			   return months.indexOf(a) - months.indexOf(b);
+		  });
+		  
+		 
+		}
+		// $("select[name='event'],select[name='month[]'],select[name='days[]'],select[name='genre[]']").select2();
+		
+		$(".accordion .title").on("click",function(){
+			$(this).toggleClass("active");
+			$(this).closest(".accordion").find(".content").toggleClass("active");
+		});
+		 function populateFilterOptions() {
+
+                     var venues = [], events = [], months = [], days = [], genres = [];
+                    $(".event-container").find(".event-item").each(function () {
+                        var venutId = $(this).attr("data-venue-id");
+                        var venuTitle = $(this).attr("data-venue-name");
+                        var eventId = $(this).attr("data-event-id");
+                        var eventTitle = $(this).attr("data-event-title");
+                        var genre = $(this).attr("data-genre").split(",");
+                        var floorplan = $(this).attr("data-floorplan");
+                        var day = $(this).attr("data-days").split(",");
+                        var month = $(this).attr("data-month");
+
+                       if ($.inArray(venuTitle, venues) < 0) {
+                            
+                            venues.push(venuTitle);
+                        } 
+						if ($.inArray(eventTitle, events) < 0) {
+                            
+                            events.push(eventTitle);
+                        }
+                        if ($.inArray(month, months) < 0) {
+						
+							
+                            months.push(month);
+                        }
+						
+						 $.each(day, function (i) {
+							if ($.inArray(day[i], days) < 0) {
+							
+								
+								days.push(day[i]);
+							}
+						});
+
+
+                        $.each(genre, function (i) {
+							
+                           if ($.inArray(genre[i], genres) < 0 && genre[i] !== "") {
+                               
+								genres.push(genre[i]);
+                            }
+                        });
+
+
+                    });
+					genres.sort();
+					
+					///console.log(months);
+					months = sortByMonth(months);
+		///			console.log(months);
+                    $.each(months, function (i) {
+					
+						$("select[name='month']").append($('<option>', {
+                                value: months[i],
+                                text: months[i]
+                            }));
+                        var monthhtml = $("<div class='field'><div class='ui  checkbox'> <input value='" + months[i] + "' type='checkbox' name='month[]' > <label class='capitalize'>" + months[i] + " </label></div></div>");
+                        $(".filter-months").append(monthhtml);
+                    });
+					days = sort_days(days);
+                    $.each(days, function (i) {
+							$("select[name='days']").append($('<option>', {
+                                value:  days[i] ,
+                                text:  days[i] 
+                            }));
+                        var dayshtml = $("<div class='field'><div class='ui  checkbox'> <input value='" + days[i] + "' type='checkbox' name='days[]' > <label class='capitalize'>" + days[i] + " </label></div></div>");
+                        $(".filter-days").append(dayshtml);
+                    });
+                    $.each(genres, function (i) {
+					
+					 $("select[name='genre']").append($('<option>', {
+                                value: genres[i],
+                                text: genres[i]
+                            }));
+                        var genreshtml = $("<div class='field'><div class='ui  checkbox'> <input value='" + genres[i] + "' type='checkbox' name='genre[]' > <label class='capitalize'>" + genres[i] + " </label></div></div>");
+                        $(".filter-genre").append(genreshtml);
+                    });
+					events.sort();
+					$.each(events, function (i) {
+						
+					 $("select[name='event']").append($('<option>', {
+                                value: events[i],
+                                text: events[i]
+                            }));
+                    });
+					venues.sort();
+					$.each(venues, function (i) {
+						
+					 $("select[name='venue']").append($('<option>', {
+                                value: venues[i],
+                                text: venues[i]
+                            }));
+                    });
+
+
+                }
+                populateFilterOptions();
+	
+	$("select[name='venue'],select[name='event'],input[name='floorplan[]'],select[name='month'],select[name='days'],select[name='genre']").on("change", function () {
+                   
+					var arrMonth =[];// $("select[name='month']").val() == null ? [] :  $("select[name='month[]']").val();
+					 var arrDays =[];// $("select[name='days']").val() == null ? [] :$("select[name='days[]']").val()  ;
+					  var arrGenre =[];// $("select[name='genre']").val() == null ? [] :  $("select[name='genre[]']").val();
+					   console.log(arrMonth,arrDays,arrGenre);
+					  var arrFloorplan = [];
+					  
+					  
+					  if($("select[name='month']").val() !== "-1"){
+					   arrMonth.push( $("select[name='month']").val());
+					  }
+					  if($("select[name='days']").val() !== "-1"){
+						arrDays.push($("select[name='days']").val());
+					  }if($("select[name='genre']").val() !== "-1"){
+						 arrGenre.push($("select[name='genre']").val());
+					  }
+					 
+					  
+					 
+					  
+					/*var arrFloorplan = [];
+                    $("input[name='floorplan[]']:checked").each(function () {
+                        arrFloorplan.push(this.value);
+                    });
+					
+                    
+                    $("input[name='month[]']:checked").each(function () {
+                        arrMonth.push(this.value);
+                    });
+                   
+                    $("input[name='days[]']:checked").each(function () {
+                       arrDays.push(this.value);
+                    });
+
+                   
+                    $("input[name='genre[]']:checked").each(function () {
+                        arrGenre.push(this.value);
+                    });
+					*/
+                    var event = $("select[name=event]").val();
+                    var venue = $("select[name=venue]").val();
+                    $(".event-container").find(".event-item").each(function () {
+
+                        var venueId = $(this).attr("data-venue-name");
+                        var eventId = $(this).attr("data-event-title");
+                        var genre = $(this).attr("data-genre").split(",");
+                        var floorplan = $(this).attr("data-floorplan");
+                        var day = $(this).attr("data-days").split(",");
+                        var month = $(this).attr("data-month");
+
+                        var hide = false;
+                        if (arrGenre.length > 0 && genre.length > 0) {
+
+                            for (var i = 0; i < genre.length; i++) {
+                                var ismatched = false;
+                                if ($.inArray(genre[i], arrGenre) >= 0) {
+                                    ismatched = true;
+                                    break;
+                                }
+                            }
+                            hide = !ismatched;
+
+                        } 
+						if (arrDays.length > 0 && day.length > 0) {
+
+                            for (var i = 0; i < day.length; i++) {
+                                var ismatched = false;
+                                if ($.inArray(day[i], arrDays) >= 0) {
+                                    ismatched = true;
+                                    break;
+                                }
+                            }
+                            hide = !ismatched;
+
+                        }
+                        if ($.inArray(floorplan, arrFloorplan) < 0 && arrFloorplan.length > 0) {
+                            hide = true;
+                        }
+                       /* if ($.inArray(day, arrDays) < 0 && arrDays.length > 0) {
+                            hide = true;
+                        }*/
+                        if ($.inArray(month, arrMonth) < 0 && arrMonth.length > 0) {
+                            hide = true;
+                        }
+
+						if (venue !== "-1" && venue !== null && venueId !== venue) {
+                            hide = true;
+                        }
+                        if (event !== "-1" && event !== null && eventId !== event) {
+                            hide = true;
+                        }
+                        if (!hide) {
+                            $(this).show();
+                        } else {
+                            $(this).attr('style', 'display:none !important');
+                        }
+                    });
+
+
+
+                });
+
+	
+	
+	    // animate login panel
+	    $('.login-button').click( function() {
+	        var currentL = $(".login-wrap").position().left;
+	        var currentML = $(".login-wrap").css('margin-left');
+	        var newL = currentL == 0 ? "100%" : "0%";
+	        var newML = currentML == "0px" ? "-90px" : "0px";
+	        $('.login-wrap').animate({
+	            left: newL,
+	            marginLeft: newML
+	        });
+	    });
+	    
+	    // slide menu down for small screens
+	    $('.nav-button').click(function() {
+			$('ul.menu').slideToggle('slow');
+		});
+		
+		// close menu for small screens
+		$('.nav-button-close').click(function() {
+			$('ul.menu').removeAttr('style');
+		});
+		
+		// initalize the datepicker widget
+		$('#txtDatePicker').datepicker();
+		
+		// initialize the responsive data table
+		$('#tblCalendar').footable({
+		    breakpoints: {
+		        phone: 580,
+		        tablet: 650
+		    }
+		});
+		$('#tblGeneralItems').footable({
+		    breakpoints: {
+		        phone: 580,
+		        tablet: 650
+		    }
+		});
+		$('#tblTickets').footable({
+		    breakpoints: {
+		        phone: 580,
+		        tablet: 650
+		    }
+		});
+		
+		// initialize tooltips (will pickup anything under title attr.
+		//$( document ).tooltip();
+		
+		
+		       var jssor_1_SlideoTransitions = [
+              [{b:-1,d:1,o:-1},{b:0,d:1000,x:-257,y:-5,o:1}],
+              [{b:480,d:520,x:120,y:-270}],
+              [{b:1000,d:500,y:250},{b:8000,d:1000,x:600}],
+              [{b:-1,d:1,o:-1,sX:-0.6,sY:-0.6},{b:1500,d:500,o:1,r:360,sX:0.6,sY:0.6},{b:8000,d:1000,y:-150}],
+              [{b:-1,d:1,o:-1,tZ:-200},{b:2000,d:1000,o:1,tZ:200},{b:3000,d:1000,o:-1,tZ:200}],
+              [{b:-1,d:1,o:-1,tZ:-200},{b:3000,d:1000,o:1,tZ:200},{b:4000,d:1000,o:-1,tZ:200}],
+              [{b:-1,d:1,o:-1,tZ:-200},{b:4000,d:1000,o:1,tZ:200},{b:5000,d:1000,o:-1,tZ:200}],
+              [{b:-1,d:1,o:-1,tZ:-200},{b:5000,d:1000,o:1,tZ:200},{b:6000,d:1000,o:-1,tZ:200}],
+              [{b:-1,d:1,o:-1,tZ:-200},{b:6000,d:1000,o:1,tZ:200},{b:7000,d:1000,o:-1,tZ:200}],
+              [{b:-1,d:1,o:-1,tZ:-200},{b:7000,d:1000,o:1,tZ:200},{b:8000,d:1000,o:-1,tZ:200}],
+              [{b:-1,d:1,c:{x:250.0,t:-250.0}},{b:0,d:1000,c:{x:-250.0,t:250.0}},{b:5000,d:1000,y:100}],
+              [{b:-1,d:1,o:-1},{b:1000,d:1000,o:1},{b:5000,d:1000,y:280}],
+              [{b:2000,d:1000,y:190,e:{y:28}},{b:5000,d:1000,x:280}],
+              [{b:3000,d:520,y:50},{b:5000,d:1000,y:-50}],
+              [{b:3520,d:480,x:-400},{b:5000,d:800,x:400,e:{x:7}}],
+              [{b:4000,d:500,x:-400},{b:5000,d:800,x:400,e:{x:7}}],
+              [{b:4500,d:500,x:-400},{b:5000,d:800,x:400,e:{x:7}}],
+              [{b:-1,d:1,c:{x:250.0,t:-250.0}},{b:0,d:1000,c:{x:-250.0,t:250.0}},{b:10000,d:500,y:90}],
+              [{b:-1,d:1,c:{x:150.0,t:-150.0}},{b:1000,d:1000,c:{x:-150.0,t:150.0}},{b:10000,d:500,c:{y:150.0,m:-150.0}}],
+              [{b:2000,d:500,x:220}],
+              [{b:3500,d:500,rX:-20},{b:4000,d:1000,rX:40},{b:5000,d:500,rX:-10},{b:9500,d:500,o:-1}],
+              [{b:3500,d:2000,r:360}],
+              [{b:-1,d:1,o:-1},{b:2500,d:500,x:76,y:-25,o:1}],
+              [{b:-1,d:1,o:-1},{b:2500,d:500,x:47,y:65,o:1}],
+              [{b:-1,d:1,o:-1},{b:2500,d:500,x:-47,y:65,o:1}],
+              [{b:-1,d:1,o:-1},{b:2500,d:500,x:-76,y:-25,o:1}],
+              [{b:-1,d:1,o:-1},{b:2500,d:500,y:-80,o:1}],
+              [{b:-1,d:1,c:{x:120.0,t:-120.0}},{b:6100,d:400,c:{x:-120.0,t:120.0}},{b:10000,d:500,y:-120}],
+              [{b:6500,d:500,x:220}],
+              [{b:-1,d:1,o:-1,r:180,sX:-0.5,sY:-0.5},{b:7000,d:500,o:1,r:180,sX:0.5,sY:0.5},{b:8000,d:500,o:-1,r:180,sX:9,sY:9}],
+              [{b:-1,d:1,o:-1,r:180,sX:-0.5,sY:-0.5},{b:8000,d:500,o:1,r:180,sX:0.5,sY:0.5},{b:9000,d:500,o:-1,r:180,sX:9,sY:9}],
+              [{b:-1,d:1,o:-1,r:180,sX:-0.5,sY:-0.5},{b:9000,d:500,o:1,r:180,sX:0.5,sY:0.5},{b:9500,d:500,o:-1,r:180,sX:9,sY:9}]
+            ];
+
+	   
+//
+
+
+
+
+		
+	});
+	// Google analytics tracking code
+	
+function loadbyfilter()
+{
+	document.frmIndex.method="post";
+	document.frmIndex.action="index.asp?cboCategory="+document.getElementById("cboCategory").value;
+	document.frmIndex.submit();
+}
+function filterByGenre(){
+	var genre = $("#cboCategory").val();
+					
+	$(".event-item").removeClass("hidden");
+	
+	if(genre !== "0"){
+		$(".event-item:not([data-genre='"+genre+"'])").addClass("hidden");
+		$(".event-item[data-genre*='"+genre+",']").removeClass("hidden");
+		$(".event-item[data-genre*=',"+genre+"']").removeClass("hidden");
+		
+	}
+}
+</script>
+<!-- BEGIN HACKS FOR IE -->
+<!--[if IE 9]><link rel="stylesheet" type="text/css" href="css/ie9.css" media="screen" />
+<![endif]-->
+<!--[if IE 8]><link rel="stylesheet" type="text/css" href="css/ie8.css" media="screen" />
+<![endif]-->
+<!--[if IE 7]><link rel="stylesheet" type="text/css" href="css/ie7.css" media="screen" />
+<![endif]-->
+<!-- END HACKS FOR IE -->
+
+
+
+<script type="text/javascript" src="js/modernizr.custom.js"></script>
+
+<script>
+function postOnPage()
+{
+
+if(document.frmIndex.txtDatePicker.value=='')
+	{
+		alert('Please enter valid date.')} 
+else { 
+	document.frmIndex.action='index.asp';
+	document.frmIndex.submit();
+	}
+}
+
+    function changeview(blistView)
+    {
+    if (blistView==1)
+    {
+        var CurrentCSS = $("#gridview").attr('class');
+        $("#gridview").removeClass(CurrentCSS);
+        $("#gridview").addClass("gridStyle");
+        
+        $("#gridview").addClass("gridStyle");
+        
+		
+
+        CurrentCSS = $("#listview").attr('class');
+        $("#listview").removeClass(CurrentCSS);
+        $("#listview").addClass("listStyleActive");
+    $("#tblCalendar").show();
+    $("#divGrid").hide();
+    
+
+    }
+    else if (blistView==0)
+    {
+    
+     var CurrentCSS = $("#gridview").attr('class');
+        $("#gridview").removeClass(CurrentCSS);
+        $("#gridview").addClass("gridStyleActive");
+
+		
+				
+        CurrentCSS = $("#listview").attr('class');
+        $("#listview").removeClass(CurrentCSS);
+        $("#listview").addClass("listStyle");
+    
+
+    $("#tblCalendar").hide();
+    $("#divGrid").show();
+    
+
+    
+    }
+    }
+
+
+	
+   
+
+</script>
+
+ 
+					
+					
+
+
+ 
+
+
+
+
+					<div id="divlistStyle"  name="divlistStyle" class="content typography">
+					
+<div id="iJSSSSSOR" style="width:100%;float: left; margin-bottom:20px;display:none !important;">
+<div id="jssor_1" style="position: relative; margin: 0 auto; top: 0px; left: 0px;width: 900px; float:left;  height: 300px; overflow: hidden; visibility: hidden;">
+        <!-- Loading Screen -->
+         <div data-u="loading" style="position: absolute; top: 0px; left: 0px;">
+            <div style="filter: alpha(opacity=70); opacity: 0.7; position: absolute; display: block; top: 0px; left: 0px; width: 100%; height: 100%;"></div>
+            <div style="position:absolute;display:block;background:url('img/loading.gif') no-repeat center center;top:0px;left:0px;width:100%;height:100%;"></div>
+        </div>
+        <div data-u="slides" style="cursor: default; position: relative; top: 0px; left: 0px; width: 900px; height: 300px; overflow: hidden;">
+<!--
+            <div idle="2500" data-b="1" data-p="170.00" style="display: none;">
+                <img data-u="image" src="images/image-slider-3.jpg" />                
+            </div>            
+            <div idle="2500" data-b="2" data-p="170.00" style="display: none;">
+                <img data-u="image" src="images/image-slider-4.jpg" />                
+            </div>-->
+            
+        </div>
+        <!-- Bullet Navigator -->
+        <div data-u="navigator" class="jssorb05" style="bottom:16px;right:16px;" data-autocenter="1">
+            <!-- bullet navigator item prototype -->
+            <div data-u="prototype" style="width:16px;height:16px;"></div>
+        </div>
+        <!-- Arrow Navigator -->
+        <span data-u="arrowleft" class="jssora22l" style="top:0px;left:10px;width:40px;height:58px;" data-autocenter="2"></span>
+        <span data-u="arrowright" class="jssora22r" style="top:0px;right:10px;width:40px;height:58px;" data-autocenter="2"></span>
+    </div>
+    
+</div>
+
+
+						
+
+					
+						<!--</h1>				
+						<div style="margin: 0 0 0.4em 0;float:left; width:100%">
+							<form id="frmIndex" name="frmIndex" action="index.asp" method="post">
+							<p><label for="txtDatePicker">Date: </label><input type="text" id="txtDatePicker" name="txtDatePicker" readonly value="" placeholder="DD/MM/YYYY"/> <button class="btn-default" type="button" onclick="javascript:postOnPage();">
+							Search</button>					                                
+	                                 
+	                                                    </p>
+	                            </form>
+	                    </div>
+                         		-->
+						<table id="tblCalendar"   class="basic-tbl toggle-square-filled" style="display:none">
+							
+                          <thead>
+								<tr>
+									<th>Date</th>
+									<th data-hide="phone,tablet">Time</th>
+									<th style="text-align:left">Event</th>
+									<th style="text-align:left" data-hide="phone,tablet">
+									Venue</th>
+								</tr>
+							</thead>
+                              
+
+							<tbody>
+
+                                
+								<tr class="1">
+									<td><time datetime="2013-09-26">Sep 18 - 19, 2026<br>Multiple Dates</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30"></time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6070&cboEvent=2482&bmultiple=1&width='>Million Dollar Quartet</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="18">
+									<td><time datetime="2013-09-26">Sep 20 - 20, 2026<br>Multiple Dates</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30"></time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6402&cboEvent=2579&bmultiple=1&width='>Autumn Tea</a>
+                                    </td>
+									<td>
+                                    Leacock Museum Historical Site
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">9/26/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6076&cboEvent=2486&width='>Simply Queen. Simply Spectacular.</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">9/27/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">2:00 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6315&cboEvent=2532&width='>Old Friends: The Songs of Simon and Garfunkel</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">9/28/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">6:15 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6405&cboEvent=2581&width='>Real2Reel Film Screening: The Secret Path</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/1/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6360&cboEvent=2558&width='>Tom Thomson's Wake</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/3/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6075&cboEvent=2485&width='>Dreamer - The Supertramp Experience</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="18">
+									<td><time datetime="2013-09-26">Oct 4 - 11, 2026<br>Multiple Dates</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30"></time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6390&cboEvent=2577&bmultiple=1&width='>Paint by the Lake - Fall Edition</a>
+                                    </td>
+									<td>
+                                    Leacock Museum Historical Site
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/8/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6316&cboEvent=2533&width='>Reign: The Queens of Blues, Soul and Rock 'n Roll</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/16/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:00 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6367&cboEvent=2565&width='>Orillia Jazz Festival - Friday Jazz Night and Neo Noir After Party</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="18">
+									<td><time datetime="2013-09-26">Oct 17 - 17, 2026<br>Multiple Dates</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30"></time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6407&cboEvent=2583&bmultiple=1&width='>Halloween Crafts</a>
+                                    </td>
+									<td>
+                                    Leacock Museum Historical Site
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/17/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:00 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6368&cboEvent=2566&width='>Orillia Jazz Festival - Jane Burnett and Maqueque</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">Oct 18 - 18, 2026<br>Multiple Dates</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30"></time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6386&cboEvent=2576&bmultiple=1&width='>The Wicked Witches of OZ</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/21/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6366&cboEvent=2564&width='>A Taste of Ireland</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/23/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:00 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6359&cboEvent=2557&width='>Improv Night at the Orillia Opera House!</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="18">
+									<td><time datetime="2013-09-26">10/24/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">3:00 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6410&cboEvent=2585&width='>Pumpkins & Pinot</a>
+                                    </td>
+									<td>
+                                    Leacock Museum Historical Site
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/24/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6404&cboEvent=2580&width='>SOS - The ABBA Experience</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="18">
+									<td><time datetime="2013-09-26">Oct 28 - 31, 2026<br>Multiple Dates</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30"></time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6372&cboEvent=2570&bmultiple=1&width='>Ghost Walks on the Leacock Museum Grounds</a>
+                                    </td>
+									<td>
+                                    Leacock Museum Historical Site
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/28/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6356&cboEvent=2555&width='>The Stampeders... One More Time</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">10/29/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6302&cboEvent=2524&width='>The Lightfoot Band</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">Nov 5 - 15, 2026<br>Multiple Dates</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30"></time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6392&cboEvent=2578&bmultiple=1&width='>Macbeth</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">11/20/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6364&cboEvent=2562&width='>Upinnaq-&#5125;&#5169;&#5328;&#5319;&#5509;, A Beautiful Christmas</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">11/21/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6371&cboEvent=2569&width='>The Organ Summit</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">11/22/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6362&cboEvent=2560&width='>The Great Canadian Roadtrip</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">11/25/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6365&cboEvent=2563&width='>Classic Troubadours: The Songs of James, Joni, Jackson & Carole</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">11/27/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6361&cboEvent=2559&width='>Derek Edwards - Oxy Moron (Part Two)</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">12/3/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6339&cboEvent=2546&width='>The Jersey Nights Before Christmas</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">12/4/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6385&cboEvent=2575&width='>PIANO HEIST: A Very Merry Heistmas!</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">12/5/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6125&cboEvent=2505&width='>Hotel California</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">Dec 11 - 11, 2026<br>Multiple Dates</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30"></time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6357&cboEvent=2556&bmultiple=1&width='>O Christmas Tea: A British Comedy</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">12/16/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:00 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6406&cboEvent=2582&width='>Charles Dickens' A Christmas Carol</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">12/18/2026</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6384&cboEvent=2574&width='>Under the Lights: A Tribute to the Music Of A Charlie Brown Christmas</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">1/29/2027</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:30 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6300&cboEvent=2522&width='>Mudmen in Concert</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+								<tr class="1">
+									<td><time datetime="2013-09-26">2/27/2027</time><input type="hidden" name="txtwidth" id="txtwidth" value=""></td>
+									<td><time datetime="19:30">7:00 PM</time></td>
+									<td style="text-align:left"><a id='iLink1' class='event' href='b_otix.asp?cboPerformances=6411&cboEvent=2586&width='>Canine Circus: Northern Lights</a>
+                                    </td>
+									<td>
+                                    Orillia Opera House
+
+
+									</td>
+								</tr>
+							
+                                 
+
+
+							</tbody>
+						</table>
+						
+					
+                       
+                        
+
+
+<div class="filter-container">
+			<form name="filter_events">
+                                               <!-- <div class="ui styled accordion" style="width: 100%;">
+                                                    <div class=" title tableMainHead"  style="color:#fff;background-color:#111;padding:8px;">
+                                                        <i class="dropdown icon"></i>
+                                                        Filter Events
+                                                    </div>
+                                                    <div class=" content" style="padding: 8px;">
+                                                        <div class="ui form">
+
+                                                            <div class="inline fields" style="display: none;">
+                                                                <div class="field "  style="width: 140px;">
+                                                                    <label>  <i class="fa fa-building icon"></i>
+                                                                        Floorplan:</label>
+                                                                </div>
+                                                                <div class="field">
+                                                                    <div class="ui  checkbox">
+                                                                        <input value="1" type="checkbox" name="floorplan[]" >
+                                                                        <label>Main Theatre</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="field">
+                                                                    <div class="ui  checkbox">
+                                                                        <input value="2" type="checkbox" name="floorplan[]" >
+                                                                        <label>Community Studio Theatre</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="field">
+                                                                    <div class="ui  checkbox">
+                                                                        <input value="3" type="checkbox" name="floorplan[]" >
+                                                                        <label>Main Theatre GA</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="inline fields filter-months" >
+                                                                <div class="field field-heading"  style="width: 140px;">
+
+                                                                    <label>  <i class="fa fa-calendar-o icon"></i> Month:</label>
+                                                                </div>
+
+                                                            </div>
+
+          
+
+                                                            <div class="inline fields filter-days">
+                                                                <div class="field field-heading" style="width: 140px;">
+                                                                    <label>  <i class="fa fa-calendar alternate icon"></i>
+                                                                        Day Of Week:</label>
+                                                                </div>
+
+                                                            </div>
+															<div class="inline fields">
+															<div class="field" style="width:140px;">
+																<div class="field field-heading"  style="width: 140px;">
+                                                                    <label>    <i class="fa fa-tags  icon"></i>
+                                                                       Genre:</label>
+                                                                </div>
+															</div>
+                                                            <div class="field filter-genre">
+                                                                
+
+                                                            </div>
+															</div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>-->
+                                                <div class="ui form" style="margin: 10px;margin-left:0px;" >
+												
+													
+													<div class="inline fields">
+														<div style="width: 200px;" class="field">
+
+                                                           <label><b>Venue</b></label>
+                                                            <select style="width: 195px;"  name="venue" class="ui search dropdown">
+                                                                <option selected value="-1">All</option>
+                                                            </select>
+                                                        </div>
+														<div style="width: 330px;" class="field">
+
+                                                           <label><b>Event</b></label>
+                                                            <select style="width: 325px;"  name="event" class="ui search dropdown">
+                                                                <option selected value="-1">All</option>
+                                                            </select>
+                                                        </div>
+                                                        <div  style="width: 120px;" class="field">
+
+                                                            <label><b>Month</b></label>
+                                                            <select placeholder="Select month"  style="width: 115px;"  name="month" class="ui search dropdown">
+                                                                <option selected value="-1">All</option>
+                                                            </select>
+                                                        </div>
+														<div  style="width: 120px;" class="field">
+
+                                                            <label><b>Day</b></label>
+                                                            <select placeholder="Select Day"   style="width: 115px;"   name="days" class="ui search dropdown">
+                                                                <option selected value="-1">All</option>
+                                                            </select>
+                                                        </div>
+														<div  style="width: 120px;" class="field">
+		
+                                                           <label><b>Genre</b></label>
+                                                            <select placeholder="Select Genre"   style="width: 115px;"   name="genre" class="ui search dropdown">
+                                                                <option selected value="-1">All</option>
+                                                            </select>
+                                                        </div>
+														<div  style="width: 110px;" class="field">
+														<span onclick="resetForm();" title="Reset Filters"  style="cursor:pointer;color: #fff;    height: auto !important;    padding: 8px;    border: 1px solid #8D211F  !important;    background-color: #8D211F ;"><i class="fa fa-undo"></i></span>
+														</div>
+
+                                                        
+                                                    </div>
+                                                    
+                                                </div>
+
+                                            </form>
+		  </div>
+
+
+                    <div class="event-container grid-equalHeight" stsyle="width:100%; clear:both;overflow:hidden;margin-bottom: 0px;"  id="divGrid">
+                      
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2482" data-event-title="Million Dollar Quartet" data-genre="Musical, Live Theatre"  data-floorplan="Main theatre" data-day="Fri" data-days="Saturday,Friday" data-month="Sep"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6070&cboEvent=2482&bmultiple=1&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6070&cboEvent=2482&bmultiple=1&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID_2482_9_2_2026_4_33_13_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Million Dollar Quartet" alt="Million Dollar Quartet"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6070&cboEvent=2482&bmultiple=1&width='>Million Dollar Quartet</a></span><br>
+	                      Sep 18 - Sep 19, 2026                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6070&cboEvent=2482&bmultiple=1&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">Multiple Dates</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Leacock Museum Historical Site" data-venue-id="18" data-event-id="2579" data-event-title="Autumn Tea" data-genre=""  data-floorplan="Main theatre" data-day="Sun" data-days="Sunday" data-month="Sep"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6402&cboEvent=2579&bmultiple=1&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6402&cboEvent=2579&bmultiple=1&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__8_17_2026_9_24_43_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Autumn Tea" alt="Autumn Tea"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6402&cboEvent=2579&bmultiple=1&width='>Autumn Tea</a></span><br>
+	                      Sep 20 - Sep 20, 2026                   
+	                        <br>
+	                                 Leacock Museum Historical Site
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6402&cboEvent=2579&bmultiple=1&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">Multiple Dates</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2486" data-event-title="Simply Queen. Simply Spectacular." data-genre="Concert, Classic Rock"  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Sep"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6076&cboEvent=2486&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6076&cboEvent=2486&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__11_3_2025_12_47_01_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Simply Queen. Simply Spectacular." alt="Simply Queen. Simply Spectacular."/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6076&cboEvent=2486&width='>Simply Queen. Simply Spectacular.</a></span><br>
+	                      Sep 26, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6076&cboEvent=2486&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2532" data-event-title="Old Friends: The Songs of Simon and Garfunkel" data-genre="Folk, Concert"  data-floorplan="Main theatre" data-day="Sun" data-days="Sunday" data-month="Sep"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6315&cboEvent=2532&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6315&cboEvent=2532&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__3_26_2026_11_59_19_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Old Friends: The Songs of Simon and Garfunkel" alt="Old Friends: The Songs of Simon and Garfunkel"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6315&cboEvent=2532&width='>Old Friends: The Songs of Simon and Garfunkel</a></span><br>
+	                      Sep 27, 2026
+
+	                        <time datetime="19:30">2:00 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6315&cboEvent=2532&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2581" data-event-title="Real2Reel Film Screening: The Secret Path" data-genre=""  data-floorplan="Main theatre" data-day="Mon" data-days="Monday" data-month="Sep"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6405&cboEvent=2581&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6405&cboEvent=2581&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__8_31_2026_2_52_37_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Real2Reel Film Screening: The Secret Path" alt="Real2Reel Film Screening: The Secret Path"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6405&cboEvent=2581&width='>Real2Reel Film Screening: The Secret Path</a></span><br>
+	                      Sep 28, 2026
+
+	                        <time datetime="19:30">6:15 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6405&cboEvent=2581&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2558" data-event-title="Tom Thomson's Wake" data-genre="Musical, Concert, Celtic"  data-floorplan="Main theatre" data-day="Thu" data-days="Thursday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6360&cboEvent=2558&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6360&cboEvent=2558&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__5_27_2026_2_05_02_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Tom Thomson's Wake" alt="Tom Thomson's Wake"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6360&cboEvent=2558&width='>Tom Thomson's Wake</a></span><br>
+	                      Oct 1, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6360&cboEvent=2558&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2485" data-event-title="Dreamer - The Supertramp Experience" data-genre="Concert, Classic Rock"  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6075&cboEvent=2485&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6075&cboEvent=2485&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__11_3_2025_12_33_35_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Dreamer - The Supertramp Experience" alt="Dreamer - The Supertramp Experience"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6075&cboEvent=2485&width='>Dreamer - The Supertramp Experience</a></span><br>
+	                      Oct 3, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6075&cboEvent=2485&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Leacock Museum Historical Site" data-venue-id="18" data-event-id="2577" data-event-title="Paint by the Lake - Fall Edition" data-genre=""  data-floorplan="Main theatre" data-day="Sun" data-days="Sunday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6390&cboEvent=2577&bmultiple=1&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6390&cboEvent=2577&bmultiple=1&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__8_4_2026_1_02_37_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Paint by the Lake - Fall Edition" alt="Paint by the Lake - Fall Edition"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6390&cboEvent=2577&bmultiple=1&width='>Paint by the Lake - Fall Edition</a></span><br>
+	                      Oct 4 - Oct 11, 2026                   
+	                        <br>
+	                                 Leacock Museum Historical Site
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6390&cboEvent=2577&bmultiple=1&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">Multiple Dates</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2533" data-event-title="Reign: The Queens of Blues, Soul and Rock 'n Roll" data-genre="Concert, Classic Rock"  data-floorplan="Main theatre" data-day="Thu" data-days="Thursday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6316&cboEvent=2533&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6316&cboEvent=2533&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__3_26_2026_1_28_13_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Reign: The Queens of Blues, Soul and Rock 'n Roll" alt="Reign: The Queens of Blues, Soul and Rock 'n Roll"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6316&cboEvent=2533&width='>Reign: The Queens of Blues, Soul and Rock 'n Roll</a></span><br>
+	                      Oct 8, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6316&cboEvent=2533&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2565" data-event-title="Orillia Jazz Festival - Friday Jazz Night and Neo Noir After Party" data-genre="Concert"  data-floorplan="Main theatre" data-day="Fri" data-days="Friday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6367&cboEvent=2565&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6367&cboEvent=2565&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__6_18_2026_9_11_30_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Orillia Jazz Festival - Friday Jazz Night and Neo Noir After Party" alt="Orillia Jazz Festival - Friday Jazz Night and Neo Noir After Party"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6367&cboEvent=2565&width='>Orillia Jazz Festival - Friday Jazz Night and Neo Noir After Party</a></span><br>
+	                      Oct 16, 2026
+
+	                        <time datetime="19:30">7:00 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6367&cboEvent=2565&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Leacock Museum Historical Site" data-venue-id="18" data-event-id="2583" data-event-title="Halloween Crafts" data-genre=""  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6407&cboEvent=2583&bmultiple=1&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6407&cboEvent=2583&bmultiple=1&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__9_6_2026_2_29_49_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Halloween Crafts" alt="Halloween Crafts"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6407&cboEvent=2583&bmultiple=1&width='>Halloween Crafts</a></span><br>
+	                      Oct 17 - Oct 17, 2026                   
+	                        <br>
+	                                 Leacock Museum Historical Site
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6407&cboEvent=2583&bmultiple=1&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">Multiple Dates</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2566" data-event-title="Orillia Jazz Festival - Jane Burnett and Maqueque" data-genre="Concert"  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6368&cboEvent=2566&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6368&cboEvent=2566&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__6_19_2026_11_23_40_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Orillia Jazz Festival - Jane Burnett and Maqueque" alt="Orillia Jazz Festival - Jane Burnett and Maqueque"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6368&cboEvent=2566&width='>Orillia Jazz Festival - Jane Burnett and Maqueque</a></span><br>
+	                      Oct 17, 2026
+
+	                        <time datetime="19:30">7:00 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6368&cboEvent=2566&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2576" data-event-title="The Wicked Witches of OZ" data-genre=""  data-floorplan="Main theatre" data-day="Sun" data-days="Sunday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6386&cboEvent=2576&bmultiple=1&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6386&cboEvent=2576&bmultiple=1&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__7_30_2026_11_22_53_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="The Wicked Witches of OZ" alt="The Wicked Witches of OZ"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6386&cboEvent=2576&bmultiple=1&width='>The Wicked Witches of OZ</a></span><br>
+	                      Oct 18 - Oct 18, 2026                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6386&cboEvent=2576&bmultiple=1&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">Multiple Dates</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2564" data-event-title="A Taste of Ireland" data-genre="Dance, Celtic"  data-floorplan="Main theatre" data-day="Wed" data-days="Wednesday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6366&cboEvent=2564&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6366&cboEvent=2564&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__6_18_2026_1_01_47_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="A Taste of Ireland" alt="A Taste of Ireland"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6366&cboEvent=2564&width='>A Taste of Ireland</a></span><br>
+	                      Oct 21, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6366&cboEvent=2564&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2557" data-event-title="Improv Night at the Orillia Opera House!" data-genre="Comedy"  data-floorplan="Main theatre" data-day="Fri" data-days="Friday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6359&cboEvent=2557&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6359&cboEvent=2557&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__5_27_2026_11_56_29_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Improv Night at the Orillia Opera House!" alt="Improv Night at the Orillia Opera House!"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6359&cboEvent=2557&width='>Improv Night at the Orillia Opera House!</a></span><br>
+	                      Oct 23, 2026
+
+	                        <time datetime="19:30">7:00 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6359&cboEvent=2557&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Leacock Museum Historical Site" data-venue-id="18" data-event-id="2585" data-event-title="Pumpkins & Pinot" data-genre=""  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6410&cboEvent=2585&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6410&cboEvent=2585&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__9_11_2026_2_26_54_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Pumpkins & Pinot" alt="Pumpkins & Pinot"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6410&cboEvent=2585&width='>Pumpkins & Pinot</a></span><br>
+	                      Oct 24, 2026
+
+	                        <time datetime="19:30">3:00 PM                   
+	                        <br>
+	                                 Leacock Museum Historical Site
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6410&cboEvent=2585&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2580" data-event-title="SOS - The ABBA Experience" data-genre=""  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6404&cboEvent=2580&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6404&cboEvent=2580&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__9_8_2026_9_01_10_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="SOS - The ABBA Experience" alt="SOS - The ABBA Experience"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6404&cboEvent=2580&width='>SOS - The ABBA Experience</a></span><br>
+	                      Oct 24, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6404&cboEvent=2580&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Leacock Museum Historical Site" data-venue-id="18" data-event-id="2570" data-event-title="Ghost Walks on the Leacock Museum Grounds" data-genre=""  data-floorplan="Main theatre" data-day="Wed" data-days="Wednesday,Thursday,Saturday,Friday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6372&cboEvent=2570&bmultiple=1&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6372&cboEvent=2570&bmultiple=1&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__7_6_2026_12_34_03_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Ghost Walks on the Leacock Museum Grounds" alt="Ghost Walks on the Leacock Museum Grounds"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6372&cboEvent=2570&bmultiple=1&width='>Ghost Walks on the Leacock Museum Grounds</a></span><br>
+	                      Oct 28 - Oct 31, 2026                   
+	                        <br>
+	                                 Leacock Museum Historical Site
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6372&cboEvent=2570&bmultiple=1&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">Multiple Dates</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2555" data-event-title="The Stampeders... One More Time" data-genre="Concert, Classic Rock"  data-floorplan="Main theatre" data-day="Wed" data-days="Wednesday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6356&cboEvent=2555&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6356&cboEvent=2555&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__5_22_2026_1_32_56_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="The Stampeders... One More Time" alt="The Stampeders... One More Time"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6356&cboEvent=2555&width='>The Stampeders... One More Time</a></span><br>
+	                      Oct 28, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6356&cboEvent=2555&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2524" data-event-title="The Lightfoot Band" data-genre="Folk, Concert"  data-floorplan="Main theatre" data-day="Thu" data-days="Thursday" data-month="Oct"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6302&cboEvent=2524&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6302&cboEvent=2524&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__2_26_2026_5_17_49_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="The Lightfoot Band" alt="The Lightfoot Band"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6302&cboEvent=2524&width='>The Lightfoot Band</a></span><br>
+	                      Oct 29, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6302&cboEvent=2524&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2578" data-event-title="Macbeth" data-genre=""  data-floorplan="Main theatre" data-day="Thu" data-days="Thursday,Sunday,Saturday,Friday" data-month="Nov"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6392&cboEvent=2578&bmultiple=1&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6392&cboEvent=2578&bmultiple=1&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__8_11_2026_2_41_02_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Macbeth" alt="Macbeth"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6392&cboEvent=2578&bmultiple=1&width='>Macbeth</a></span><br>
+	                      Nov 5 - Nov 15, 2026                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6392&cboEvent=2578&bmultiple=1&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">Multiple Dates</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2562" data-event-title="Upinnaq-&#5125;&#5169;&#5328;&#5319;&#5509;, A Beautiful Christmas" data-genre="Concert"  data-floorplan="Main theatre" data-day="Fri" data-days="Friday" data-month="Nov"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6364&cboEvent=2562&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6364&cboEvent=2562&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID_2562_9_2_2026_4_30_56_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Upinnaq-&#5125;&#5169;&#5328;&#5319;&#5509;, A Beautiful Christmas" alt="Upinnaq-&#5125;&#5169;&#5328;&#5319;&#5509;, A Beautiful Christmas"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6364&cboEvent=2562&width='>Upinnaq-&#5125;&#5169;&#5328;&#5319;&#5509;, A Beautiful Christmas</a></span><br>
+	                      Nov 20, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6364&cboEvent=2562&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2569" data-event-title="The Organ Summit" data-genre="Concert"  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Nov"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6371&cboEvent=2569&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6371&cboEvent=2569&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__6_29_2026_3_44_08_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="The Organ Summit" alt="The Organ Summit"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6371&cboEvent=2569&width='>The Organ Summit</a></span><br>
+	                      Nov 21, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6371&cboEvent=2569&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2560" data-event-title="The Great Canadian Roadtrip" data-genre="Country, Concert"  data-floorplan="Main theatre" data-day="Sun" data-days="Sunday" data-month="Nov"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6362&cboEvent=2560&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6362&cboEvent=2560&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__6_3_2026_1_21_45_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="The Great Canadian Roadtrip" alt="The Great Canadian Roadtrip"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6362&cboEvent=2560&width='>The Great Canadian Roadtrip</a></span><br>
+	                      Nov 22, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6362&cboEvent=2560&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2563" data-event-title="Classic Troubadours: The Songs of James, Joni, Jackson & Carole" data-genre="Concert, Classic Rock"  data-floorplan="Main theatre" data-day="Wed" data-days="Wednesday" data-month="Nov"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6365&cboEvent=2563&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6365&cboEvent=2563&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__6_17_2026_2_12_04_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Classic Troubadours: The Songs of James, Joni, Jackson & Carole" alt="Classic Troubadours: The Songs of James, Joni, Jackson & Carole"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6365&cboEvent=2563&width='>Classic Troubadours: The Songs of James, Joni, Jackson & Carole</a></span><br>
+	                      Nov 25, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6365&cboEvent=2563&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2559" data-event-title="Derek Edwards - Oxy Moron (Part Two)" data-genre="Stand-up comedy, Comedy"  data-floorplan="Main theatre" data-day="Fri" data-days="Friday" data-month="Nov"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6361&cboEvent=2559&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6361&cboEvent=2559&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__5_28_2026_11_31_37_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Derek Edwards - Oxy Moron (Part Two)" alt="Derek Edwards - Oxy Moron (Part Two)"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6361&cboEvent=2559&width='>Derek Edwards - Oxy Moron (Part Two)</a></span><br>
+	                      Nov 27, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6361&cboEvent=2559&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2546" data-event-title="The Jersey Nights Before Christmas" data-genre="Musical, Concert, Christmas"  data-floorplan="Main theatre" data-day="Thu" data-days="Thursday" data-month="Dec"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6339&cboEvent=2546&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6339&cboEvent=2546&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__5_7_2026_6_00_36_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="The Jersey Nights Before Christmas" alt="The Jersey Nights Before Christmas"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6339&cboEvent=2546&width='>The Jersey Nights Before Christmas</a></span><br>
+	                      Dec 3, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6339&cboEvent=2546&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2575" data-event-title="PIANO HEIST: A Very Merry Heistmas!" data-genre=""  data-floorplan="Main theatre" data-day="Fri" data-days="Friday" data-month="Dec"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6385&cboEvent=2575&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6385&cboEvent=2575&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__9_18_2026_5_24_37_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="PIANO HEIST: A Very Merry Heistmas!" alt="PIANO HEIST: A Very Merry Heistmas!"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6385&cboEvent=2575&width='>PIANO HEIST: A Very Merry Heistmas!</a></span><br>
+	                      Dec 4, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6385&cboEvent=2575&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2505" data-event-title="Hotel California" data-genre="Concert, Classic Rock"  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Dec"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6125&cboEvent=2505&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6125&cboEvent=2505&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__12_11_2025_10_11_29_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Hotel California" alt="Hotel California"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6125&cboEvent=2505&width='>Hotel California</a></span><br>
+	                      Dec 5, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6125&cboEvent=2505&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2556" data-event-title="O Christmas Tea: A British Comedy" data-genre="Comedy, Christmas"  data-floorplan="Main theatre" data-day="Fri" data-days="Friday" data-month="Dec"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6357&cboEvent=2556&bmultiple=1&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6357&cboEvent=2556&bmultiple=1&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__5_22_2026_2_03_21_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="O Christmas Tea: A British Comedy" alt="O Christmas Tea: A British Comedy"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6357&cboEvent=2556&bmultiple=1&width='>O Christmas Tea: A British Comedy</a></span><br>
+	                      Dec 11 - Dec 11, 2026                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6357&cboEvent=2556&bmultiple=1&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">Multiple Dates</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2582" data-event-title="Charles Dickens' A Christmas Carol" data-genre=""  data-floorplan="Main theatre" data-day="Wed" data-days="Wednesday" data-month="Dec"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6406&cboEvent=2582&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6406&cboEvent=2582&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__9_1_2026_12_48_36_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Charles Dickens' A Christmas Carol" alt="Charles Dickens' A Christmas Carol"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6406&cboEvent=2582&width='>Charles Dickens' A Christmas Carol</a></span><br>
+	                      Dec 16, 2026
+
+	                        <time datetime="19:30">7:00 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6406&cboEvent=2582&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2574" data-event-title="Under the Lights: A Tribute to the Music Of A Charlie Brown Christmas" data-genre=""  data-floorplan="Main theatre" data-day="Fri" data-days="Friday" data-month="Dec"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6384&cboEvent=2574&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6384&cboEvent=2574&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__7_21_2026_8_59_52_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Under the Lights: A Tribute to the Music Of A Charlie Brown Christmas" alt="Under the Lights: A Tribute to the Music Of A Charlie Brown Christmas"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6384&cboEvent=2574&width='>Under the Lights: A Tribute to the Music Of A Charlie Brown Christmas</a></span><br>
+	                      Dec 18, 2026
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6384&cboEvent=2574&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2522" data-event-title="Mudmen in Concert" data-genre=""  data-floorplan="Main theatre" data-day="Fri" data-days="Friday" data-month="Jan"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6300&cboEvent=2522&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6300&cboEvent=2522&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__2_23_2026_9_41_18_AM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Mudmen in Concert" alt="Mudmen in Concert"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6300&cboEvent=2522&width='>Mudmen in Concert</a></span><br>
+	                      Jan 29, 2027
+
+	                        <time datetime="19:30">7:30 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6300&cboEvent=2522&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                    <div data-venue-name="Orillia Opera House" data-venue-id="1" data-event-id="2586" data-event-title="Canine Circus: Northern Lights" data-genre="Magic"  data-floorplan="Main theatre" data-day="Sat" data-days="Saturday" data-month="Feb"
+					class="event-item col-4_md-4_sm-6_xs-12" style="width:100%;height:inherit;text-align:center;">
+
+                    <div id="iGVS" class="event-content " >
+                    <a class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6411&cboEvent=2586&width='>
+                    <span style="position:relative;display:inline;;">
+			
+						<img loading="lazy" longdesc="b_otix.asp?cboPerformances=6411&cboEvent=2586&width=" id="iGridImage" src="https://d19ntoe88i4i2.cloudfront.net/orillia-oh/bom/uploads/EventID__9_14_2026_1_44_29_PM.jpg" width="310px" height="194px" style="max-height:210px;width:100%;height:auto;border-radius:0px; max-width: 100%;background: #f5f5f5;" title="Canine Circus: Northern Lights" alt="Canine Circus: Northern Lights"/>
+					</span>
+                    </a>
+							<div class="" style="font-size: 16px;font-weight: normal;text-align: left;vertical-align: center;padding: 15px;width: 100%;line-height: 1.5em;">
+                        	<span style="font-weight:bold"><a style='color:#3a515f;' id='iLink2' data-searchable  class='event' href='b_otix.asp?cboPerformances=6411&cboEvent=2586&width='>Canine Circus: Northern Lights</a></span><br>
+	                      Feb 27, 2027
+
+	                        <time datetime="19:30">7:00 PM                   
+	                        <br>
+	                                 Orillia Opera House
+                        </div>
+                        <div class="btn-container rightDivGV rightDivGViewNew" style="margin-top:0px">
+                            <a  class='event' style='cursor: pointer' href='b_otix.asp?cboPerformances=6411&cboEvent=2586&width='><div style="font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif; color: #FFFFFF; border: 1px solid #8D211F; background-color: #8D211F; border-radius: 0px; font-size: 16px; padding: 12px;text-decoration:none;text-align: center;">More Info</div></a>
+                        </div>
+
+                        
+                     </div></div>
+
+					
+
+                         
+                       <!-- <div style="width:25%;float:left;padding:1px 1px 1px 1px;" class="rightDiv"><img src="images/grid-default-thumb.png" alt="default thumb"/><br>
+                         2/1/2014<br>
+                        <font size="1">More dates</font>
+                     </div>
+                        <div style="width:25%;float:left;padding:1px 1px 1px 1px;" class="rightDiv"><img src="images/grid-default-thumb.png" alt="default thumb"/><br>
+                         2/1/2014<br>
+                        <font size="1">More dates</font>
+                     </div>
+                        <div style="width:25%;float:left;padding:1px 1px 1px 1px;" class="rightDiv"><img src="images/grid-default-thumb.png" alt="default thumb"/><br>
+                         2/1/2014<br>
+                        <font size="1">More dates</font>
+                     </div>
+                        <div style="width:25%;float:left;padding:1px 1px 1px 1px;" class="rightDiv"><img src="images/grid-default-thumb.png" alt="default thumb"/><br>
+                         2/1/2014<br>
+                        <font size="1">More dates</font>
+                     </div>-->
+                    </div>
+                    
+                    
+
+</div>
+<span style="color:#fff">Last Updated: 9/18/2026 6:49:17 PM</span>
+			

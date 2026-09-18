@@ -283,6 +283,34 @@ export const SOURCES: Source[] = [
     homepage: 'https://barriefilmfestival.ca/now-playing/',
   }),
 
+  row({
+    // The Opera House's TIXHUB box office, which also sells Mariposa Arts Theatre's main
+    // stage, the Leacock Museum's events and the jazz festival: 34 shows (2026-09-18),
+    // none of them on any other source we read.
+    slug: 'orillia-opera-house',
+    name: 'Orillia Opera House',
+    kind: 'organization',
+    municipalitySlug: 'orillia',
+    config: { platform: 'tixhub', tenant: 'Orillia-OH' },
+    homepage: 'https://www.orilliaoperahouse.ca/',
+  }),
+  row({
+    // Mariposa Arts Theatre's TIFF Film Circuit series at Galaxy Cinemas, since 1996:
+    // two screenings per film, published only as prose on the theatre's Wix page.
+    slug: 'mat-film-nights',
+    name: 'MAT Film Nights (Mariposa Arts Theatre)',
+    kind: 'organization',
+    municipalitySlug: 'orillia',
+    config: {
+      platform: 'mat-film-nights',
+      url: 'https://www.mariposaartstheatre.com/filmnights',
+      venue: 'Galaxy Cinemas Orillia',
+      address: '865 West Ridge Blvd, Orillia',
+      admission: '$10 regular admission, $5 student',
+    },
+    homepage: 'https://www.mariposaartstheatre.com/filmnights',
+  }),
+
   // ---- Tourism ------------------------------------------------------------------------
   row({
     // Sitefinity's OData service: 100 upcoming events in one request (2026-09-18), 48 of

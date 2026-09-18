@@ -1,0 +1,741 @@
+
+
+
+<head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+
+	$(document).ready( function(){
+
+	    // animate login panel
+	    $('.login-button').click(function () {
+	        var currentL = $(".login-wrap").position().left;
+	        var currentML = $(".login-wrap").css('margin-left');
+	        var newL = currentL == 0 ? "100%" : "0%";
+	        var newML = currentML == "0px" ? "-90px" : "0px";
+	        $('.login-wrap').animate({
+	            left: newL,
+	            marginLeft: newML
+	        });
+	    });
+	    
+	    // slide menu down for small screens
+	    $('.nav-button').click(function() {
+			$('ul.menu').slideToggle('slow');
+		});
+		
+		// close menu for small screens
+		$('.nav-button-close').click(function() {
+			$('ul.menu').removeAttr('style');
+		});
+		
+		// initalize the datepicker widget
+		$('#txtDatePicker').datepicker();
+		
+		// initialize the responsive data table
+		$('#tblCalendar').footable({
+		    breakpoints: {
+		        phone: 580,
+		        tablet: 650
+		    }
+		});
+		$('#tblGeneralItems').footable({
+		    breakpoints: {
+		        phone: 580,
+		        tablet: 650
+		    }
+		});
+		$('#tblTickets').footable({
+		    breakpoints: {
+		        phone: 580,
+		        tablet: 650
+		    }
+		});
+		
+		// initialize tooltips (will pickup anything under title attr.
+		$( document ).tooltip();
+		
+	});
+	// Google analytics tracking code
+</script>
+<!-- BEGIN HACKS FOR IE -->
+<!--[if IE 9]><link rel="stylesheet" type="text/css" href="css/ie9.css" media="screen" />
+<![endif]-->
+<!--[if IE 8]><link rel="stylesheet" type="text/css" href="css/ie8.css" media="screen" />
+<![endif]-->
+<!--[if IE 7]><link rel="stylesheet" type="text/css" href="css/ie7.css" media="screen" />
+<![endif]-->
+<!-- END HACKS FOR IE -->
+<style>
+.swal2-popup {display: inline-table !important;}
+
+</style>
+
+    <script>
+var obj;
+var format;
+
+function openCalendar(obj1) {
+	
+	var flag; 
+	flag = false; 
+	
+	if (document.frmAccount.cboEvent.value == "-1")
+		flag = false; 	
+	else {
+		flag = true;
+		alert("You don't need to select a date for Special Events");
+		return; 
+	}
+	
+	for ( i = 0; i < document.frmAccount.rdoEvent.length; i ++) {
+		if (document.frmAccount.rdoEvent[i].checked) 
+			flag = true;			
+	}
+	
+	if (flag == false) {	
+		alert ("Please select an Event first!");
+		return ; 
+	}
+	
+	obj = eval(obj1);
+	format = 'mm/dd/yyyy';
+	window.open("../CodeLibrary/mdcalendar.htm", "test", "toolbar=no,width=450,height=350,left=100,top=100, status=no,scrollbars=no,resize=no");
+}
+
+
+function sbmt() {
+
+	var val;
+	val =0;
+
+	if (document.frmAccount.cboEvent.value != "-1") {
+		document.frmAccount.cboPerformances.selectedIndex = 0;
+		document.frmAccount.action = "b_otix.asp?" + "&chkPGC=" + val; 
+		document.frmAccount.submit();
+	}
+}
+var valGlobal;
+function seats() {	
+	
+	
+	
+	var flag; 
+	var special; 
+	special = false; 
+	flag = false; 
+		
+	if (document.frmAccount.cboEvent.value == "-1")	
+		flag = false; 
+	else {
+		flag = true ;
+		special = true;		
+	}
+	
+	if (!flag)
+	{
+		for ( i = 0; i<document.frmAccount.rdoEvent.length; i ++) {
+			if (document.frmAccount.rdoEvent[i].checked ) 
+				flag = true ; 			
+		}
+	}
+	if (flag == false)  {	
+		alert ("Please select an Event first!");
+		return ; 
+	}
+	
+	if (document.frmAccount.cboPerformances.value  == "" ) {
+		alert ("Please select a Performance");
+		return ; 
+	}
+	
+	var val;
+	val = 0;
+		
+valGlobal=val;
+	
+	var blnEarlyBrid_Regular=0
+		var blnPromoExist_Regular=0
+	
+
+			if (blnEarlyBrid_Regular==1)
+		{
+			if(document.frmAccount.txtpromo)
+			{
+			if (document.frmAccount.txtpromo.value=='' && 0==0)
+				{
+				   // alert('Please enter Pre-Sale code.')
+				   $.colorbox({opacity:'0.55',scrolling:false,width:'99%', initialWidth:'99%' ,maxWidth:'700px',top:'50px', html:"<table border='0' width='100%' bordercolorlight='silver' bordercolordark='silver' style='border-collapse: collapse'><tr><td><table border='0' width='100%' cellpadding='5'><tr><td bgcolor='#004B8C'><p align='left'><font color='#FFFFFF' face='Arial'>Alert</font></td></tr><tr><td><p align='center'><b><font face='Arial'>Tickets can only be purchased with a promotion code.<br></font></b></td></tr></table></td></tr></table><br>"}); 
+					document.frmAccount.txtpromo.focus()
+					return;
+				}
+			}
+	
+		}
+   
+
+
+		if (blnEarlyBrid_Regular==1 || blnPromoExist_Regular==1 )
+		{ 
+			if(document.frmAccount.txtpromo)
+			{
+				if (document.frmAccount.txtpromo.value!='')
+				{
+					ValidatePromo(blnEarlyBrid_Regular,blnPromoExist_Regular)	
+				}
+				else
+				{
+					document.frmAccount.action = "onlinesearchresults.asp?blnEarlyBrid_Regular=0&blnPromoExist_Regular=0&blnEarlyBrid_NoCode=0&blnPromoExist_NoCode=0&" + "chkPGC=" + val;  
+					document.frmAccount.submit();
+    
+				}
+			}
+			else
+			{
+				document.frmAccount.action = "onlinesearchresults.asp?blnEarlyBrid_Regular=0&blnPromoExist_Regular=0&blnEarlyBrid_NoCode=0&blnPromoExist_NoCode=0&" + "chkPGC=" + val;  
+				document.frmAccount.submit();
+
+			}
+		}
+		else
+		{
+			document.frmAccount.action = "onlinesearchresults.asp?blnEarlyBrid_Regular=0&blnPromoExist_Regular=0&blnEarlyBrid_NoCode=0&blnPromoExist_NoCode=0&" + "chkPGC=" + val;  
+			document.frmAccount.submit();
+
+		}
+	
+	
+
+
+        if (parseInt($(window).width())<=580)
+        {
+            document.frmAccount.txtScreenWidth.value=$(window).width();       
+            /*alert(document.frmAccount.txtScreenWidth.value);*/ 
+        }
+
+
+
+
+		
+	
+}
+
+//*************************************************Validation of Promotion code************************************/
+
+	function createRequestObject() {
+		var ro;
+		var browser = navigator.appName;
+		if(browser == "Microsoft Internet Explorer"){
+			ro = new ActiveXObject("Microsoft.XMLHTTP");
+		}else{
+			ro = new XMLHttpRequest();
+		}
+		return ro;
+	}
+
+	var http = createRequestObject();
+
+
+function ValidatePromo(iEarlyBrid,iPromoExist) {
+
+	//alert('validatePromoAjex.asp?eb='+iEarlyBrid+'&pt='+ document.frmAccount.txtpromo.value +'&p='+iPromoExist+'&perf_id='+document.frmAccount.cboPerformances.value);
+	http.open('get', 'validatePromoAjex.asp?eb='+iEarlyBrid+'&pt='+ document.frmAccount.txtpromo.value.replace("%","^") +'&p='+iPromoExist+'&perf_id='+document.frmAccount.cboPerformances.value);
+	http.onreadystatechange = handleResponse2;
+	http.send(null);
+}
+	
+
+
+
+	function handleResponse2() {
+		//alert ("went to second one as well")
+		if(http.readyState == 4)
+		{
+			var response = http.responseText;
+			
+			//alert(response);
+			if(response != 'valid') 
+			{
+				document.frmAccount.txtpromo.focus();
+				alert(response);
+
+					if(0==0)
+				{
+					document.frmAccount.txtpromo.value='';
+					document.frmAccount.action = "onlinesearchresults.asp?blnEarlyBrid_Regular=0&blnPromoExist_Regular=0&blnEarlyBrid_NoCode=0&blnPromoExist_NoCode=0&" + "chkPGC=" + valGlobal;  
+					document.frmAccount.submit();
+
+				}
+				
+				
+				return;
+			}
+			else
+			{
+				document.frmAccount.action = "onlinesearchresults.asp?blnEarlyBrid_Regular=0&blnPromoExist_Regular=0&blnEarlyBrid_NoCode=0&blnPromoExist_NoCode=0&" + "chkPGC=" + valGlobal;  
+				document.frmAccount.submit();
+			}
+		
+		}
+	}
+/***********************************************************************************************************************/
+
+
+
+function baseats() {	
+	
+	var flag; 
+	var special; 
+	special = false; 
+	flag = false; 
+		
+	if (document.frmAccount.cboEvent.value == "-1")	
+		flag = false; 
+	else {
+		flag = true ;
+		special = true;		
+	}
+	
+	if (flag == false)  {	
+		alert ("Please select an Event first!");
+		return ; 
+	}
+	
+	if (document.frmAccount.cboPerformances.value  == "" ) {
+		alert ("Please select a Performance");
+		return ; 
+	}
+	if (document.frmAccount.txtNoOfBATix.value  == "" ) {
+		alert ("Please enter required number of seats");
+		return ; 
+	}
+	if (isNaN(document.frmAccount.txtNoOfBATix.value) ) {
+		alert ("Please enter valid number in required seats field");
+		return ; 
+	}
+	
+	var val;
+	val = 0;
+		
+	document.frmAccount.action = "n_selectbaseats.asp?" + "chkPGC=" + val;  
+	document.frmAccount.submit();
+}
+
+
+
+
+
+function myVoid() {
+;
+}
+function sbmtRadio(ev_id) {
+
+	var val;
+	
+	//if (document.frmAccount.chkPGC.checked == true )
+	//	val =1; 
+	//else
+		val =0;
+
+	document.frmAccount.cboEvent.selectedIndex = 0 ; 
+	document.frmAccount.action = "b_otix.asp?ev_id="  + ev_id  + "&chkPGC=" + val; 
+	document.frmAccount.submit();
+}
+
+function myOpen() {
+	
+	height = 270 ;
+	width = 360 ; 
+		
+	window.open("help.htm",null,"height=" + height + ",width=" + width + ",status=no,toolbar=no,menubar=no,location=no,scrollbars=yes,resizable=yes,left=400,top=200");
+}
+
+function getScreenwidth()
+{
+
+alert($(window).width());
+
+}
+
+
+function showeventcomment() {
+
+        Swal.fire({
+			  title: '',
+			  html: '<!-- Start Wrapper -->All sales are final, no refunds or exchanges.&nbsp; Card charges will appear as the City of Orillia.&nbsp;&nbsp;<!-- End Wrapper -->',
+			  showCancelButton: false,
+			  width: 750,
+			  confirmButtonColor: '#8D211F',
+			  cancelButtonColor: '#d33',
+			  confirmButtonText: 'OK',
+			  
+				}).then(function(result) {
+			  if (result.value) {
+	                return true;
+            
+			  }
+			  else
+			  {
+                return false;
+			  } 
+			});
+
+
+	
+
+}
+
+
+
+function before_seats()
+{
+
+   		
+		seats();
+ 
+}
+
+
+
+</script>
+
+
+<style>
+.social-links {
+    list-style: none;
+    font-size: 0;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding-left: 0;
+}
+
+.circle {
+    -webkit-border-radius: 100%!important;
+    -moz-border-radius: 100%!important;
+    border-radius: 100%!important;
+}
+
+.social-links li {
+    margin: 0 5px 5px 0;
+}
+
+.colored.social-links li.facebook a {
+    background-color: #3b5998;
+    border-color: #3b5998;
+    color: #000;
+}
+
+.colored.social-links li.twitter a {
+    background-color: #55acee;
+    border-color: #55acee;
+    color: #000;
+}
+
+.colored.social-links li.youtube a {
+    background-color: #b31217;
+    border-color: #b31217;
+    color: #000;
+}
+
+
+.colored.social-links li.instagram a {
+    background-color: #517fa4;
+    border-color: #517fa4;
+    color: #000;
+}
+
+
+.social-links.circle li a {
+    -webkit-border-radius: 100%;
+    -moz-border-radius: 100%;
+    border-radius: 100%;
+}
+
+.social-links.large li a {
+	color: #000;
+    font-size: 1.877rem;
+    /*    
+    width: 35px;
+    height: 35px;
+    display: inline-block;
+    font-size: 20px;
+    text-align: center;
+    */
+}
+.social-links li {
+    display: inline-block;
+    margin: 0 10px;
+}
+.social-links.large li a i {
+    line-height: 35px;
+}
+.social-links.circle li a {
+    -webkit-border-radius: 100%;
+    -moz-border-radius: 100%;
+    border-radius: 100%;
+}
+
+/*
+@media all 
+and (max-width : 480px) {
+	.social-links.large li a {
+	    width: 30px;
+	    height: 30px;
+	    display: inline-block;
+	    font-size: 20px;
+	    text-align: center;
+	}
+	.social-links.large li a i {
+	    line-height: 30px;
+	}
+}*/
+
+
+#iShortTable b,
+#iDesignTemplate b {
+  font-weight: bold !important;
+}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" type="text/css" media="all"/>	
+                
+					</head>
+<script>
+  fbq('track', 'ViewContent');
+</script>
+
+ 
+
+                
+					<div class="content typography">
+						  <input type=hidden name=page value="">
+						  <input type=hidden name=Reselect value=>
+						  <input type=hidden name="perfcount" value=>
+						  <input type=hidden name=txtAction value=yes>
+						  <input type=hidden name="txtScreenWidth" id="txtScreenWidth" value="">
+						  <input type=hidden name="width" id="width" value="">
+                        <table id="tblEventInfo" width="100%">
+							
+							<tr>
+							<td>
+								<h1 style="float:left">Event Information</h1>
+							
+							</td>
+							<td align="right">
+							
+								<div style="float:right">
+									  
+                                                    <a  href="#buyticket" class="btn-default">&nbsp;Buy Ticket&nbsp;</a> 
+                                            
+                                            
+                                            
+								</div>
+						    
+							</td>
+							</tr>
+                            </table>
+
+                        
+							<div class="card-item" id="cItem">
+							<table id="tblEventInfo2" width="100%">
+							
+							
+							
+							<tr>
+							<td width=100%>
+							
+							
+							<table  width=100%>
+								
+								<tr>
+								<td>
+									
+								<table width="100%">
+							
+                                   
+								
+								<tr>
+									<!--<td nowrap>Description:</td>-->
+									<td colspan="2" id="iRowNew2">
+										
+                                        <div style="max-width:100%;"><table id='iShortTable' stysle='background-color:#fff;'><tr><td>
+	                                        <div id=iDesignTemplate><table><tbody><tr><td><div id="iDesignTemplate"><!-- Start Wrapper --><!-- End Wrapper --></div></td></tr></tbody></table><table  style='font-size:18px' align="center" width="790" cellpadding="0" cellspacing="0" border="0" class="wrapper" bgcolor="#ffffff"><tbody><tr><td height="20" style="line-height:20px; font-size:20px;"><span style="font-size: 12px;"><font color="#000000"> </font></span></td><!-- Spacer --></tr><tr><td align="center"><!-- Start Container --><table  style='font-size:18px' width="750" cellpadding="0" cellspacing="0" align="center" border="0" class="mob-container"><tbody><tr><td align="center" class="mobile" style="font-family: arial, sans-serif; font-size: 20px; line-height: 26px;"><p style=""><i style=""><b><span style="font-size: 14px;"><font color="#000000">The OOH! in partnership with Tweed &amp; Company Theatre Presents</font></span></b></i></p><p style="font-weight: bold; line-height: 1.8;"><font color="#000000"><span style="font-size: 36px;">MILLION DOLLAR QUARTET</span></font></p><p style="font-weight: bold; line-height: 1.8;"><img class="edit-image note-image" src="https://secure1.tixhub.com/Orillia-OH/BOM_nouveau/CB_EventSetup/uploads/8_25_2026_3_39_23_PM.jpg" style="width: 593.2px; height: 331.05px;"><span style="font-size: 14px;">﻿</span><font color="#000000"><span style="font-size: 36px;"><br></span></font></p></td></tr><tr><td height="20" style="line-height:20px; font-size:20px;"> </td><!-- Spacer --></tr><tr><td align="center" style="line-height: 18px;"><div style="text-align: left; line-height: 1.5;"><div style="text-align: center; line-height: 1.5;"><font face="Tahoma" color="#000000">Adults $50 |&nbsp;</font><span style="color: rgb(0, 0, 0); font-family: Tahoma; background-color: transparent;">Seniors: $47 | Youth (18 and under): $47</span></div><div style="text-align: center; line-height: 1.5;"><b><font color="#ce0000"><span style="font-family: Tahoma; background-color: transparent;">LIMITED RUN</span>:</font></b><span style="color: rgb(0, 0, 0); font-family: Tahoma; background-color: transparent;">&nbsp;September 17-19 | 2 p.m. and 7:30 p.m. showtimes</span></div><font color="#000000"><span class="NormalTextRun SCXW244557615 BCX8" style="font-size: 14px; font-family: Tahoma; background-color: transparent; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;"><br>On December 4, 1956, Johnny Cash, Jerry Lee Lewis, Carl </span><span class="NormalTextRun SCXW244557615 BCX8" style="font-size: 14px; font-family: Tahoma; background-color: transparent; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;">Perkins</span><span class="NormalTextRun SCXW244557615 BCX8" style="font-size: 14px; font-family: Tahoma; background-color: transparent; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;"> and Elvis Presley assemble at the Sun Record recording studio in Memphis, Tennessee. Established performer Carl Perkins is there to record songs with a new performer, Jerry Lee Lewis. Elvis Presley stops by the studio along with his girlfriend, a singer named Dyanne. Johnny Cash has stopped by </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="font-size: 14px; font-family: Tahoma; background-color: transparent; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent;">to talk</span><span class="NormalTextRun SCXW244557615 BCX8" style="font-size: 14px; font-family: Tahoma; background-color: transparent; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;"> to recording impresario Sam Philips. They soon have a jam session together. The rest is history - but </span><span class="NormalTextRun SCXW244557615 BCX8" style="font-size: 14px; font-family: Tahoma; background-color: transparent; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;">there's </span><span class="NormalTextRun SCXW244557615 BCX8" style="font-size: 14px; font-family: Tahoma; background-color: transparent; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;">more to it than you think!&nbsp;</span></font></div><div class="OutlineElement Ltr SCXW244557615 BCX8" style="color: rgb(0, 0, 0); font-size: 12px; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; clear: both; cursor: text; overflow: visible; position: relative; direction: ltr; text-align: start;"><p class="Paragraph SCXW244557615 BCX8" paraid="1513733091" paraeid="{aa6ca267-2f77-4958-9cbe-5f7317824403}{135}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; padding: 0px; user-select: text; overflow-wrap: break-word; white-space-collapse: preserve; vertical-align: baseline; font-kerning: none; background-color: transparent; color: windowtext;"><font face="Tahoma"><span data-contrast="auto" xml:lang="EN" lang="EN" class="TextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 12pt; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;"></span></span><span class="EOP SCXW244557615 BCX8" data-ccp-props="{}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; line-height: 20.5042px; font-size: 14px;">&nbsp;</span></font></p></div><div class="OutlineElement Ltr SCXW244557615 BCX8" style="color: rgb(0, 0, 0); font-size: 12px; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; clear: both; cursor: text; overflow: visible; position: relative; direction: ltr; text-align: start;"><p class="Paragraph SCXW244557615 BCX8" paraid="1568466631" paraeid="{aa6ca267-2f77-4958-9cbe-5f7317824403}{139}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; padding: 0px; user-select: text; overflow-wrap: break-word; white-space-collapse: preserve; vertical-align: baseline; font-kerning: none; background-color: transparent; color: windowtext;"><font face="Tahoma"><span data-contrast="auto" xml:lang="EN" lang="EN" class="TextRun Highlight SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; outline: transparent solid 1px; font-size: 12pt; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;">Relive the era with the smash-hit sensation featuring an incredible score of rock n' </span></span></font><span data-contrast="auto" xml:lang="EN" lang="EN" class="TextRun Highlight SCXW244557615 BCX8" style="font-family: Tahoma; background-color: transparent; color: windowtext; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; outline: transparent solid 1px; font-size: 12pt; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;">roll, gospel, R&amp;B and country hits, performed live onstage by world-class actors and musicians. Showcased hit songs include "Blue Suede Shoes", "Fever", "Walk the Line", "Sixteen Tons", "Who Do You Love?", "Great Balls of Fire", "Folsom Prison Blues", "Whole Lotta Shakin' Goin' On", "Hound Dog", and more.</span></span><span class="EOP SCXW244557615 BCX8" data-ccp-props="{}" style="font-family: Tahoma; background-color: transparent; color: windowtext; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; line-height: 20.5042px; font-size: 14px;">&nbsp;</span></p></div><div class="OutlineElement Ltr SCXW244557615 BCX8" style="color: rgb(0, 0, 0); font-size: 12px; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; clear: both; cursor: text; overflow: visible; position: relative; direction: ltr; text-align: start;"><p class="Paragraph SCXW244557615 BCX8" paraid="1103688598" paraeid="{aa6ca267-2f77-4958-9cbe-5f7317824403}{145}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; padding: 0px; user-select: text; overflow-wrap: break-word; white-space-collapse: preserve; vertical-align: baseline; font-kerning: none; background-color: transparent; color: windowtext;"><font face="Tahoma"><span data-contrast="auto" xml:lang="EN" lang="EN" class="TextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 12pt; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;"></span></span><span class="EOP SCXW244557615 BCX8" data-ccp-props="{}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; line-height: 20.5042px; font-size: 14px;">&nbsp;</span></font></p></div><div class="OutlineElement Ltr SCXW244557615 BCX8" style="color: rgb(0, 0, 0); font-size: 12px; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; clear: both; cursor: text; overflow: visible; position: relative; direction: ltr; text-align: start;"><p class="Paragraph SCXW244557615 BCX8" paraid="2100469935" paraeid="{aa6ca267-2f77-4958-9cbe-5f7317824403}{149}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; padding: 0px; user-select: text; overflow-wrap: break-word; white-space-collapse: preserve; vertical-align: baseline; font-kerning: none; background-color: transparent; color: windowtext;"><font face="Tahoma"><span data-contrast="auto" xml:lang="EN-US" lang="EN-US" class="TextRun Highlight SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; outline: transparent solid 1px; font-size: 12pt; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;">Don't</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;"> miss what is sure to be the entertainment highlight of the season - </span></span><span data-contrast="auto" xml:lang="EN-US" lang="EN-US" class="TextRun Highlight SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; outline: transparent solid 1px; font-size: 12pt; font-style: italic; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;">MILLION DOLLAR QUARTET</span></span><span data-contrast="auto" xml:lang="EN-US" lang="EN-US" class="TextRun Highlight SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; outline: transparent solid 1px; font-size: 12pt; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;">! This production is directed by Phil Nero </span></span><span data-contrast="auto" xml:lang="EN-US" lang="EN-US" class="TextRun Highlight SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; outline: transparent solid 1px; font-size: 12pt; font-style: italic; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;">(Mirvish, West End, Stage West, Drayton</span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">)</span></span><span data-contrast="auto" xml:lang="EN-US" lang="EN-US" class="TextRun Highlight SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; outline: transparent solid 1px; font-size: 12pt; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">, and</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;"> features an </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">all star</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;"> cast that </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">sing</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;"> and </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">play</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;"> </span><span class="NormalTextRun AdvancedProofingIssueV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsixmcigagvpz2h0psiyij48zybmawxspsjub25liibmawxslxj1bgu9imv2zw5vzgqipjxwyxroigq9ik0widbomtb2mkgweiivpjxwyxroihn0cm9rzt0iizcxnjbfocigc3ryb2tllwxpbmvjyxa9injvdw5kiibzdhjva2utd2lkdgg9ijiiigq9ik0xidfoncivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">all of</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;"> the instruments live on stage! </span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;">Come see</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;"> why this show has sold out performances around the </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">world, and</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 14px;"> continues to be one of the most sought after summer musicals across North America.</span></span><span class="EOP SCXW244557615 BCX8" data-ccp-props="{}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; line-height: 20.5042px; font-size: 14px;">&nbsp;</span></font></p></div><div class="OutlineElement Ltr SCXW244557615 BCX8" style="color: rgb(0, 0, 0); font-size: 12px; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; clear: both; cursor: text; overflow: visible; position: relative; direction: ltr; text-align: start;"><p class="Paragraph SCXW244557615 BCX8" paraid="1923339244" paraeid="{aa6ca267-2f77-4958-9cbe-5f7317824403}{163}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; padding: 0px; user-select: text; overflow-wrap: break-word; white-space-collapse: preserve; vertical-align: baseline; font-kerning: none; background-color: transparent; color: windowtext;"><font face="Tahoma"><span data-contrast="auto" xml:lang="EN" lang="EN" class="TextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 12pt; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text;"></span></span><span class="EOP SCXW244557615 BCX8" data-ccp-props="{}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; line-height: 20.5042px; font-size: 14px;">&nbsp;</span></font></p></div><div class="OutlineElement Ltr SCXW244557615 BCX8" style="color: rgb(0, 0, 0); font-size: 12px; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; clear: both; cursor: text; overflow: visible; position: relative; direction: ltr; text-align: start;"><p class="Paragraph SCXW244557615 BCX8" paraid="1602796304" paraeid="{aa6ca267-2f77-4958-9cbe-5f7317824403}{167}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; padding: 0px; user-select: text; overflow-wrap: break-word; white-space-collapse: preserve; vertical-align: baseline; font-kerning: none; background-color: transparent; color: windowtext;"><font face="Tahoma"><span data-contrast="auto" xml:lang="EN-US" lang="EN-US" class="TextRun Highlight SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; outline: transparent solid 1px; font-size: 12pt; font-style: italic; line-height: 20.5042px; font-variant-ligatures: none !important;"><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(&quot;&quot;); font-size: 12px;" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">Million</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 12px;"> Dollar Quartet is presented through special arrangement </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(&quot;&quot;); font-size: 12px;" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">with</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 12px;"> and all authorized performance </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; background-position: 0px 100%; background-repeat: repeat-x; background-image: url(&quot;&quot;); font-size: 12px;" data:image="" svg+xml;base64,phn2zyb4bwxucz0iahr0cdovl3d3dy53my5vcmcvmjawmc9zdmciihdpzhropsi1iibozwlnahq9ijmipjxnigzpbgw9im5vbmuiigzpbgwtcnvszt0izxzlbm9kzcigc3ryb2tlpsijmzvgiibzdhjva2utbgluzwnhcd0icm91bmqipjxwyxroigq9ik0wic41advnmcayljvonsivpjwvzz48l3n2zz4="); border-bottom: 1px solid transparent; font-size: 14px;">materials are</span><span class="NormalTextRun SCXW244557615 BCX8" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; font-size: 12px;"> supplied by Theatrical Rights Worldwide 1180 Avenue of the Americas, Suite 640, New York, NY 10036. www.theatricalrights.com.</span></span><span class="EOP SCXW244557615 BCX8" data-ccp-props="{}" style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent; margin: 0px; padding: 0px; user-select: text; line-height: 20.5042px; font-size: 12px;">&nbsp;</span></font></p></div></td></tr><tr><td height="20" style="line-height:20px; font-size:20px;"> </td><!-- Spacer --></tr><tr><td align="center" class="center"><!-- Start Button --><table  style='font-size:18px' width="190" cellpadding="0" cellspacing="0" align="center" border="0"><tbody><tr></tr></tbody></table><!-- End Button --></td></tr></tbody></table><!-- End Container --></td></tr><tr><td height="20" style="line-height:20px; font-size:20px;"> </td><!-- Spacer --></tr></tbody></table><table></table></div>					
+                                        </td></tr></table></div>
+
+									</td>
+								</tr>
+								
+                                    	
+							 <tr>
+									<td colspan=2>
+										<div class="rightDivForTix" style="float:left">
+                                        
+                                                <h2>Venue: Orillia Opera House</h2>
+                                           
+
+                                        
+
+                                           
+
+										<div style="float:left;padding-left:0px;"> 										
+										    
+                                                                                </div>
+										</div>
+									</td>
+								</tr>
+								
+								
+					
+					
+								
+
+								</table>							
+											
+								</td>
+								
+								
+								
+								</tr>
+                        
+								
+							</table>	
+                                </td>
+							</tr>
+							</table>	
+                        </div>
+
+            
+            <!--<div style="float: left;font-size: 16px;font-weight: bold;width: 100%;color: #369;">Million Dollar Quartet</div><br>-->
+
+										
+									
+								
+							
+							
+							
+							
+
+					<div class="card-item">
+						
+						<table width="100%">
+							<!--<div id="tempDiv" style="visibility:hidden;"> 
+                        <input type="checkbox" name="chkPGC" value="1" ID="chkPGC" >
+                        	&nbsp;&nbsp;&nbsp;<b>I want to pay using a Package GC</b> 
+                      </div>-->
+
+                         <tr>
+                                    <td><h1 style="float:left;font-size:18px;"><b>Million Dollar Quartet</b></h1>
+
+                                     <a id="buyticket" data-hs-anchor="true"> 
+                                    </td>
+                                </tr>
+									
+									
+
+					 
+							
+							<tr>
+									<td><div class="leftDivNowrapForTix">
+                                        	
+							<select  name=cboPerformances ceelass="cmboboxSelection" onChange="javascript: this.form.action='b_otix.asp'; this.form.submit();">
+                            <option value="">Select a Performance</option>
+                            
+                            <option value="6070"  selected > 
+                            Friday, September 18, 2026 
+							- 7:30 PM</option>
+                            
+                            <option value="6071"   > 
+                            Saturday, September 19, 2026 
+							- 2:00 PM</option>
+                            
+                            <option value="6072"   > 
+                            Saturday, September 19, 2026 
+							- 7:30 PM</option>
+                            
+                          </select>
+                                        <span style='font-size:16px; color:red'> (Multiple Dates Available)</span>
+  </div>
+<div class="rightDiv">
+
+	
+	
+
+
+
+
+								
+                          		<br />
+									                                                    
+                          <a onClick="before_seats()" href="#" class="btn-default">&nbsp;Next&nbsp;</a> 
+                          <a onClick="history.back(-1)" href="#" class="btn-default">&nbsp;Go Back&nbsp;</a> 
+                          
+
+    <input type="hidden" name="cboEvent" value="2482">
+</div>
+                        
+</td>
+								</tr>
+
+
+                            <!--<tr>
+									
+									<td align="center" colspan="2">
+									<span style="font-size:12px">
+									For Wheelchair and Special Seating Requirements contact the box office at 705-324-9111.<br>
+									Groups of 10 or more contact the box office for tickets.
+									</span>
+									</td>
+								</tr>-->
+
+
+							</table>
+</div>
+							
+							
+						
+					</div>
+			
+
+<script>
+   
+	//	Swal.fire({
+	//		  title: '',
+	//		  html: "<p style='text-align:left;font-size:15px;font-weight:bold;padding-bottom:10px;'>Everyone entering the Orillia Opera House for an event will require ID and QR code proof of full COVID-19 vaccination or ID and proof of medical exemption.<br><br>Exemption: Children between 5 and 11 years of age will not need to show QR code proof of vaccination but will be required to be accompanied by an adult who meets the above COVID-19 requirements and provide ID.<br><br>Masks must be worn at all times. Removal of a mask is allowed as per provincial guidelines when you are eating, drinking, or for other medical needs.</p>",
+	//		  showCancelButton: false,
+	//		  confirmButtonColor: '#8D211F',
+	//		  cancelButtonColor: '#d33',
+	//		  confirmButtonText: 'Continue'
+	//		  
+	//			}).then(function(result) {
+	//		  if (result.value) {
+	//
+    //           
+    //                showeventcomment() 
+    //           			
+//
+  //                  return true;
+   //         
+	//		  }
+//			  else
+//			  {
+  //               
+    //                showeventcomment() 
+      //          
+		//	  	return false;
+	//		  } 
+	//		});
+	
+  
+        showeventcomment();
+    
+</script>

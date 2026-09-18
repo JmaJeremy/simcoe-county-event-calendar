@@ -26,6 +26,8 @@ export type Platform =
   | 'libcal'
   | 'ics'
   | 'sitefinity'
+  | 'tixhub'
+  | 'mat-film-nights'
   | 'manual'
 
 /** Who publishes a calendar. Drives the representative choice when listings merge. */
@@ -106,6 +108,10 @@ export type SourceConfig =
   /** Progress Sitefinity's Events module, read through its OData service. `detailPath` is
    * where the site mounts an event's page, joined to the item's own URL. */
   | { platform: 'sitefinity'; origin: string; detailPath: string }
+  /** A TIXHUB box office, by tenant as the CDN spells it ('Orillia-OH'). */
+  | { platform: 'tixhub'; tenant: string }
+  /** Mariposa Arts Theatre's film series page, read as prose. */
+  | { platform: 'mat-film-nights'; url: string; venue: string; address: string; admission: string }
   /** Entered by hand in the admin console. Nothing to fetch. */
   | { platform: 'manual' }
 
