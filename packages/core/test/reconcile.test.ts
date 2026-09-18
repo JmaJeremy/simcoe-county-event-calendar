@@ -126,3 +126,36 @@ describe('contentHash', () => {
     expect(contentHash({ ...base, raw: { views: 1 } })).toBe(contentHash({ ...base, raw: { views: 2 } }))
   })
 })
+
+describe('reclassification', () => {
+  it('reports a listing whose rules, not its text, changed — and nothing else about it', () => {
+    // Same content hash, same time: the source did not touch it. The category rule did.
+    const plan = reconcile([event({ category: 'sports' })], [stored({ category: 'outdoors', municipalitySlug: 'ramara' })])
+    expect(plan.updates).toHaveLength(0)
+    expect(plan.unchanged).toBe(0)
+    expect(plan.reclassified).toEqual([{ id: 'ramara:2026-09-22-0930-Ride-Ramara', category: 'sports', municipalitySlug: 'ramara' }])
+  })
+
+  it('reclassifies a changed placement the same way', () => {
+    const plan = reconcile([event({ municipalitySlug: 'severn' })], [stored({ category: 'outdoors', municipalitySlug: 'ramara' })])
+    expect(plan.reclassified).toEqual([{ id: 'ramara:2026-09-22-0930-Ride-Ramara', category: 'outdoors', municipalitySlug: 'severn' }])
+  })
+
+  it('leaves a listing alone when the derived fields agree', () => {
+    const plan = reconcile([event()], [stored({ category: 'outdoors', municipalitySlug: 'ramara' })])
+    expect(plan.reclassified).toHaveLength(0)
+    expect(plan.unchanged).toBe(1)
+  })
+
+  it('does not reclassify when the caller does not track derived fields', () => {
+    const plan = reconcile([event({ category: 'sports' })], [stored()])
+    expect(plan.reclassified).toHaveLength(0)
+    expect(plan.unchanged).toBe(1)
+  })
+
+  it('lets a real content change take the full update path instead', () => {
+    const plan = reconcile([event({ category: 'sports', contentHash: 'bbbb' })], [stored({ category: 'outdoors', municipalitySlug: 'ramara' })])
+    expect(plan.updates).toHaveLength(1)
+    expect(plan.reclassified).toHaveLength(0)
+  })
+})

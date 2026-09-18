@@ -1,5 +1,5 @@
 import { contentHash, listingId } from './identity.ts'
-import { resolveMunicipality } from './municipalities.ts'
+import { GAZETTEER, resolveMunicipality } from './municipalities.ts'
 import { analyzeTitle, isCivicMeeting } from './title.ts'
 import { toWallString, wallDate, wallTime, wallTimeToUtc } from './time.ts'
 import type { Category, Cost, Listing, RawEvent, Source } from './types.ts'
@@ -173,34 +173,74 @@ export function classifyCost(parts: Parameters<typeof assessCost>[0]): Cost {
 const CATEGORY_RULES: Array<[Category, RegExp]> = [
   ['civic-meeting', /\b(council|committee|public meeting|meetings?)\b/i],
   ['markets', /\b(markets?|farmers'? markets?|craft (sale|show)|garage sale|yard sale|bazaar|swap|flea)\b/i],
-  ['music', /\b(music|concerts?|bands?|choirs?|orchestra|jazz|folk|blues|karaoke|open mic|singing|drum)\b/i],
-  ['arts', /\b(art|arts|gallery|galleries|theatre|theater|films?|movies?|cinema|dance|drama|craft|pottery|painting|photograph|exhibit|museum|heritage|culture|cultural|literary|author|poetry|quilt|knit|stitch|weave)\b/i],
+  ['music', /\b(music|concerts?|bands?|choirs?|orchestra|jazz|folk|blues|karaoke|open mic|singing|drum|tribute)\b/i],
+  ['arts', /\b(art|arts|gallery|galleries|theatre|theater|films?|movies?|cinema|dance(?! fitness)|drama|craft|pottery|painting|photograph|exhibit|museum|heritage|culture|cultural|literary|author|poetry|quilt\w*|knit\w*|crochet\w*|sew(ing)?|stitch\w*|weav\w*|embroider\w*|bead\w*|jewel(le)?ry[- ]making)\b/i],
   ['family', /\b(family|families|kids?|child|children|toddler|baby|babies|preschool|youth|teen|tween|story ?time|storytime|circle time|parent|lego|play ?group)\b/i],
-  ['sports', /\b(sport|sports|hockey|soccer|baseball|basketball|skating|skate|swim|run|race|marathon|5k|10k|golf|tennis|pickleball|curling|fitness|yoga|zumba|tai chi|bike|cycling|cornhole|bowling|shinny|tournament)\b/i],
-  ['outdoors', /\b(outdoors?|hikes?|hiking|walks?|walking|trails?|parks?|nature|gardens?|beach(es)?|camps?|camping|fishing|derby|paddle|paddling|canoe|kayak|birds?|birding|forest|conservation|earth day|trees?|rides?)\b/i],
+  ['sports', /\b(sport|sports|hockey|soccer|baseball|basketball|skating|skate|swim|run|race|marathon|5k|10k|golf|tennis|pickleball|curling|fitness|yoga|zumba|tai chi|pilates|hiit|aerobics?|workouts?|exercise|weights|strength|stretch\w*|spin|badminton|volleyball|shuffleboard|bike|cycling|cornhole|bowling|shinny|tournament)\b/i],
+  ['outdoors', /\b(outdoors?|hikes?|hiking|walks?|walking|trails?|parks?|nature|gardens?|beach(es)?|camps?|camping|fishing|derby|paddle|paddling|canoe|kayak|birds?|birding|forest|conservation|earth day|trees?(?! lighting)|rides?)\b/i],
   ['education', /\b(workshops?|class(es)?|courses?|lectures?|talks?|seminars?|webinar|training|learn|lessons?|tutorial|book club|genealogy|history|science|tech|computer|literacy|clinic|information session|info session|for beginners|101)\b/i],
-  ['community', /\b(community|volunteers?|fundrais\w*|charity|church|legion|seniors?|social|celebrations?|festivals?|fairs?|parades?|bbq|barbecue|dinners?|breakfasts?|lunch|potluck|open house|remembrance|canada day|christmas|halloween|easter|holiday|santa|tree lighting|fireworks|ceremony|flag raising|meet and greet|drop-?in|club|bingo|euchre|cribbage|mahjong|trivia|games? night|board games|coffee|tea|social)\b/i],
+  ['community', /\b(community|volunteers?|fundrais\w*|charity|church|legion|seniors?|social|celebrations?|festivals?|fairs?|parades?|bbq|barbecue|dinners?|breakfasts?|lunch|potluck|open house|remembrance|canada day|christmas|halloween|easter|holiday|santa|tree lighting|fireworks|ceremony|flag raising|meet and greet|drop-?in|club|bingo|euchre|cribbage|mahjong|trivia|games? night|board games|chess|coffee|tea|social)\b/i],
 ]
 
 /**
  * Category labels that say nothing: every govStack calendar files most things under
  * "Community Events", so it must not pull every fall fair, hike and concert into
- * `community` before the title has been read.
+ * `community` before the title has been read. Place names are removed before this test,
+ * so "Orillia events" and "Penetanguishene Event" are caught as "events".
  */
-const GENERIC_CATEGORY = /^(community (events|calendar)|events?|calendar|programs?( and events)?|recreation programs and events|general|all|other|misc|featured|homepage featured)$/i
+const GENERIC_CATEGORY =
+  /^((special |public library )?events?|calendar|programs?( and events)?|recreation programs and events|general|all|other|misc|featured|homepage featured|things to do|happening soon|library happenings|registered|free program|pop-up|ongoing\/weekly event|)$/i
 
+/**
+ * A municipal department, not a subject. Severn files every recreation programme —
+ * yoga, beading, chess — under "Recreation, Parks, and Facilities events", and the word
+ * "Parks" made all 227 of them outdoors.
+ */
+const DEPARTMENT_LABEL = /^(recreation|parks?|facilities|culture)(,? *(and |& )?(recreation|parks?|facilities|culture))+( events?)?$/i
+
+/**
+ * Who an event is for, or how it runs — not what it is — plus the catch-all "Community
+ * Event" labels, which are right as a last resort and wrong as a first. "Adults",
+ * "Seniors" and "Drop-in" are among the most used labels, and read before the title they filed a seniors' yoga
+ * class under community. They are consulted only when neither a subject label nor the
+ * title says anything. Children's labels are not in this list on purpose: `family` IS an
+ * audience category, and a child's storytime belongs there whatever else it is.
+ */
+const AUDIENCE_LABEL =
+  /^(for )?(adults?( programming)?|seniors?|55\+|all[- ]ages|drop[- ]?in( programs)?|newcomers|2slgbtq\+|allies|((external|town organized|community hosted) )?community( events?| calendar)?)$/i
+
+const PLACE_NAME = new RegExp(
+  `\\b(${Object.values(GAZETTEER)
+    .flat()
+    .sort((a, b) => b.length - a.length)
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[- ]/g, '[- ]'))
+    .join('|')})\\b`,
+  'gi',
+)
+
+/** "Wasaga Beach Chess Club" is about chess, not the beach. */
+const withoutPlaces = (text: string): string => text.replace(PLACE_NAME, ' ').replace(/\s+/g, ' ').trim()
+
+const firstRule = (texts: string[]): Category | null => {
+  for (const [category, rule] of CATEGORY_RULES) {
+    if (category === 'civic-meeting') continue
+    if (texts.some((t) => rule.test(t))) return category
+  }
+  return null
+}
+
+/**
+ * What an event is about, read in order of how much each input says: the source's own
+ * subject labels, then the title, then its audience labels, then nothing.
+ */
 export function classifyCategory(title: string, sourceCategories: string[]): Category {
   if (isCivicMeeting(title, sourceCategories)) return 'civic-meeting'
-  const informative = sourceCategories.filter((c) => !GENERIC_CATEGORY.test(c.trim()))
-  for (const [category, rule] of CATEGORY_RULES) {
-    if (category === 'civic-meeting') continue
-    if (informative.some((c) => rule.test(c))) return category
-  }
-  for (const [category, rule] of CATEGORY_RULES) {
-    if (category === 'civic-meeting') continue
-    if (rule.test(title)) return category
-  }
-  return 'other'
+  const labels = sourceCategories
+    .map((c) => withoutPlaces(c.trim()))
+    .filter((c) => !GENERIC_CATEGORY.test(c) && !DEPARTMENT_LABEL.test(c))
+  const audience = labels.filter((c) => AUDIENCE_LABEL.test(c))
+  const subject = labels.filter((c) => !AUDIENCE_LABEL.test(c))
+  return firstRule(subject) ?? firstRule([withoutPlaces(title)]) ?? firstRule(audience) ?? 'other'
 }
 
 /* ---------- the pipeline ---------- */
