@@ -31,7 +31,7 @@ node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
 
-A full run takes ~2 min and ~660 HTTP requests: 37/37 sources for ~5,200 listings (Eventbrite
+A full run takes ~2 min and ~660 HTTP requests: 39/39 sources for ~5,300 listings (Eventbrite
 alone is 13 slow requests, ~25 s; Barrie's 823 library events are one request), then up to 300
 event pages read for price and posters, then the unclear listings that mention a sum sent to the cost judge (a few a run, capped at 200),
 then dedup over ~9,000 pairs into ~4,650 events. The subrequest ceiling is
@@ -56,7 +56,7 @@ still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load
 dedup rewrites every event from its representative listing, so anything the middle two
 passes learn reaches the site in the same run instead of two hours later.
 
-**Adapters are per platform, sources are per site.** Thirteen adapters cover 37 sources; adding a
+**Adapters are per platform, sources are per site.** Fifteen adapters cover 39 sources; adding a
 site on a supported platform is a row in `packages/core/src/sources.ts`. Eventbrite and
 Ticketmaster need credentials, passed to adapters as an `AdapterContext` the worker builds
 from its secrets and the dry-run CLI from the environment (`adapterContextFrom`).
