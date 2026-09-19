@@ -309,6 +309,8 @@ export const SOURCES: Source[] = [
       admission: '$10 regular admission, $5 student',
     },
     homepage: 'https://www.mariposaartstheatre.com/filmnights',
+  }),
+  row({
     // CFB Borden, on the CFMWS site. The page embeds its whole list as JSON; most of it
     // is national online webinars, dropped, leaving the base's own events.
     slug: 'cfb-borden',
