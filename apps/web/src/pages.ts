@@ -286,7 +286,7 @@ ${renderHead(
 <header class="topbar"><a href="/" class="home">${MARK}<span>&larr; All events</span></a>${WIP_TAG}</header>
 <main class="card">
   ${crumbs.html}
-  <p class="eyebrow">${escapeHtml(place.level === 'county' ? 'Upper tier' : titleCase(place.level))} · Simcoe County, Ontario</p>
+  <p class="eyebrow">${escapeHtml(place.level === 'county' ? 'Upper tier' : place.level === 'base' ? 'Military base' : titleCase(place.level))} · Simcoe County, Ontario</p>
   <h1>${escapeHtml(heading)}</h1>
   <p class="lead">${escapeHtml(
     upcoming.length

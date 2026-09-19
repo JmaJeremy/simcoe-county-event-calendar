@@ -309,6 +309,14 @@ export const SOURCES: Source[] = [
       admission: '$10 regular admission, $5 student',
     },
     homepage: 'https://www.mariposaartstheatre.com/filmnights',
+    // CFB Borden, on the CFMWS site. The page embeds its whole list as JSON; most of it
+    // is national online webinars, dropped, leaving the base's own events.
+    slug: 'cfb-borden',
+    name: 'CFB Borden (CFMWS)',
+    kind: 'organization',
+    municipalitySlug: 'cfb-borden',
+    config: { platform: 'cfmws', origin: 'https://cfmws.ca', eventsPath: '/borden/events-activities/events', place: 'CFB Borden' },
+    homepage: 'https://cfmws.ca/borden/events-activities/events',
   }),
 
   // ---- Tourism ------------------------------------------------------------------------
@@ -322,6 +330,18 @@ export const SOURCES: Source[] = [
     municipalitySlug: null,
     config: { platform: 'sitefinity', origin: 'https://www.tourismbarrie.com', detailPath: '/festivals-events/details' },
     homepage: 'https://www.tourismbarrie.com/festivals-events',
+  }),
+
+  // ---- Local media: Barrie 360 --------------------------------------------------------
+  row({
+    // The Events Calendar's REST API: 336 events in the next six months (2026-09-18),
+    // county-wide despite the name.
+    slug: 'barrie360',
+    name: 'Barrie 360',
+    kind: 'media',
+    municipalitySlug: null,
+    config: { platform: 'tribe', origin: 'https://barrie360.com' },
+    homepage: 'https://barrie360.com/events/',
   }),
 
   // ---- Local media: Metroland simcoe.com on CitySpark --------------------------------

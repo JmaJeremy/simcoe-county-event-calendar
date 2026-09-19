@@ -1,4 +1,4 @@
-import type { Cost, Event, Listing, Municipality, Source, StoredListing } from '@scec/core'
+import type { Cost, Event, Listing, Municipality, Reclassification, Source, StoredListing } from '@scec/core'
 import { parseOverrides, type EventOverrides } from '@scec/core'
 
 /**
@@ -60,13 +60,15 @@ interface StoredRow {
   starts_at_utc: string
   status: string
   active: number
+  category: string
+  municipality_slug: string | null
 }
 
 /** Existing rows for one source inside the sync window, as reconciliation needs them. */
 export async function loadExisting(db: D1Like, sourceSlug: string, from: string, to: string): Promise<StoredListing[]> {
   const { results } = await db
     .prepare(
-      `SELECT id, external_id, content_hash, starts_at_utc, status, active
+      `SELECT id, external_id, content_hash, starts_at_utc, status, active, category, municipality_slug
          FROM listings WHERE source_slug = ? AND local_date >= ? AND local_date <= ?`,
     )
     .bind(sourceSlug, from, to)
@@ -78,7 +80,16 @@ export async function loadExisting(db: D1Like, sourceSlug: string, from: string,
     startsAtUtc: row.starts_at_utc,
     status: row.status as StoredListing['status'],
     active: row.active === 1,
+    category: row.category as StoredListing['category'],
+    municipalitySlug: row.municipality_slug,
   }))
+}
+
+/** The two derived columns alone, for listings a rule change reclassified. See ReconcilePlan. */
+export function reclassifyListingStatements(db: D1Like, items: Reclassification[]): D1Statement[] {
+  return items.map((r) =>
+    db.prepare(`UPDATE listings SET category = ?, municipality_slug = ? WHERE id = ?`).bind(r.category, r.municipalitySlug, r.id),
+  )
 }
 
 const LISTING_COLUMNS = `

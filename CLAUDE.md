@@ -31,7 +31,7 @@ node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
 ```
 
-A full run takes ~2 min and ~660 HTTP requests: 35/35 sources for ~5,000 listings (Eventbrite
+A full run takes ~2 min and ~660 HTTP requests: 37/37 sources for ~5,200 listings (Eventbrite
 alone is 13 slow requests, ~25 s; Barrie's 823 library events are one request), then up to 300
 event pages read for price and posters, then the unclear listings that mention a sum sent to the cost judge (a few a run, capped at 200),
 then dedup over ~9,000 pairs into ~4,650 events. The subrequest ceiling is
@@ -56,7 +56,7 @@ still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load
 dedup rewrites every event from its representative listing, so anything the middle two
 passes learn reaches the site in the same run instead of two hours later.
 
-**Adapters are per platform, sources are per site.** Twelve adapters cover 35 sources; adding a
+**Adapters are per platform, sources are per site.** Thirteen adapters cover 37 sources; adding a
 site on a supported platform is a row in `packages/core/src/sources.ts`. Eventbrite and
 Ticketmaster need credentials, passed to adapters as an `AdapterContext` the worker builds
 from its secrets and the dry-run CLI from the environment (`adapterContextFrom`).
@@ -66,6 +66,13 @@ from its secrets and the dry-run CLI from the environment (`adapterContextFrom`)
 the same thing; its id is the representative listing's id at creation and never changes.
 
 ## Deployment
+
+**`main` is production.** Every change goes on its own branch with a PR; merging to `main`
+runs `.github/workflows/deploy.yml`, which tests, applies D1 migrations, deploys both
+workers and checks `/health`. It needs the repository secrets `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`; the workers' own secrets live in Cloudflare and survive a deploy.
+Never merge a branch that is behind what is live: the push deploys `main` exactly as it is.
+The commands below are for deploying by hand.
 
 Two Workers on the shared `scec` D1 database (id `2a5bb740-6719-4498-9c0d-4f8eb7b601b9`):
 
@@ -176,8 +183,23 @@ when it breaks, so nothing here is checked by eye.
   clock instead; keep it that way.
 - **Never merge on title + time alone across different municipalities.** Two townships'
   "Farmers' Market" at 9:00 are two events. The municipality gate in dedup enforces this.
-- **Generic source categories ("Community Events") say nothing.** `classifyCategory`
-  ignores them and reads the title.
+- **A category is read from what an event is about, in order of how much each input says.**
+  `classifyCategory` tries the source's subject labels ("Performing & Visual Arts"), then
+  the title with place names removed ("Wasaga Beach Chess Club" is about chess), then
+  audience and catch-all labels ("Seniors", "Adults", "Drop-in", "Community Event"), then
+  gives up with `other`. Labels that say nothing ("Events", "Orillia events") and
+  department names (Severn's "Recreation, Parks, and Facilities events") are skipped
+  entirely: read first, "Parks" made 227 yoga, beading and chess sessions outdoors, and
+  "Seniors" made a chair-yoga class community. Children's labels stay decisive on purpose,
+  since `family` is itself an audience category. Measured on 5,153 live listings when it
+  changed: about 1,070 moved, outdoors fell from 320 to 98.
+- **A rule change reaches existing listings through `reclassified`, never a full update.**
+  Reconciliation only rewrites a listing whose source text or time changed, so a better
+  category or placement rule used to apply to new listings alone. Now a listing whose
+  content hash is unchanged but whose `category` or `municipality_slug` comes out
+  differently is written as those two columns only (`reclassifyListingStatements`). A full
+  upsert would overwrite the description, price and poster the enrichment pass added, and
+  with the content hash unchanged nothing would ever read the event page again.
 - **Dedup: a listing with no municipality must never bridge two towns.** News-site copies
   (SPACES) often have `municipalitySlug = null`; `buildClusters` applies edges strongest-first
   and refuses one that would join two different placed municipalities. Listings that start
@@ -456,11 +478,24 @@ when it breaks, so nothing here is checked by eye.
   Cloudflare's bot challenge, and its shows reach us via the City and Tourism Barrie; Theatre
   by the Bay publishes a handful of events a year on a custom site, already arriving via the
   City. Bandsintown likewise blocks non-browsers.
+- **A tribe series that occurs every day for 90 days or more is dropped** (`dropRunawaySeries`).
+  Barrie 360 lists Gussapolooza, a festival held August 21-23, as recurring daily from
+  September to March: 195 copies. The longest genuine daily run on the site when measured was
+  37 days (Penetanguishene's drop-in pickleball). A regional tribe source (no municipality of
+  its own) also drops events whose address places nowhere in the county — Barrie 360 reaches
+  Fiddle Park in Shelburne — but keeps those with no address, which are usually local.
+- **CFB Borden is a place of its own, with level `base`.** It is federal land, has no council
+  and no civi-times page, so the list is no longer identical to civi-times' 19; nothing links
+  there by place, so nothing breaks. Its events had been filed under Essa. The gazetteer knows
+  "CFB Borden" and "Base Borden", never bare "Borden", a surname and a street. The CFMWS page
+  (`cfmws.ts`) embeds its whole list as `var loadedData = [...]`; most of it is national
+  online webinars, dropped, leaving the base's own events.
 - **A place name followed by a street word is the street.** `resolveMunicipality` tries
   longer names first, so "80 Bradford Street, Barrie" went to Bradford West Gwillimbury and
   "Horseshoe Valley Road" to the Oro-Medonte hamlet. `STREET_WORDS` in `municipalities.ts`
   now stops a name matching when "Street", "Rd", "Line" and the like follow it. Measured
-  against 4,008 live listings it changed 8 placements, and all 8 were corrections.
+  against 4,008 live listings it changed 8 placements, and all 8 were corrections — which
+  reached existing listings only once reclassification existed (see above).
 - **A feed's LOCATION is free text.** LibCal writes a branch name, Tockify writes a room and
   then the street address; `splitLocation` keeps the first segment as the venue and the whole
   string as the address when a street number follows, because an event page without an

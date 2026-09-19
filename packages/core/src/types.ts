@@ -28,6 +28,7 @@ export type Platform =
   | 'sitefinity'
   | 'tixhub'
   | 'mat-film-nights'
+  | 'cfmws'
   | 'manual'
 
 /** Who publishes a calendar. Drives the representative choice when listings merge. */
@@ -37,7 +38,8 @@ export type Platform =
  */
 export type SourceKind = 'municipal' | 'county' | 'library' | 'organization' | 'media' | 'tourism' | 'ticketing' | 'manual'
 
-export type MunicipalityLevel = 'county' | 'city' | 'town' | 'township'
+/** `base` is CFB Borden: federal land, not a municipality, but a community of its own. */
+export type MunicipalityLevel = 'county' | 'city' | 'town' | 'township' | 'base'
 
 /**
  * What the SOURCE says about the event, read from its text ("CANCELLED - Fall Fair") or
@@ -112,6 +114,9 @@ export type SourceConfig =
   | { platform: 'tixhub'; tenant: string }
   /** Mariposa Arts Theatre's film series page, read as prose. */
   | { platform: 'mat-film-nights'; url: string; venue: string; address: string; admission: string }
+  /** A CFMWS base's events page, which embeds its whole list as JSON. `place` names where
+   * events with no location of their own happen. */
+  | { platform: 'cfmws'; origin: string; eventsPath: string; place: string }
   /** Entered by hand in the admin console. Nothing to fetch. */
   | { platform: 'manual' }
 
