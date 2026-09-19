@@ -1,0 +1,34 @@
+# Typecheck and the full test suite, on every pull request into main — and, called from
+# deploy.yml, again before every deploy.
+#
+# A pull request is tested as GitHub's merge of it into main, not the branch alone, so a
+# conflict resolved badly shows here before the merge. That is how #6 broke main: each of
+# #5 and #6 was fine alone, and only their merge fused two source entries into one.
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+# A newer push to the same pull request makes the older run pointless.
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # The UI suite finds Chrome at /usr/bin/google-chrome on GitHub's Ubuntu runners.
+      - run: npm test

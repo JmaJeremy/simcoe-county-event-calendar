@@ -67,7 +67,8 @@ the same thing; its id is the representative listing's id at creation and never 
 
 ## Deployment
 
-**`main` is production.** Every change goes on its own branch with a PR; merging to `main`
+**`main` is production.** Every change goes on its own branch with a PR, and every PR into
+`main` runs `.github/workflows/test.yml` against its merge with `main`. Merging to `main`
 runs `.github/workflows/deploy.yml`, which tests, applies D1 migrations, deploys both
 workers and checks `/health`. It needs the repository secrets `CLOUDFLARE_API_TOKEN` and
 `CLOUDFLARE_ACCOUNT_ID`; the workers' own secrets live in Cloudflare and survive a deploy.
