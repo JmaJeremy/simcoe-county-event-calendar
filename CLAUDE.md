@@ -461,6 +461,23 @@ when it breaks, so nothing here is checked by eye.
   listings are season-long spans; anything not yet over is kept. The source is regional
   (Cookstown to Penetanguishene) so it claims no municipality. No event on record has ever
   been recurring; the adapter throws on one rather than keep only the first date.
+- **The Orillia Opera House is read through its TIXHUB box office** (`tixhub.ts`), which
+  sells more than the Opera House: Mariposa Arts Theatre's main stage, the Leacock Museum,
+  the jazz festival. The listing comes from `cdn.tixhub.com/{tenant}/online/index_content.asp`;
+  every row's date `datetime` is a stale 2013 placeholder, so the text is read. A run of
+  performances is one "Multiple Dates" row, expanded from its own content page's
+  performance `<option>`s — one request per run. The performance id is the identity. It is a
+  box office, so everything on it is paid.
+- **MAT Film Nights is read from prose** (`mat-film-nights.ts`): the season exists only as
+  text on Mariposa's Wix page ("Tuner | Wednesday, September 9, 2026 (4pm, 7pm) | …"). It is
+  the most fragile source here and throws on a page with no films. Venue, address and
+  admission are stated once on the page and live in the source config. A "TBA" film is kept
+  as a screening, film to be announced.
+- **Venues surveyed and left out (2026-09-18):** Casino Rama already arrives through
+  Ticketmaster (39 upcoming); Five Points Theatre sells through Ticketpro, which sits behind
+  Cloudflare's bot challenge, and its shows reach us via the City and Tourism Barrie; Theatre
+  by the Bay publishes a handful of events a year on a custom site, already arriving via the
+  City. Bandsintown likewise blocks non-browsers.
 - **A tribe series that occurs every day for 90 days or more is dropped** (`dropRunawaySeries`).
   Barrie 360 lists Gussapolooza, a festival held August 21-23, as recurring daily from
   September to March: 195 copies. The longest genuine daily run on the site when measured was
