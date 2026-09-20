@@ -1,5 +1,6 @@
 import type { Cost, Event, Listing, Municipality, Reclassification, Source, StoredListing } from '@scec/core'
 import { parseOverrides, type EventOverrides } from '@scec/core'
+import type { SocialCandidate } from './social-select.ts'
 
 /**
  * D1 access for the ingester. Kept separate from reconciliation and de-duplication so
@@ -575,4 +576,103 @@ export function setListingCostStatements(
       .prepare(`UPDATE listings SET cost = ?, cost_text = ? WHERE id = ? AND cost = 'unknown'`)
       .bind(u.cost, u.costText, u.id),
   )
+}
+
+/* ---------- the daily social slate ---------- */
+
+/** Enough text that a hook could plausibly be drawn from it. */
+const MIN_SOCIAL_TEXT = 80
+
+/**
+ * The events a day's posts may be chosen from.
+ *
+ * Its own SQL rather than the site's `buildQuery`, for the same reason the municipality
+ * page writes its own: that default hides paid events, and a day's slate deliberately
+ * carries one or two. Civic meetings stay out as everywhere, and `status = 'scheduled'`
+ * keeps a cancellation the sources have already published out of the pool rather than
+ * relying on the freshness check to catch it later.
+ */
+export async function loadSocialCandidates(
+  db: D1Like,
+  range: { from: string; to: string; limit?: number },
+): Promise<SocialCandidate[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT e.id, e.short_code, e.municipality_slug, m.name AS municipality_name,
+              e.title, e.description, e.category, e.starts_at_utc, e.local_date, e.local_time,
+              e.all_day, e.time_precision, e.venue_name, e.address, e.cost, e.cost_text,
+              e.organizer, e.url, e.listing_count
+         FROM events e LEFT JOIN municipalities m ON m.slug = e.municipality_slug
+        WHERE e.active = 1
+          AND e.category <> 'civic-meeting'
+          AND e.status = 'scheduled'
+          AND e.local_date >= ? AND e.local_date <= ?
+          AND length(coalesce(e.description, '')) >= ?
+        ORDER BY e.starts_at_utc ASC
+        LIMIT ?`,
+    )
+    .bind(range.from, range.to, MIN_SOCIAL_TEXT, range.limit ?? 500)
+    .all<Record<string, unknown>>()
+
+  return results.map((row) => ({
+    id: row.id as string,
+    shortCode: row.short_code as string,
+    municipalitySlug: (row.municipality_slug as string | null) ?? null,
+    municipalityName: (row.municipality_name as string | null) ?? null,
+    title: row.title as string,
+    description: (row.description as string | null) ?? null,
+    category: row.category as SocialCandidate['category'],
+    startsAtUtc: row.starts_at_utc as string,
+    localDate: row.local_date as string,
+    localTime: row.local_time as string,
+    allDay: row.all_day === 1,
+    timePrecision: row.time_precision as SocialCandidate['timePrecision'],
+    venueName: (row.venue_name as string | null) ?? null,
+    address: (row.address as string | null) ?? null,
+    cost: row.cost as Cost,
+    costText: (row.cost_text as string | null) ?? null,
+    organizer: (row.organizer as string | null) ?? null,
+    url: row.url as string,
+    listingCount: (row.listing_count as number) ?? 1,
+  }))
+}
+
+/**
+ * Titles and places either side of the slate's window, for series detection.
+ *
+ * Wider than the candidate window on purpose: a weekly programme is only recognisable as
+ * one from the repeats around it, and a fortnight of candidates would make a monthly
+ * market look like a one-off. Cheap — two columns and no join.
+ */
+export async function loadSeriesWindow(
+  db: D1Like,
+  range: { from: string; to: string },
+): Promise<{ municipalitySlug: string | null; title: string }[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT municipality_slug, title FROM events
+        WHERE active = 1 AND category <> 'civic-meeting'
+          AND local_date >= ? AND local_date <= ?`,
+    )
+    .bind(range.from, range.to)
+    .all<{ municipality_slug: string | null; title: string }>()
+  return results.map((row) => ({ municipalitySlug: row.municipality_slug ?? null, title: row.title }))
+}
+
+/**
+ * When each series was last posted, for the cooldown.
+ *
+ * Only rows that are live or already sent count. A draft nobody approved must not hold
+ * its series out of the running for six weeks, which is the same reason the unique index
+ * on `social_posts` is partial.
+ */
+export async function loadRecentSeries(db: D1Like): Promise<Map<string, string>> {
+  const { results } = await db
+    .prepare(
+      `SELECT series_key, MAX(post_date) AS last_post FROM social_posts
+        WHERE status IN ('approved', 'posting', 'posted')
+        GROUP BY series_key`,
+    )
+    .all<{ series_key: string; last_post: string }>()
+  return new Map(results.map((row) => [row.series_key, row.last_post]))
 }
