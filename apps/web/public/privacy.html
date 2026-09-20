@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy — Out in Simcoe</title>
+<meta name="description" content="What Out in Simcoe stores, what it doesn't, and how to get something removed. No accounts, no ads, no tracking.">
+<meta name="theme-color" content="#e05a17">
+<link rel="canonical" href="https://outinsimcoe.ca/privacy">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script>
+  // Same no-flash theme script as index.html and the event page.
+  try {
+    var t = localStorage.getItem('theme')
+    if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="event-page legal-page">
+<header class="topbar">
+  <a href="/" class="home">
+    <svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+      <circle cx="24" cy="19" r="7.5" fill="var(--accent)"/>
+      <path d="M24 4.5v4M11 11l2.9 2.9M37 11l-2.9 2.9M4.5 21h4M39.5 21h4" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M0 48V37c6.5-4.5 11-1 16.5-3.5S27 26 33 29.5 42 37 48 33.5V48Z" fill="currentColor"/>
+    </svg>
+    <span>&larr; All events</span>
+  </a>
+  <p class="wip"><span class="wip-dot" aria-hidden="true"></span>Work in progress &middot; more events being added</p>
+</header>
+
+<main class="card">
+  <h1>Privacy</h1>
+  <p class="lede">Out in Simcoe is a hobby project that lists community events across Simcoe County.
+    There are no accounts, no ads and no tracking. This page says exactly what is stored, why, and how to
+    get something removed.</p>
+
+  <h2>Reading the site</h2>
+  <p>You can browse every event, filter the list, open any event page and subscribe to the calendar feed without
+    telling us anything. There is no sign-up, no analytics service and no advertising network. Nothing you search
+    or filter for is recorded.</p>
+  <p>Two small exceptions, both worth knowing about:</p>
+  <ul>
+    <li><strong>Your browser remembers a couple of things for you.</strong> Whether you chose the light or dark
+      theme is kept in your own browser's local storage. It stays on your device and is never sent to us.</li>
+    <li><strong>The site is hosted by Cloudflare</strong>, which keeps short-lived operational logs of requests,
+      including IP addresses, to serve pages and block attacks. That is Cloudflare's processing, under
+      <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener noreferrer">their privacy policy</a>.
+      We do not keep our own web-server logs and do not have a record of who read what.</li>
+  </ul>
+  <p>The "Buy Me a Coffee" button at the bottom of the home page loads its image from Buy Me a Coffee's own
+    servers, so displaying it tells them your IP address, as any image from another site would. Following the
+    link takes you to their site, where their policy applies.</p>
+
+  <h2>Suggesting an event</h2>
+  <p>The <a href="/suggest">suggestion form</a> is the one place the site asks you for anything, and every field
+    on it is optional. What you type is stored in our database so we can act on it:</p>
+  <ul>
+    <li><strong>The event details</strong> — title, link, date, time, description and any comments. If we add the
+      event, these become part of a public listing, exactly as if we had found it on a municipal calendar.</li>
+    <li><strong>Your name and email address</strong>, if you choose to leave them. They are used to send you a
+      thank-you, to reply if we need to ask something, and to let you know if the event goes up. They are not
+      published, not shared with anyone, and not used for a newsletter or anything else. There is no mailing list
+      to be added to.</li>
+    <li><strong>A poster or image</strong>, if you attach one. See below.</li>
+    <li><strong>A one-way fingerprint of your IP address</strong>, never the address itself. It is hashed together
+      with the current date, which lets us count submissions from one sender within an hour to stop floods, and
+      makes it useless for following anyone from one day to the next.</li>
+  </ul>
+  <p>Suggestions are kept so we have a record of where a listing came from and so nobody is thanked twice for the
+    same thing. If you would rather yours were deleted, ask and it will be.</p>
+
+  <h2>The bot check</h2>
+  <p>The suggestion form is protected by <a href="https://www.cloudflare.com/products/turnstile/" rel="noopener noreferrer">Cloudflare
+    Turnstile</a>, which decides whether a submission came from a person without setting tracking cookies or asking
+    you to identify traffic lights. It loads a script from Cloudflare and sends them a token to verify. The form
+    does not work without it, deliberately: without a bot check the site's mail would be used to send spam.</p>
+
+  <h2>Posters and images</h2>
+  <p>An image you attach is checked and cleaned before it is stored. Location, camera and other embedded metadata
+    are stripped out — a phone photo of a poster on a noticeboard usually carries the GPS coordinates of where it
+    was taken, and those never reach our storage. Uploads are kept in a private bucket and are visible only to the
+    site's admin until the event is approved. If the event goes up, the image goes up with it, on the public event
+    page. Please only send images you have the right to share.</p>
+
+  <h2>The events themselves</h2>
+  <p>Listings are gathered automatically from public calendars published by the county, its municipalities,
+    libraries, local media and ticketing sites, and are de-duplicated into one entry per event. Each event page
+    links back to the source it came from. If you are an organiser and an event about you is wrong, out of date or
+    something you would rather was not here, tell us through the
+    <a href="/suggest">suggestion form</a> and it will be corrected or removed.</p>
+
+  <h2>Where else events appear</h2>
+  <p>Out in Simcoe posts a few of each day's events to its own Facebook, Instagram and X accounts, linking back to
+    the event page here. Those posts carry only what is already public on the site — an event's title, time, place,
+    cost and link. Anything you do on those platforms, including following, liking or commenting, happens under the
+    platform's own terms and privacy policy, not this one.</p>
+
+  <h2>What never happens</h2>
+  <ul>
+    <li>Nothing is sold, rented or handed to a data broker.</li>
+    <li>There are no advertising or analytics trackers, and no cross-site profiling.</li>
+    <li>Your email address is never published, shared or used to market anything.</li>
+    <li>Emails from the site never quote what a visitor typed back to a third party — the thank-you for a
+      suggestion deliberately repeats nothing you wrote, so nobody can use the form to send their words to a
+      stranger under our name.</li>
+  </ul>
+
+  <h2>Getting in touch</h2>
+  <p>To correct a listing, remove an event, or ask for a suggestion and anything attached to it to be deleted, use
+    the <a href="/suggest">suggestion form</a> and say what you would like done. It reaches the same person either
+    way, and it keeps the site's address out of the reach of address harvesters. Requests are handled by hand,
+    usually within a few days.</p>
+
+  <h2>Changes</h2>
+  <p>If what the site does with information changes, this page changes with it, and the date below moves. The site
+    is open source, so the code behind every claim here can be read on
+    <a href="https://github.com/JmaJeremy/simcoe-county-event-calendar" rel="noopener noreferrer">GitHub</a>.</p>
+  <p class="updated">Last updated 20 September 2026.</p>
+</main>
+<footer class="page-foot"><p class="copyright">&copy; 2026 <a href="https://jeremy.click" rel="author">Jeremy Andrews</a> &amp; Torbarrie Tech</p><p class="licence">Free and open source under the GNU GPL v3. <a href="https://github.com/JmaJeremy/simcoe-county-event-calendar">The code is on GitHub</a>.</p><p class="legal-link"><a href="/privacy">Privacy</a></p></footer>
+</body>
+</html>

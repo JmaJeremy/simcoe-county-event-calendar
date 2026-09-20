@@ -165,6 +165,14 @@ describe('sitemap.xml', () => {
     expect(await (await get('/sitemap.xml')).text()).not.toContain('/suggest')
   })
 
+  /*
+   * The privacy page is the opposite case: indexable, and the URL an app reviewer or a
+   * reader looks for by name. Meta's App Review will not accept a submission without it.
+   */
+  it('lists the privacy page', async () => {
+    expect(await (await get('/sitemap.xml')).text()).toContain(`<loc>https://${APEX}/privacy</loc>`)
+  })
+
   it('escapes query strings and drops a lastmod it cannot parse', () => {
     const xml = renderSitemap(
       [

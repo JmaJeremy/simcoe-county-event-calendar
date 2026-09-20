@@ -25,7 +25,7 @@ export const MARK = `<svg class="mark" viewBox="0 0 48 48" fill="none" aria-hidd
 
 /** Mirror the tag and footer lines in public/index.html and public/suggest.html; change one, change all three. */
 export const WIP_TAG = '<p class="wip"><span class="wip-dot" aria-hidden="true"></span>Work in progress &middot; more events being added</p>'
-export const FOOTER_NOTES = '<p class="copyright">&copy; 2026 <a href="https://jeremy.click" rel="author">Jeremy Andrews</a> &amp; Torbarrie Tech</p><p class="licence">Free and open source under the GNU GPL v3. <a href="https://github.com/JmaJeremy/simcoe-county-event-calendar">The code is on GitHub</a>.</p>'
+export const FOOTER_NOTES = '<p class="copyright">&copy; 2026 <a href="https://jeremy.click" rel="author">Jeremy Andrews</a> &amp; Torbarrie Tech</p><p class="licence">Free and open source under the GNU GPL v3. <a href="https://github.com/JmaJeremy/simcoe-county-event-calendar">The code is on GitHub</a>.</p><p class="legal-link"><a href="/privacy">Privacy</a></p>'
 
 /**
  * Runs before the first paint. Without it a reader who chose dark gets a white flash on

@@ -333,9 +333,17 @@ when it breaks, so nothing here is checked by eye.
   `1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`). Their
   token comes back with action `test`, so expect our worker to refuse it as
   `action-mismatch`: that refusal is the proof the whole chain ran.
-- **The work-in-progress tag and the footer's copyright and licence lines are repeated** in
-  `index.html`, `suggest.html` and `WIP_TAG`/`FOOTER_NOTES` in `apps/web/src/html.ts`. Change
-  one, change all three.
+- **The work-in-progress tag and the footer's copyright, licence and Privacy lines are
+  repeated** in `index.html`, `suggest.html`, `privacy.html` and `WIP_TAG`/`FOOTER_NOTES` in
+  `apps/web/src/html.ts`. Change one, change all four.
+- **`/privacy` is a static page that must stay free of any email address.** Meta's App
+  Review needs a privacy policy URL on a real domain, which is why it exists (SCEC-79), and
+  `no-email.test.ts` scans it with every other served file — so the way to be reached is the
+  suggestion form, never an address. Unlike `/suggest` it is indexable and is in the
+  sitemap. It describes what the code actually does: day-salted IP hashes for the rate
+  limit, posters private until approval and stripped of metadata, Turnstile, the Buy Me a
+  Coffee image the home page loads from a third party, and the social accounts. Change any
+  of those and the page is wrong.
 - **Hand-entered events are listings, never rows written into `events`.** Dedup rebuilds
   events from listings each run and closes any event in its window with no listing behind
   it, so a bare event would vanish within two hours. The console (`apps/ingest/src/
