@@ -214,10 +214,20 @@ describe('chooseSlate', () => {
     expect(slate.rejected.some((r) => r.reason === 'paid-quota')).toBe(true)
   })
 
-  it('posts at most one event whose cost is not listed, and never calls it free', () => {
+  /*
+   * Unlisted competes with free on merit, which is what the site's own "Free & unlisted"
+   * default view does. Capping it was measured over a week of live slates and was worse:
+   * a third of the pool took 9% of the posts while paid took 40% from 17% of the pool.
+   */
+  it('treats an event whose cost is not listed as free', () => {
     const slate = slateOf(many(5, () => ({ cost: 'unknown' as const })))
-    expect(slate.chosen.filter((c) => c.candidate.cost === 'unknown')).toHaveLength(1)
-    expect(slate.rejected.some((r) => r.reason === 'unknown-quota')).toBe(true)
+    expect(slate.chosen).toHaveLength(5)
+    expect(slate.rejected.some((r) => r.reason === 'paid-quota')).toBe(false)
+  })
+
+  it('does not hold back the paid allowance for a day with no paid events in it', () => {
+    const slate = slateOf(many(6, (i) => ({ cost: i % 2 ? ('unknown' as const) : ('free' as const) })))
+    expect(slate.chosen).toHaveLength(5)
   })
 
   it('spreads across the county rather than filling the day with Barrie', () => {
