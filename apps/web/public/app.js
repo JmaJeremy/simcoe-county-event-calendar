@@ -37,6 +37,9 @@ const $ = (id) => document.getElementById(id)
  */
 const SITE_TZ = 'America/Toronto'
 const siteDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: SITE_TZ, year: 'numeric', month: '2-digit', day: '2-digit' })
+// hourCycle 'h23', not hour12:false: some ICU versions render midnight as 24:00 under the
+// latter, which would sort after every other time. core/time.ts carries the same note.
+const siteTimeFormat = new Intl.DateTimeFormat('en-CA', { timeZone: SITE_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
 const todayISO = () => siteDateFormat.format(new Date())
 const thisMonth = () => todayISO().slice(0, 7)
 
@@ -163,19 +166,90 @@ function hasFinished(e, now = Date.now()) {
   return lastLocalDate(e) < todayISO()
 }
 
-/** Started and not yet over — a festival on its second day, a fair this afternoon. */
-function isOnNow(e, now = Date.now()) {
+/**
+ * Whether an event runs over a stretch of days rather than in one sitting.
+ *
+ * The line is duration, not the calendar. Hundreds of events end on a later date than
+ * they start without being spans at all — a 19:00 concert finishing at 21:00 is already
+ * the next day in UTC, and a few genuinely run past local midnight — so "covers two
+ * dates" would strip the tag from every evening out.
+ *
+ * Measured instead: below a day, the longest continuous run on the site is 16 hours;
+ * above it, the shortest true span is 26. Three rows sit at exactly 24 hours and every
+ * one opens and closes at the same clock (20:00 to 20:00 for a Friday-and-Saturday
+ * show), which is a span typed carelessly rather than a day-long event — so the trigger
+ * is a day or more, not more than a day.
+ *
+ * The gap is not perfectly clean. A conference running 19:00 to 17:00 the next day is 22
+ * hours and still reads as continuous; nothing in the data tells it apart from a genuine
+ * overnight retreat, which really is on all night, so both keep the tag.
+ */
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function spansDays(e) {
+  return !!e.endsAtUtc && Date.parse(e.endsAtUtc) - Date.parse(e.startsAtUtc) >= DAY_MS
+}
+
+/**
+ * Whether an event that spans days is still running today — not whether its doors are
+ * open this minute. This is the question the day headings ask: a festival in its third
+ * week belongs under today, whatever the hour.
+ */
+function runsToday(e, now = Date.now()) {
   return Date.parse(e.startsAtUtc) <= now && !hasFinished(e, now)
+}
+
+/**
+ * The hours a span keeps each day, when they can be believed.
+ *
+ * "Barrie Hill Farms Fall Festival Weekends, Sep 5 9:00 to Oct 31 17:00" means the farm
+ * opens at 9:00 and closes at 17:00 on the days it runs — not that it stays open for
+ * eight weeks. Read as one unbroken interval it put an "On now" tag on three farm
+ * festivals, a quilt fair and a blues festival at half past two in the morning.
+ *
+ * Only a window that reads like opening hours is believed. Measured over the 41 spans
+ * live when this was written, 28 are ordinary windows (10:00 to 17:00). Of the rest, 8
+ * close before they open, because the two clocks are a theatre run's opening night and
+ * its closing matinee rather than one day's hours; 2 open and close at the same minute;
+ * and 3 start at 00:00, which is already this site's way of saying no time was given.
+ * For those 13 the daily hours are simply unknown, and nothing here pretends otherwise.
+ */
+function dailyWindow(e) {
+  const end = siteTimeFormat.format(new Date(e.endsAtUtc))
+  if (e.localTime >= end || e.localTime === '00:00') return null
+  return { start: e.localTime, end }
+}
+
+/**
+ * Started, not finished, and — for a span — inside today's hours.
+ *
+ * "On now" is a strong claim: it tells a reader they could set off this minute. Where the
+ * daily hours cannot be read off the data the tag is withheld rather than guessed, and
+ * the end date on the card carries the information instead. An all-day span has no clock
+ * to test against, so it keeps the tag it has always had.
+ */
+function isOnNow(e, now = Date.now()) {
+  if (!runsToday(e, now)) return false
+  if (!spansDays(e)) return true
+  if (e.allDay || e.timePrecision === 'date-only') return true
+  const window = dailyWindow(e)
+  if (!window) return false
+  const clock = siteTimeFormat.format(new Date(now))
+  return clock >= window.start && clock <= window.end
 }
 
 /**
  * The day heading an event is filed under. Its start date, except for something that
  * began earlier and is still running: that belongs under today, because a heading
  * reading "3 days ago" above a festival happening right now is simply wrong.
+ *
+ * This asks `runsToday`, not `isOnNow`. A month-long festival shut at this hour still
+ * belongs under today — filing it under the day it opened would put "15 days ago" above
+ * something a reader can go to this afternoon.
  */
 function listDate(e) {
   const today = todayISO()
-  return e.localDate < today && isOnNow(e) ? today : e.localDate
+  return e.localDate < today && runsToday(e) ? today : e.localDate
 }
 
 /**
@@ -201,6 +275,8 @@ function visibleEvents() {
 /* ---------- rendering ---------- */
 
 const fmtDay = new Intl.DateTimeFormat('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })
+/** For "until October 31" on a card — no weekday, which would only add noise there. */
+const fmtShortDay = new Intl.DateTimeFormat('en-CA', { month: 'long', day: 'numeric', timeZone: 'UTC' })
 
 function relativeDay(dateStr) {
   const days = Math.round((Date.parse(`${dateStr}T00:00:00Z`) - Date.parse(`${todayISO()}T00:00:00Z`)) / 86400000)
@@ -329,6 +405,14 @@ function renderEvent(e) {
   const time = dateOnly ? '<span class="tbd">All day</span>' : esc(formatTime(e.localTime))
   const place = [e.venueName, !e.venueName && e.address ? e.address : null].filter(Boolean)[0]
   const alsoOn = e.sourceSlugs.length > 1 ? `<span class="also">listed ${e.sourceSlugs.length} places</span>` : ''
+  // A card filed under today showing only "9:00 a.m." says nothing about a festival that
+  // runs to the end of October, and a reader cannot tell a one-morning fair from an
+  // eight-week one. The last day is the missing half of the sentence.
+  // Not when the last day IS the day it is filed under: "until September 20" under a
+  // heading reading "Sunday, September 20" tells the reader nothing.
+  const runs = spansDays(e) && lastLocalDate(e) > listDate(e)
+    ? `<span class="runs">until ${esc(fmtShortDay.format(new Date(`${lastLocalDate(e)}T00:00:00Z`)))}</span>`
+    : ''
 
   return `<article class="event${e.status === 'cancelled' ? ' is-cancelled' : ''}" data-cat="${esc(e.category)}">
     <div class="time">${time}</div>
@@ -338,6 +422,7 @@ function renderEvent(e) {
         <span class="jur">${esc(shortPlaceName(e.municipalitySlug))}</span>
         <span class="cat"><span class="cat-dot" aria-hidden="true"></span>${esc(categoryLabel(e.category))}</span>
         ${place ? `<span>${esc(place)}</span>` : ''}
+        ${runs}
         ${alsoOn}
       </div>
     </div>
