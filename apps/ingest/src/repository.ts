@@ -9,7 +9,13 @@ import { parseOverrides, type EventOverrides } from '@scec/core'
 export interface D1Statement {
   bind(...values: unknown[]): D1Statement
   all<T = unknown>(): Promise<{ results: T[] }>
-  run(): Promise<unknown>
+  /**
+   * `meta.changes` is how a conditional UPDATE reports whether it matched anything, which
+   * is what lets one invocation claim a row nobody else has taken — the social send pass
+   * moves a draft to 'posting' only where it is still 'approved', and may publish only if
+   * that changed exactly one row. Optional here because a stub need not supply it.
+   */
+  run(): Promise<{ meta?: { changes?: number } }>
   first<T = unknown>(): Promise<T | null>
 }
 

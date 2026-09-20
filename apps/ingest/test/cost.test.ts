@@ -100,7 +100,7 @@ describe('which listings are worth asking about', () => {
     const statement: D1Statement = {
       bind: () => statement,
       all: async () => ({ results: rows }) as { results: never[] },
-      run: async () => undefined,
+      run: async () => ({}),
       first: async () => ({ n: rows.length }) as never,
     }
     return { db: { prepare: () => statement, batch: async (s) => (state.batched += s.length) }, get batched() { return state.batched } }
@@ -131,7 +131,7 @@ describe('which listings are worth asking about', () => {
     const statement: D1Statement = {
       bind: () => statement,
       all: async () => ({ results: onlyB }) as { results: never[] },
-      run: async () => undefined,
+      run: async () => ({}),
       first: async () => ({ n: 1 }) as never,
     }
     const stats = await judgeCosts({ prepare: () => statement, batch: async () => undefined }, judge, { budget: 10 })
