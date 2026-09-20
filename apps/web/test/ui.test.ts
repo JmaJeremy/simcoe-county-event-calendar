@@ -875,15 +875,30 @@ describeIfChrome('finished events (real browser)', () => {
   const now = Date.now()
   const torontoDate = (ms: number) =>
     new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms))
+  const torontoTime = (ms: number) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ms))
   const today = torontoDate(now)
   const yesterday = torontoDate(now - 24 * HOUR)
   const tomorrow = torontoDate(now + 24 * HOUR)
   const iso = (ms: number) => new Date(ms).toISOString()
 
+  /**
+   * The instant at which a given wall clock reads `time` in Simcoe County on `date`.
+   *
+   * A span's daily window is read off the wall clock, so a fixture that pinned one has to
+   * be built from a wall clock too. `${date}T${time}:00Z` minus four hours would be right
+   * only from March to November, and the suite has to pass in February as well.
+   */
+  const wall = (date: string, time: string) => {
+    const guess = Date.parse(`${date}T${time}:00Z`)
+    return guess + (guess - Date.parse(`${torontoDate(guess)}T${torontoTime(guess)}:00Z`))
+  }
+
+  let seq = 0
   const make = (title: string, fields: Record<string, unknown>) => ({
     ...EVENTS[0]!,
     id: `clock:${title}`,
-    shortCode: `clk${title.length}${title[0]}`,
+    shortCode: `clk${seq++}`,
     title,
     cost: 'free',
     category: 'community',
@@ -894,10 +909,43 @@ describeIfChrome('finished events (real browser)', () => {
     ...fields,
   })
 
+  /**
+   * A festival: it opens and closes at the same clock each day over a run of days, which
+   * is how every source on the site publishes one — a single start and a single end, days
+   * apart. `localTime` has to agree with `startsAtUtc`, because the window is read from
+   * the one and the day from the other.
+   *
+   * Two days either side, not one. A span counts as a span only past 24 hours, and on the
+   * morning the clocks go back `now + 24h` is still today: a one-day-either-side fixture
+   * would quietly shrink under the threshold and test the wrong rule, twice a year.
+   */
+  const twoDaysBack = torontoDate(now - 48 * HOUR)
+  const twoDaysOn = torontoDate(now + 48 * HOUR)
+  const span = (title: string, from: string, to: string, fields: Record<string, unknown> = {}) =>
+    make(title, {
+      localDate: twoDaysBack,
+      localTime: from,
+      startsAtUtc: iso(wall(twoDaysBack, from)),
+      endsAtUtc: iso(wall(twoDaysOn, to)),
+      ...fields,
+    })
+
+  // Deliberately not derived from the current clock: a window of "now + 2h to now + 3h"
+  // wraps past midnight late in the evening and stops being a window at all, so the test
+  // would pass for the wrong reason. These two are shut whatever the hour.
+  const shutNow = torontoTime(now) < '12:00' ? ['20:00', '22:00'] : ['06:00', '08:00']
+
   const CLOCK_EVENTS = [
     make('Ended an hour ago', { localDate: today, startsAtUtc: iso(now - 2 * HOUR), endsAtUtc: iso(now - HOUR) }),
     make('Finished yesterday', { localDate: yesterday, startsAtUtc: iso(now - 26 * HOUR), endsAtUtc: iso(now - 25 * HOUR) }),
-    make('Three day festival', { localDate: yesterday, startsAtUtc: iso(now - 26 * HOUR), endsAtUtc: iso(now + 24 * HOUR) }),
+    // Open every hour there is. Not 00:00, which the site reads as "no time given" — so
+    // the one minute of the day this fixture cannot cover is the minute after midnight.
+    span('Festival open now', '00:01', '23:59'),
+    span('Festival shut right now', shutNow[0]!, shutNow[1]!),
+    // The clocks of a theatre run: an opening night and a closing matinee, not one day's
+    // hours. Nothing can be said about when the doors are open on the days between.
+    span('Run that ends with a matinee', '19:30', '17:00'),
+    span('Series with placeholder hours', '10:00', '10:00'),
     make('No end time given', { localDate: today, startsAtUtc: iso(now - 3 * HOUR) }),
     make('All day today', { localDate: today, startsAtUtc: iso(now - 4 * HOUR), allDay: true, timePrecision: 'date-only' }),
     make('Ends in an hour', { localDate: today, startsAtUtc: iso(now - HOUR), endsAtUtc: iso(now + HOUR) }),
@@ -939,28 +987,55 @@ describeIfChrome('finished events (real browser)', () => {
     expect(await titles()).toEqual(expect.arrayContaining(['No end time given', 'All day today', 'Ends in an hour', 'Tomorrow morning']))
   })
 
-  it('keeps something that started yesterday and is still running, filed under today', async () => {
-    const section = await page.$$eval('#list .day', (days) =>
-      days.map((d) => ({
+  const days = () =>
+    page.$$eval('#list .day', (ds) =>
+      ds.map((d) => ({
         rel: d.querySelector('.rel')?.textContent?.trim() ?? '',
         titles: [...d.querySelectorAll('.event h3 a')].map((a) => a.textContent!.trim()),
         onNow: [...d.querySelectorAll('.event')]
           .filter((e) => e.querySelector('.tag.onnow'))
           .map((e) => e.querySelector('h3 a')!.textContent!.trim()),
+        runs: [...d.querySelectorAll('.event')].map((e) => [
+          e.querySelector('h3 a')!.textContent!.trim(),
+          e.querySelector('.meta .runs')?.textContent?.trim() ?? '',
+        ]),
       })),
     )
-    const festival = section.find((d) => d.titles.includes('Three day festival'))
-    expect(festival?.rel).toBe('today')
-    expect(festival?.onNow).toEqual(['Three day festival'])
+
+  const SPANS = ['Festival open now', 'Festival shut right now', 'Run that ends with a matinee', 'Series with placeholder hours']
+
+  it('files everything that began earlier and is still running under today', async () => {
+    const section = await days()
+    const today = section.find((d) => d.rel === 'today')
+    expect(today?.titles).toEqual(expect.arrayContaining(SPANS))
     // Nothing under a heading from before today.
     expect(section.map((d) => d.rel)).not.toContain('yesterday')
   })
 
+  it('says "On now" only for the span whose doors are open at this hour', async () => {
+    const today = (await days()).find((d) => d.rel === 'today')
+    // A credible window may not open at 00:00, which the site reads as "no time given",
+    // so nothing at all is on now during that one minute of the day. Not worth a flake.
+    if (torontoTime(now) !== '00:00') expect(today?.onNow).toContain('Festival open now')
+    // Shut right now; and two whose daily hours the data does not actually give — a run
+    // ending in a matinee, and a weekly series carrying a placeholder time.
+    expect(today?.onNow).not.toContain('Festival shut right now')
+    expect(today?.onNow).not.toContain('Run that ends with a matinee')
+    expect(today?.onNow).not.toContain('Series with placeholder hours')
+  })
+
+  it('shows the last day of a span, so a card filed under today is not read as one day', async () => {
+    const runs = new Map((await days()).flatMap((d) => d.runs))
+    for (const title of SPANS) expect(runs.get(title)).toMatch(/^until \w+ \d+$/)
+    // A single occurrence says nothing; there is no range to state.
+    expect(runs.get('Ends in an hour')).toBe('')
+  })
+
   it('brings the finished ones back when past events are asked for', async () => {
     await page.click('#show-past')
-    await page.waitForFunction(() => document.querySelectorAll('#list .event').length === 7)
+    await page.waitForFunction(() => document.querySelectorAll('#list .event').length === 10)
     expect(await titles()).toEqual(expect.arrayContaining(['Ended an hour ago', 'Finished yesterday']))
-    // Chronological even though the festival, which sorts first by its start, is filed
+    // Chronological even though the spans, which sort first by their start, are filed
     // under today rather than yesterday.
     const rel = await page.$$eval('#list .day-head .rel', (els) => els.map((e) => e.textContent!.trim()))
     expect(rel).toEqual(['yesterday', 'today', 'tomorrow'])

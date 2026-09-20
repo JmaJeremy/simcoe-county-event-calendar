@@ -308,9 +308,36 @@ when it breaks, so nothing here is checked by eye.
 - **"Upcoming" means not over yet, not dated today or later.** `hasFinished` in `app.js`
   retires an event when its published end time passes, and nothing else may: all-day
   events and the ~1,500 with no end time stay until their last day is over (America/Toronto).
-  Something that started on an earlier day and is still running is filed under today with
-  an "On now" tag (`listDate`), not under a heading reading "3 days ago". The calendar view
-  is untouched; "Past events" still shows everything.
+  Something that started on an earlier day and is still running is filed under today
+  (`listDate`, which asks `runsToday`), not under a heading reading "3 days ago". The
+  calendar view is untouched; "Past events" still shows everything.
+- **A span longer than a day states DAILY hours, not a continuous run.** "Barrie Hill
+  Farms Fall Festival Weekends, Sep 5 9:00 to Oct 31 17:00" means the farm opens at 9:00
+  and closes at 17:00 on the days it runs. Read as one unbroken interval it put an "On
+  now" tag on three farm festivals, a quilt fair and a blues festival at half past two in
+  the morning. So `isOnNow` tests the clock against that window, while `listDate` only
+  asks whether the event runs today at all — a month-long festival shut at this hour still
+  belongs under today's heading. The trigger is duration, never the calendar: hundreds of
+  events end on a later date than they start without being spans (a 19:00 concert
+  finishing at 21:00 is already the next day in UTC), so "covers two dates" would strip
+  the tag from every evening out. Measured instead — below a day the longest continuous
+  run is 16 hours, above it the shortest true span is 26, and the three rows at exactly 24
+  all open and close at the same clock (20:00 to 20:00 for a Friday-and-Saturday show),
+  so a day or more counts. The gap is not perfectly clean: a 22-hour conference running
+  19:00 to 17:00 the next day still reads as continuous, and nothing in the data tells it
+  from an overnight retreat that genuinely is.
+  `dailyWindow` believes a window only when it opens before it closes and not at 00:00; of
+  the 41 spans live when this was written, 28 qualified, 8 close before they open (the two
+  clocks are a theatre run's opening night and its closing matinee, not one day's hours),
+  2 open and close at the same minute, and 3 start at 00:00, which is already this site's
+  way of saying no time was given. For those 13 the hours are unknown and no tag is shown.
+  All-day spans have no clock to test and keep the tag they always had.
+- **A card and an event page both say when a span ends.** A card filed under today reading
+  only "9:00 a.m." cannot be told from a one-morning fair, so `renderEvent` adds "until
+  October 31" whenever the last day is later than the heading it sits under, and
+  `describeWhen` writes "September 5, 2026 to October 31, 2026, 9:00 a.m. to 5:00 p.m."
+  rather than dropping the end date as it used to. The two are separate copies of the same
+  rule, `app.js` and `pages.ts`, as `UNPLACED` is — change one, change the other.
 - **Suggestions are stored before they are mailed.** `POST /api/suggest` validates
   (`src/suggest.ts`), inserts into `suggestions`, then sends two emails through the `EMAIL`
   binding (Cloudflare Email Service), recording each outcome on the row. A mail failure

@@ -42,11 +42,27 @@ export const shareableImage = (event: PublicEvent): string | null => {
   return /^(calendar|events)\./i.test(host) ? null : event.imageUrl
 }
 
-/** One phrase for when an event is, honest about sources that publish no time. */
+/**
+ * One phrase for when an event is, honest about sources that publish no time.
+ *
+ * A timed event that ends on a later day needs both halves. Read with only the clocks,
+ * Barrie Hill Farms' eight-week festival said "September 5, 2026 at 9:00 a.m. to 5:00
+ * p.m." — a single autumn morning, and the one thing a reader most needs to know about it
+ * missing. The end date is written whenever it differs from the start's.
+ */
 export function describeWhen(event: PublicEvent): string {
-  return event.allDay || event.timePrecision === 'date-only'
-    ? `${formatDate(event.localDate)}${event.endsAtUtc ? ` to ${formatDate(localDateOf(event.endsAtUtc, event.timezone))}` : ''} · all day`
-    : `${formatDate(event.localDate)} at ${formatTime(event.localTime)}${event.endsAtUtc ? ` to ${formatTime(localTimeOf(event.endsAtUtc, event.timezone))}` : ''}`
+  const endDate = event.endsAtUtc ? localDateOf(event.endsAtUtc, event.timezone) : null
+  if (event.allDay || event.timePrecision === 'date-only') {
+    return `${formatDate(event.localDate)}${endDate && endDate > event.localDate ? ` to ${formatDate(endDate)}` : ''} · all day`
+  }
+  const clocks = event.endsAtUtc
+    ? `${formatTime(event.localTime)} to ${formatTime(localTimeOf(event.endsAtUtc, event.timezone))}`
+    : formatTime(event.localTime)
+  // A range takes a comma, a single day keeps "at": "September 5, 2026 to October 31,
+  // 2026, 9:00 a.m. to 5:00 p.m." reads as the daily hours it is.
+  return endDate && endDate > event.localDate
+    ? `${formatDate(event.localDate)} to ${formatDate(endDate)}, ${clocks}`
+    : `${formatDate(event.localDate)} at ${clocks}`
 }
 
 /** The machine-readable half of a `<time>`: a date alone when that is all we know. */
