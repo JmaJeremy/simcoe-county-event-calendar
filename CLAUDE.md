@@ -561,5 +561,33 @@ when it breaks, so nothing here is checked by eye.
   through Canada for nothing.
 - **Adding a route to a worker turns its workers.dev URL off** unless `workers_dev: true`
   is set. `apps/ingest/wrangler.jsonc` sets it, because `/run` is called on workers.dev.
+- **Events found in news articles are staged, never written.** The companion tool
+  `JmaJeremy/news-event-scraper` reads local news sites, finds events no calendar ever
+  published, and inserts drafts into `staged_events` in **this** database. Nothing it writes
+  is an event: the console's `/staged` inbox reviews one, `/new?staged={uuid}` pre-fills the
+  ordinary event form from it, and saving writes a `manual` listing and marks the draft
+  `handled_as = 'event'` in the same batch — the same shape the suggestions flow has, and
+  for the same reason: the draft and the event it became must land together, or the queue
+  offers something already on the site.
+- **The scraper's schema lives here, in `0009_news_scraper.sql`, and that is deliberate.**
+  Its worker binds this database with no `migrations_dir` of its own, exactly as
+  `apps/web` does — one database, one migration authority. Apply migrations before deploying
+  it. Its three tables (`news_articles`, `staged_events`, `news_runs`) are never touched by
+  anything in this repo except the console.
+- **Two things can pre-fill the event form, and they get separate parameters.**
+  `?from={uuid}` is a suggestion somebody sent through the site; `?staged={uuid}` is a news
+  draft. They fill in different fields and carry different warnings — a suggestion is a
+  message with a reply owed, a draft is a machine's reading of someone else's journalism
+  that wants its quotes checked — so `newPage` branches rather than overloading one.
+- **A staged draft's `stage_key` is unique outright, unlike `social_posts`'.** There, a
+  partial index was needed so an unapproved draft did not burn its event for good. Here a
+  dismissal *should* burn the key: dismissing means somebody looked and said no, and two
+  outlets covering one ceremony must not come back as a second thing to review.
+- **The gazetteer must never see a news article's prose.** `resolveMunicipality(title, body)`
+  over BarrieToday's Battle of Britain story returns `cfb-borden`, not `barrie`: the body
+  mentions "Canadian Forces Base Borden… 25 kilometres outside of Barrie", and "Base Borden"
+  sorts ahead of "Barrie" in the longest-name-first list. A gazetteer cannot tell a venue
+  from an aside. The scraper picks the municipality itself, from an enum of the slugs in
+  `municipalities`, and hands this repo a slug rather than text to resolve.
 - **The month parameter in URLs is `month=`, not `m=`** — `m` is the municipality filter.
   The civi-times tests used `m` for the month; that is why the ported suite was patched.

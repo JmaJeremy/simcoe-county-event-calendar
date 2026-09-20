@@ -1,6 +1,7 @@
 import {
   MANUAL_SOURCE_SLUG,
   MUNICIPALITIES,
+  municipalityBySlug,
   applyOverrides,
   buildClusters,
   eventFromCluster,
@@ -107,12 +108,14 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
   const path = url.pathname.replace(/\/+$/, '') || '/'
   const route = path.match(/^\/events\/([^/]+)(?:\/(remove|restore))?$/)
   const suggestionRoute = path.match(/^\/suggestions\/([^/]+)(?:\/(poster|accept|dismiss|reopen))?$/)
+  const stagedRoute = path.match(/^\/staged\/([^/]+)(?:\/(dismiss|reopen))?$/)
 
   try {
     if (path === '/' && request.method === 'GET') return page(await listPage(env.DB, url, publicOrigin, auth.email))
     if (path === '/new' && request.method === 'GET') return await newPage(env.DB, url, publicOrigin, auth.email)
     if (path === '/events' && request.method === 'POST') return await createEvent(env, request, publicOrigin, auth.email)
     if (path === '/suggestions' && request.method === 'GET') return page(await suggestionsPage(env.DB, url, publicOrigin, auth.email))
+    if (path === '/staged' && request.method === 'GET') return page(await stagedPage(env.DB, url, publicOrigin, auth.email))
     if (path === '/find' && request.method === 'GET') return page(await findPage(env.DB, url, publicOrigin, auth.email))
 
     // Short codes are seven hex characters; listing ids can contain slashes.
@@ -132,6 +135,15 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
       if (action === 'poster' && request.method === 'GET') return await posterResponse(env, id!, auth.email)
       if ((action === 'dismiss' || action === 'reopen') && request.method === 'POST') {
         return await setDismissed(env.DB, id!, action === 'dismiss')
+      }
+    }
+
+    if (stagedRoute) {
+      const [, id, action] = stagedRoute
+      if (!UUID.test(id!)) return notFound(auth.email)
+      if (!action && request.method === 'GET') return await stagedDetailPage(env.DB, id!, publicOrigin, auth.email)
+      if ((action === 'dismiss' || action === 'reopen') && request.method === 'POST') {
+        return await setStagedDismissed(env.DB, id!, action === 'dismiss')
       }
     }
 
@@ -164,10 +176,11 @@ async function readForm(request: Request): Promise<Record<string, unknown>> {
 async function createEvent(env: ConsoleEnv, request: Request, publicOrigin: string, email: string): Promise<Response> {
   const db = env.DB
   const form = await readForm(request)
-  // Opened from a suggestion: saving approves it.
+  // Opened from a suggestion, or from a news draft: saving approves whichever it was.
   const suggestion = typeof form.from === 'string' && UUID.test(form.from) ? await loadSuggestion(db, form.from) : null
+  const staged = typeof form.staged === 'string' && UUID.test(form.staged) ? await loadStaged(db, form.staged) : null
   const parsed = parseEventForm(form)
-  if (!parsed.ok) return page(formPage({ email, values: parsed.values, errors: parsed.errors, suggestion }), 400)
+  if (!parsed.ok) return page(formPage({ email, values: parsed.values, errors: parsed.errors, suggestion, staged }), 400)
 
   const listing = buildManualListing(parsed.input, crypto.randomUUID())
   // Marking the suggestion done is also what makes its poster public: the site's /posters/
@@ -181,7 +194,18 @@ async function createEvent(env: ConsoleEnv, request: Request, publicOrigin: stri
           .bind(new Date().toISOString(), listing.id, suggestion.id),
       ]
     : []
+  // A news draft is marked done in the same batch, for the same reason: the draft and the
+  // event it became land together or not at all, so the queue can never show something to
+  // review that is already on the site.
+  if (staged) {
+    approve.push(
+      db
+        .prepare("UPDATE staged_events SET handled_at = ?, handled_as = 'event', handled_listing_id = ? WHERE id = ?")
+        .bind(new Date().toISOString(), listing.id, staged.id),
+    )
+  }
   await writeListing(db, listing, { eventId: null, eventCreatedAt: null, active: true }, approve)
+  if (staged) return redirect(`/?saved=${encodeURIComponent(listing.externalId)}&staged=1`)
   if (!suggestion) return redirect(`/?saved=${encodeURIComponent(listing.externalId)}`)
   // After the write, so the link in the email already works. A new solo event takes its
   // listing's id, and with it the short code.
@@ -334,6 +358,15 @@ async function listPage(db: D1Like, url: URL, publicOrigin: string, email: strin
 
   const flash = flashMessage(url, results, publicOrigin)
   const waiting = (await db.prepare('SELECT COUNT(*) AS n FROM suggestions WHERE handled_at IS NULL').first<{ n: number }>())?.n ?? 0
+  // Only drafts whose date has not passed: one nobody got to in time is not work waiting.
+  const staged =
+    (
+      await db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM staged_events WHERE handled_at IS NULL AND local_date >= date('now', 'localtime')",
+        )
+        .first<{ n: number }>()
+    )?.n ?? 0
   const row = (r: (typeof results)[number]): string => {
     const uuid = r.id.slice(MANUAL_ID_PREFIX.length)
     const place = MUNICIPALITIES.find((m) => m.slug === r.municipality_slug)?.shortName ?? 'Not specified'
@@ -362,6 +395,7 @@ async function listPage(db: D1Like, url: URL, publicOrigin: string, email: strin
     'Events added by hand',
     `${flash}
     ${waiting ? `<p class="notice">${waiting} suggestion${waiting === 1 ? '' : 's'} from the site waiting. <a href="/suggestions">Review ${waiting === 1 ? 'it' : 'them'}</a></p>` : ''}
+    ${staged ? `<p class="notice">${staged} event${staged === 1 ? '' : 's'} found in the news waiting. <a href="/staged">Review ${staged === 1 ? 'it' : 'them'}</a></p>` : ''}
     <p><a class="button" href="/new">Add an event</a></p>
     ${section('Upcoming', upcoming, 'No upcoming events added by hand yet.')}
     ${past.length ? section('Past', past, '') : ''}`,
@@ -441,6 +475,8 @@ function formPage(options: {
   errors?: Record<string, string>
   /** The suggestion this new event is being made from. */
   suggestion?: SuggestionRow | null
+  /** The news-scraper draft this new event is being made from. */
+  staged?: StagedRow | null
   /** For editing a found event: where it posts, what it says, and which groups are edited. */
   action?: string
   heading?: string
@@ -474,7 +510,10 @@ function formPage(options: {
   const categories: ReadonlyArray<readonly [string, string]> = [[AUTO_CATEGORY, 'Work it out from the title'], ...CATEGORY_OPTIONS]
   const action = options.action ?? (options.uuid ? `/events/${options.uuid}` : '/events')
   const s = options.uuid ? null : options.suggestion ?? null
-  const heading = options.heading ?? (options.uuid ? 'Edit event' : s ? 'Add an event from a suggestion' : 'Add an event')
+  const draft = options.uuid ? null : options.staged ?? null
+  const heading =
+    options.heading ??
+    (options.uuid ? 'Edit event' : s ? 'Add an event from a suggestion' : draft ? 'Add an event from the news' : 'Add an event')
   const fromPanel = s
     ? `<div class="from-suggestion">
         <p><strong>From a suggestion</strong>${s.name ? ` by ${escapeHtml(s.name)}` : ''}, received ${escapeHtml(received(s.created_at))}
@@ -487,14 +526,34 @@ function formPage(options: {
       </div>`
     : ''
 
+  /**
+   * What the scraper read, beside the article it read it from. The quotes are the point:
+   * each was checked to appear verbatim in the article, so the form can be checked against
+   * the story rather than believed. The title is the exception and says so — a news article
+   * names an event in prose, never as a title, so that field is always someone's wording.
+   */
+  const stagedPanel = draft
+    ? `<div class="from-suggestion">
+        <p><strong>Found in the news</strong> by the scraper, in ${escapeHtml(draft.source_slug)}
+          · <a href="${escapeHtml(draft.article_url)}" target="_blank" rel="noopener noreferrer">Read the article ↗</a>
+          · <a href="/staged/${draft.id}">See the draft</a></p>
+        <p>Saving adds the event and marks the draft done. Nothing from the article's own
+          writing is copied into it${draft.title_generated ? ', and the title below appears nowhere in the article — read it against the story first' : ''}.</p>
+        ${Object.entries(evidenceOf(draft))
+          .map(([field, quote]) => `<p class="muted pre">${escapeHtml(field)}: “${escapeHtml(quote)}”</p>`)
+          .join('')}
+      </div>`
+    : ''
+
   return shell(
     heading,
     `${Object.keys(errors).length ? '<p class="flash error">Some fields need another look — see below.</p>' : ''}
-    ${fromPanel}
+    ${fromPanel}${stagedPanel}
     ${options.intro ?? ''}
     <form method="post" action="${action}" class="event-form">
       ${Object.entries(options.hidden ?? {}).map(([key, value]) => `<input type="hidden" name="${escapeHtml(key)}" value="${escapeHtml(value)}">`).join('')}
       ${s ? `<input type="hidden" name="from" value="${s.id}">` : ''}
+      ${draft ? `<input type="hidden" name="staged" value="${draft.id}">` : ''}
       ${field('title', 'Title', input('title', 'text', 'required maxlength="200"'))}
       <div class="pair">
         ${field('municipality', 'Municipality', select('municipality', places, ''))}
@@ -863,6 +922,15 @@ const received = (iso: string): string =>
 const suggestionLabel = (s: Pick<SuggestionRow, 'title' | 'url'>): string => s.title ?? s.url ?? 'No title given'
 
 async function newPage(db: D1Like, url: URL, publicOrigin: string, email: string): Promise<Response> {
+  // Two things can pre-fill this form: a suggestion someone sent through the site, and a
+  // draft the news scraper staged. They fill in different fields and carry different
+  // warnings, so each gets its own parameter rather than one overloaded one.
+  const staged = url.searchParams.get('staged')
+  if (staged) {
+    const draft = UUID.test(staged) ? await loadStaged(db, staged) : null
+    if (!draft) return notFound(email)
+    return page(formPage({ email, staged: draft, values: valuesFromStaged(draft) }))
+  }
   const from = url.searchParams.get('from')
   if (!from) return page(formPage({ email }))
   const suggestion = UUID.test(from) ? await loadSuggestion(db, from) : null
@@ -1081,6 +1149,240 @@ async function setDismissed(db: D1Like, id: string, dismiss: boolean): Promise<R
   return redirect(dismiss ? `/suggestions?dismissed=${id}` : `/suggestions/${id}`)
 }
 
+/* --------------------------------------------------------------- staged news events */
+
+/**
+ * Drafts the news scraper (JmaJeremy/news-event-scraper) found in local news articles.
+ *
+ * It writes into `staged_events` in this database; nothing it writes is ever an event.
+ * Reviewing one and saving the form below creates an ordinary `manual` listing, exactly as
+ * typing an event by hand does — which is the only way anything here reaches the site.
+ *
+ * It is a second inbox rather than more rows in `suggestions` on purpose. A suggestion is
+ * a message from a person, with a reply owed and an address to answer; a staged draft is a
+ * machine's reading of someone else's journalism, and what it needs on screen is the
+ * opposite: the quotes it was drawn from, so the reading can be checked against the article
+ * rather than taken on trust.
+ */
+export interface StagedRow {
+  id: string
+  source_slug: string
+  article_url: string
+  article_title: string
+  article_published_at: string | null
+  title: string
+  title_generated: number
+  municipality_slug: string | null
+  local_date: string
+  local_time: string | null
+  end_date: string | null
+  end_time: string | null
+  venue_name: string | null
+  address: string | null
+  description: string | null
+  organizer: string | null
+  cost: string
+  cost_text: string | null
+  url: string | null
+  image_url: string | null
+  evidence: string
+  confidence: number | null
+  notes: string | null
+  created_at: string
+  handled_at: string | null
+  handled_as: string | null
+  handled_listing_id: string | null
+  event_code?: string | null
+}
+
+const STAGED_EVENT_JOIN = `LEFT JOIN listings l ON l.id = s.handled_listing_id LEFT JOIN events e ON e.id = l.cluster_id`
+
+const loadStaged = (db: D1Like, id: string): Promise<StagedRow | null> =>
+  db
+    .prepare(`SELECT s.*, e.short_code AS event_code FROM staged_events s ${STAGED_EVENT_JOIN} WHERE s.id = ?`)
+    .bind(id)
+    .first<StagedRow>()
+
+/** The quotes the scraper checked against the article, keyed by the field each supports. */
+function evidenceOf(row: Pick<StagedRow, 'evidence'>): Record<string, string> {
+  try {
+    const parsed = JSON.parse(row.evidence || '{}') as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    )
+  } catch {
+    return {}
+  }
+}
+
+/** A staged draft in the event form's own field names. */
+function valuesFromStaged(s: StagedRow): Record<string, string> {
+  return {
+    title: s.title,
+    municipality: s.municipality_slug ?? '',
+    date: s.local_date,
+    start_time: s.local_time ?? '',
+    end_date: s.end_date ?? '',
+    end_time: s.end_time ?? '',
+    venue: s.venue_name ?? '',
+    address: s.address ?? '',
+    // Deliberately empty unless the scraper wrote one. It never copies the article's prose,
+    // so a description here is written by hand or the event goes without.
+    description: s.description ?? '',
+    organizer: s.organizer ?? '',
+    cost: s.cost,
+    cost_text: s.cost_text ?? '',
+    url: s.url ?? '',
+    image_url: s.image_url ?? '',
+  }
+}
+
+function stagedNote(
+  s: Pick<StagedRow, 'handled_at' | 'handled_as' | 'handled_listing_id' | 'event_code'>,
+  publicOrigin: string,
+): string {
+  if (!s.handled_at) return ''
+  if (s.handled_as === 'dismissed') return '<span class="flag off">Dismissed</span>'
+  if (s.handled_as === 'duplicate') return '<span class="flag">Already on the calendar</span>'
+  const tag = s.event_code
+    ? `<a class="flag ok" href="${escapeHtml(`${publicOrigin}/e/${s.event_code}`)}" target="_blank" rel="noopener">Added as an event ↗</a>`
+    : '<span class="flag ok">Added as an event</span>'
+  const uuid = s.handled_listing_id?.startsWith(MANUAL_ID_PREFIX)
+    ? s.handled_listing_id.slice(MANUAL_ID_PREFIX.length)
+    : null
+  return `${tag}${uuid && UUID.test(uuid) ? ` <a href="/events/${uuid}">Edit the event</a>` : ''}`
+}
+
+async function stagedPage(db: D1Like, url: URL, publicOrigin: string, email: string): Promise<string> {
+  const { results } = await db
+    .prepare(
+      `SELECT s.id, s.source_slug, s.article_url, s.article_title, s.article_published_at, s.title,
+              s.title_generated, s.municipality_slug, s.local_date, s.local_time, s.venue_name,
+              s.cost, s.confidence, s.evidence, s.created_at, s.handled_at, s.handled_as,
+              s.handled_listing_id, e.short_code AS event_code
+         FROM staged_events s ${STAGED_EVENT_JOIN}
+        ORDER BY s.handled_at IS NOT NULL, s.local_date, s.created_at DESC
+        LIMIT 300`,
+    )
+    .all<StagedRow>()
+
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })
+  const waiting = results.filter((s) => !s.handled_at && s.local_date >= today)
+  // A draft nobody looked at before its date is not dismissed, just too late to add.
+  const missed = results.filter((s) => !s.handled_at && s.local_date < today)
+  const done = results.filter((s) => s.handled_at).slice(0, 50)
+
+  const row = (s: StagedRow): string => {
+    const when = `${escapeHtml(s.local_date)}${s.local_time ? ` at ${escapeHtml(s.local_time)}` : ' (no time given)'}`
+    const place = s.municipality_slug ? escapeHtml(municipalityBySlug(s.municipality_slug)?.shortName ?? s.municipality_slug) : 'Not specified'
+    return `<li>
+      <div class="row-main"><a href="/staged/${s.id}"><strong>${escapeHtml(s.title)}</strong></a>${
+        s.title_generated ? '<span class="flag warn">Title invented</span>' : ''
+      }${s.cost === 'paid' ? '<span class="flag">Paid</span>' : ''}</div>
+      <div class="row-meta">${when} · ${place}${s.venue_name ? ` · ${escapeHtml(s.venue_name)}` : ''}</div>
+      <div class="row-meta">Found in ${escapeHtml(s.source_slug)}${
+        s.article_published_at ? `, published ${escapeHtml(received(s.article_published_at))}` : ''
+      }</div>
+      ${s.handled_at ? `<div class="row-actions">${stagedNote(s, publicOrigin)}</div>` : ''}
+    </li>`
+  }
+  const list = (rows: StagedRow[], empty: string): string =>
+    rows.length ? `<ul class="rows">${rows.map(row).join('')}</ul>` : `<p class="muted">${empty}</p>`
+
+  const dismissed = results.find((s) => s.id === url.searchParams.get('dismissed'))
+  const flash = dismissed
+    ? `<p class="flash">Dismissed “${escapeHtml(dismissed.title)}”. <a href="/staged/${dismissed.id}">Open it</a> to undo that.</p>`
+    : ''
+
+  return shell(
+    'Found in the news',
+    `${flash}
+    <p class="muted">Events the news scraper read out of local news articles. Nothing here is on the
+    site: check it against the article it came from, then save it as an event or dismiss it.</p>
+    <h2>Waiting</h2>${list(waiting, 'Nothing waiting.')}
+    ${missed.length ? `<h2>Their date has passed</h2>${list(missed, '')}` : ''}
+    ${done.length ? `<h2>Done</h2>${list(done, '')}` : ''}`,
+    email,
+  )
+}
+
+async function stagedDetailPage(db: D1Like, id: string, publicOrigin: string, email: string): Promise<Response> {
+  const s = await loadStaged(db, id)
+  if (!s) return notFound(email)
+
+  const evidence = evidenceOf(s)
+  const quotes = Object.entries(evidence)
+    .map(([field, quote]) => `<dt>${escapeHtml(field)}</dt><dd class="pre">“${escapeHtml(quote)}”</dd>`)
+    .join('')
+
+  const place = s.municipality_slug
+    ? escapeHtml(municipalityBySlug(s.municipality_slug)?.name ?? s.municipality_slug)
+    : 'Not specified'
+  const rows: Array<[string, string | null]> = [
+    ['Title', `${escapeHtml(s.title)}${s.title_generated ? ' <span class="flag warn">not in the article’s own words</span>' : ''}`],
+    ['When', `${escapeHtml(s.local_date)}${s.local_time ? ` at ${escapeHtml(s.local_time)}` : ' — no time given'}${s.end_date ? ` until ${escapeHtml(s.end_date)}` : ''}`],
+    ['Municipality', place],
+    ['Venue', s.venue_name && escapeHtml(s.venue_name)],
+    ['Address', s.address && escapeHtml(s.address)],
+    ['Organizer', s.organizer && escapeHtml(s.organizer)],
+    ['Cost', `${escapeHtml(s.cost)}${s.cost_text ? ` — ${escapeHtml(s.cost_text)}` : ''}`],
+    ['Link', s.url && /^https?:\/\//i.test(s.url) ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.url)}</a>` : null],
+    ['Confidence', s.confidence === null ? null : escapeHtml(s.confidence.toFixed(2))],
+    ['The reader’s note', s.notes && escapeHtml(s.notes)],
+  ]
+  const details = `<dl class="details">${rows
+    .filter(([, value]) => value)
+    .map(([label, value]) => `<dt>${label}</dt><dd>${value}</dd>`)
+    .join('')}</dl>`
+
+  const article = `<div class="from-suggestion">
+    <p><strong>Read out of a news article</strong> in ${escapeHtml(s.source_slug)}${
+      s.article_published_at ? `, published ${escapeHtml(received(s.article_published_at))}` : ''
+    } · <a href="${escapeHtml(s.article_url)}" target="_blank" rel="noopener noreferrer">Read it ↗</a></p>
+    <p class="muted pre">${escapeHtml(s.article_title)}</p>
+    <p>Every quote below was checked to appear in that article. The title never is — articles
+    name events in prose — so read that one against the story before saving.</p>
+    ${quotes ? `<dl class="details">${quotes}</dl>` : ''}
+  </div>`
+
+  let actions: string
+  if (!s.handled_at) {
+    actions =
+      `<a class="button" href="/new?staged=${s.id}">Create an event from this</a>` +
+      `<form method="post" action="/staged/${s.id}/dismiss"><button type="submit" class="link">Dismiss</button></form>`
+  } else if (s.handled_as === 'dismissed' || s.handled_as === 'duplicate') {
+    actions = `${stagedNote(s, publicOrigin)}<form method="post" action="/staged/${s.id}/reopen"><button type="submit" class="link">Undo, and put it back in the waiting list</button></form>`
+  } else {
+    actions = stagedNote(s, publicOrigin)
+  }
+
+  return page(
+    shell(s.title, `<div class="actions">${actions}</div>${article}${details}<p><a href="/staged">All news drafts</a></p>`, email),
+  )
+}
+
+/**
+ * Dismiss a waiting draft, or send a dismissed one — or one filed as already on the
+ * calendar — back to waiting. Nothing is ever deleted: the row is the record that this
+ * article was read, and its `stage_key` is what stops a second outlet's copy of the same
+ * event being staged all over again.
+ */
+async function setStagedDismissed(db: D1Like, id: string, dismiss: boolean): Promise<Response> {
+  await runBatched(db, [
+    dismiss
+      ? db
+          .prepare("UPDATE staged_events SET handled_at = ?, handled_as = 'dismissed' WHERE id = ? AND handled_at IS NULL")
+          .bind(new Date().toISOString(), id)
+      : db
+          .prepare("UPDATE staged_events SET handled_at = NULL, handled_as = NULL WHERE id = ? AND handled_as IN ('dismissed', 'duplicate')")
+          .bind(id),
+  ])
+  return redirect(dismiss ? `/staged?dismissed=${id}` : `/staged/${id}`)
+}
+
 function shell(title: string, body: string, email: string): string {
   return `<!doctype html><html lang="en-CA"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1154,7 +1456,7 @@ function shell(title: string, body: string, email: string): string {
 </style>
 </head><body>
 <header><a href="/">Out in Simcoe · console</a>${
-  email ? `<nav><a href="/">Added by hand</a><a href="/find">All events</a><a href="/suggestions">Suggestions</a></nav><span class="who">Signed in as ${escapeHtml(email)}</span>` : ''
+  email ? `<nav><a href="/">Added by hand</a><a href="/find">All events</a><a href="/suggestions">Suggestions</a><a href="/staged">In the news</a></nav><span class="who">Signed in as ${escapeHtml(email)}</span>` : ''
 }</header>
 <main><h1>${escapeHtml(title)}</h1>${body}</main>
 </body></html>`

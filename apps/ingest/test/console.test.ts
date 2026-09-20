@@ -85,6 +85,7 @@ function fakeDb(
   listings: Array<Record<string, unknown>> = [],
   events: Array<Record<string, unknown>> = [],
   suggestions: Array<Record<string, unknown>> = [],
+  staged: Array<Record<string, unknown>> = [],
 ) {
   const executed: Executed[] = []
   let batches = 0
@@ -95,6 +96,9 @@ function fakeDb(
     if (sql.includes('FROM suggestions s') && sql.includes('WHERE s.id = ?')) return suggestions.filter((s) => s.id === values[0])
     if (sql.includes('FROM suggestions s') && sql.includes('ORDER BY s.created_at')) return suggestions
     if (sql.includes('COUNT(*) AS n FROM suggestions')) return [{ n: suggestions.filter((s) => !s.handled_at).length }]
+    if (sql.includes('FROM staged_events s') && sql.includes('WHERE s.id = ?')) return staged.filter((s) => s.id === values[0])
+    if (sql.includes('FROM staged_events s')) return staged
+    if (sql.includes('COUNT(*) AS n FROM staged_events')) return [{ n: staged.filter((s) => !s.handled_at).length }]
     if (sql.includes('FROM listings l LEFT JOIN events e')) {
       return listings.map((l) => ({ ...l, event_code: 'abc1234', event_listings: events.find((e) => e.id === l.cluster_id)?.listing_count ?? 1 }))
     }
@@ -712,5 +716,158 @@ describe('the ingest worker', () => {
   it('still guards /run with the ingest token', async () => {
     const res = await ingest.fetch(new Request('https://scec-ingest.example.workers.dev/run', { method: 'POST' }), ingestEnv(fakeDb().db))
     expect(res.status).toBe(401)
+  })
+})
+
+/* ------------------------------------------------------- events found in the news */
+
+const STAGED_ID = 'c4e2a1b0-9d8c-4f7e-8a6b-5c4d3e2f1a09'
+
+const stagedRow = (overrides: Record<string, unknown> = {}) => ({
+  id: STAGED_ID,
+  source_slug: 'barrietoday',
+  article_url: 'https://www.barrietoday.com/local-news/baptism-by-fire-12792917',
+  article_title: '‘Baptism by fire’: Barrie continues to honour pilots from Battle of Britain',
+  article_published_at: '2026-09-19T17:45:00.000Z',
+  article_hash: 'h1',
+  title: 'Battle of Britain Commemoration',
+  title_generated: 0,
+  municipality_slug: 'barrie',
+  local_date: '2099-09-20',
+  local_time: '11:00',
+  end_date: null,
+  end_time: null,
+  venue_name: 'General John Hayter Southshore Community Centre',
+  address: null,
+  description: null,
+  organizer: 'RCAF Association 441 (Huronia) Wing',
+  cost: 'unknown',
+  cost_text: null,
+  url: 'https://www.barrietoday.com/local-news/baptism-by-fire-12792917',
+  image_url: null,
+  evidence: JSON.stringify({
+    date: 'scheduled to take place Sunday at the General John Hayter Southshore Community Centre',
+    time: 'which will begin at 11 a.m.',
+  }),
+  confidence: 0.9,
+  notes: 'Annual ceremony, 86th anniversary.',
+  created_at: '2026-09-20T06:00:00.000Z',
+  handled_at: null,
+  handled_as: null,
+  handled_listing_id: null,
+  ...overrides,
+})
+
+describe('the news drafts inbox', () => {
+  it('lists what is waiting, with the outlet it came from', async () => {
+    const { db } = fakeDb([], [], [], [stagedRow()])
+    const response = await handleConsole(get('/staged'), env(db), keys)
+    const body = await response.text()
+    expect(response.status).toBe(200)
+    expect(body).toContain('Battle of Britain Commemoration')
+    expect(body).toContain('barrietoday')
+    expect(body).toContain(`/staged/${STAGED_ID}`)
+  })
+
+  /**
+   * The whole point of the review page: the quotes the scraper checked against the article,
+   * and a way to open the article, so the reading can be checked rather than believed.
+   */
+  it('shows the supporting quotes and a link to the article', async () => {
+    const { db } = fakeDb([], [], [], [stagedRow()])
+    const body = await (await handleConsole(get(`/staged/${STAGED_ID}`), env(db), keys)).text()
+    expect(body).toContain('will begin at 11 a.m.')
+    expect(body).toContain('baptism-by-fire-12792917')
+    expect(body).toContain(`/new?staged=${STAGED_ID}`)
+  })
+
+  it('warns when even the title’s words are nowhere in the article', async () => {
+    const { db } = fakeDb([], [], [], [stagedRow({ title_generated: 1 })])
+    const body = await (await handleConsole(get(`/staged/${STAGED_ID}`), env(db), keys)).text()
+    expect(body).toContain('not in the article’s own words')
+  })
+
+  it('pre-fills the event form from a draft, every field of it', async () => {
+    const { db } = fakeDb([], [], [], [stagedRow()])
+    const body = await (await handleConsole(get(`/new?staged=${STAGED_ID}`), env(db), keys)).text()
+    expect(body).toContain('value="Battle of Britain Commemoration"')
+    expect(body).toContain('value="2099-09-20"')
+    expect(body).toContain('value="11:00"')
+    expect(body).toContain('General John Hayter Southshore Community Centre')
+    expect(body).toContain('<option value="barrie" selected>')
+    // The hidden field is what makes saving the form approve the draft.
+    expect(body).toContain(`name="staged" value="${STAGED_ID}"`)
+  })
+
+  it('404s on a draft that does not exist', async () => {
+    const { db } = fakeDb([], [], [], [])
+    expect((await handleConsole(get(`/new?staged=${STAGED_ID}`), env(db), keys)).status).toBe(404)
+    expect((await handleConsole(get(`/staged/${STAGED_ID}`), env(db), keys)).status).toBe(404)
+  })
+
+  /**
+   * The draft and the event it became have to land together. If the listing were written
+   * and the draft left waiting, the queue would offer something already on the site, and
+   * approving it twice would make two events of one ceremony.
+   */
+  it('marks the draft done in the same batch as the listing it became', async () => {
+    const { db, executed, writes } = fakeDb([], [], [], [stagedRow()])
+    const response = await handleConsole(
+      post('/events', {
+        staged: STAGED_ID,
+        title: 'Battle of Britain Commemoration',
+        municipality: 'barrie',
+        date: '2099-09-20',
+        start_time: '11:00',
+        venue: 'General John Hayter Southshore Community Centre',
+      }),
+      env(db),
+      keys,
+    )
+    expect(response.status).toBe(303)
+    expect(response.headers.get('Location')).toContain('staged=1')
+
+    const approve = writes('UPDATE staged_events')
+    expect(approve).toHaveLength(1)
+    expect(approve[0]!.values[1]).toMatch(/^manual:/)
+    const listing = executed.find((e) => e.sql.includes('INSERT INTO listings'))
+    expect(listing).toBeDefined()
+    expect(approve[0]!.batch).toBe(listing!.batch)
+  })
+
+  it('writes nothing when the form comes back invalid, and keeps the draft on screen', async () => {
+    const { db, executed } = fakeDb([], [], [], [stagedRow()])
+    const response = await handleConsole(
+      post('/events', { staged: STAGED_ID, title: '', date: '2099-09-20' }),
+      env(db),
+      keys,
+    )
+    expect(response.status).toBe(400)
+    expect(await response.text()).toContain(`name="staged" value="${STAGED_ID}"`)
+    expect(executed.filter((e) => e.sql.includes('INSERT INTO listings'))).toHaveLength(0)
+    expect(executed.filter((e) => e.sql.includes('UPDATE staged_events'))).toHaveLength(0)
+  })
+
+  it('dismisses a draft, and puts a dismissed one back', async () => {
+    const { db, writes } = fakeDb([], [], [], [stagedRow()])
+    const dismissed = await handleConsole(post(`/staged/${STAGED_ID}/dismiss`, {}), env(db), keys)
+    expect(dismissed.status).toBe(303)
+    expect(writes("handled_as = 'dismissed'")[0]!.sql).toContain('handled_at IS NULL')
+
+    const reopened = await handleConsole(post(`/staged/${STAGED_ID}/reopen`, {}), env(db), keys)
+    expect(reopened.status).toBe(303)
+    // Only a dismissal or a duplicate can be undone: un-approving would orphan a live event.
+    expect(writes('handled_at = NULL')[0]!.sql).toContain("handled_as IN ('dismissed', 'duplicate')")
+  })
+
+  it('refuses a cross-site dismissal, as it does every other write', async () => {
+    const { db, executed } = fakeDb([], [], [], [stagedRow()])
+    const request = new Request(`https://${HOST}/staged/${STAGED_ID}/dismiss`, {
+      method: 'POST',
+      headers: { 'Cf-Access-Jwt-Assertion': token, Origin: 'https://evil.example', 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: '',
+    })
+    expect((await handleConsole(request, env(db), keys)).status).toBe(403)
+    expect(executed.filter((e) => e.sql.includes('UPDATE staged_events'))).toHaveLength(0)
   })
 })
