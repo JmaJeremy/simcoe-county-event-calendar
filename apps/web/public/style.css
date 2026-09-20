@@ -824,6 +824,7 @@ footer a { color: var(--ink-2); }
 .place-index p { margin: 0; line-height: 1.9; }
 
 .event .meta .also { color: var(--ink-3); font-style: italic; }
+.event .meta .runs { color: var(--ink-2); font-weight: 600; }
 .select-toggle select {
   margin-left: 6px; padding: 5px 7px; border: 1px solid var(--line);
   border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit;
