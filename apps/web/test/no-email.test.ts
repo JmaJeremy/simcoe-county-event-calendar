@@ -19,7 +19,7 @@ describe('served files', () => {
   const files = readdirSync(PUBLIC).filter((name) => /\.(html|js|css|json|svg)$/.test(name))
 
   it('checks every text asset', () => {
-    expect(files).toEqual(expect.arrayContaining(['index.html', 'suggest.html', 'suggest.js', 'app.js']))
+    expect(files).toEqual(expect.arrayContaining(['index.html', 'suggest.html', 'privacy.html', 'suggest.js', 'app.js']))
   })
 
   for (const name of files) {

@@ -596,7 +596,12 @@ async function sitemapEntries(env: Env): Promise<SitemapEntry[]> {
   // Only '/' for the app itself: every other view of it is a query string that the
   // shell's canonical already points back here, so listing them would ask for a crawl of
   // URLs that declare themselves duplicates.
-  const entries: SitemapEntry[] = [{ path: '/', changefreq: 'hourly', priority: '1.0' }]
+  // The privacy page is indexable, unlike /suggest, so it belongs here: it is the one
+  // page a reader (or an app reviewer) may go looking for by name rather than by event.
+  const entries: SitemapEntry[] = [
+    { path: '/', changefreq: 'hourly', priority: '1.0' },
+    { path: '/privacy', changefreq: 'monthly', priority: '0.2' },
+  ]
 
   // The registry decides which municipality pages exist, exactly as placeResponse does.
   for (const place of MUNICIPALITIES) {

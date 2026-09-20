@@ -662,6 +662,7 @@ footer a { color: var(--ink-2); }
 .support .bmc:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .copyright { margin: 16px 0 0; }
 .licence { margin: 4px 0 0; }
+.legal-link { margin: 4px 0 0; }
 
 /* ---- single event page ---- */
 .event-page { padding: 0 20px 60px; }
@@ -775,6 +776,16 @@ footer a { color: var(--ink-2); }
 .crumbs ol { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .crumbs li + li::before { content: "\203A"; margin-right: 6px; color: var(--ink-3); }
 .crumbs a { color: var(--ink-2); }
+
+/* ---- privacy page: long-form prose in the event page's chrome ---- */
+.legal-page h1 { margin-bottom: 14px; }
+.legal-page .lede { margin: 0 0 22px; color: var(--ink-2); font-size: 16px; }
+.legal-page h2 { margin: 28px 0 8px; font-size: 19px; font-weight: 800; }
+.legal-page p { margin: 0 0 12px; line-height: 1.6; color: var(--ink-2); }
+.legal-page ul { margin: 0 0 14px; padding-left: 1.25em; line-height: 1.6; color: var(--ink-2); }
+.legal-page li + li { margin-top: 7px; }
+.legal-page strong { color: var(--ink); }
+.legal-page .updated { margin: 24px 0 0; color: var(--ink-3); font-size: 13px; }
 
 /* ---- municipality page ---- */
 .place-page .card { max-width: 780px; }
