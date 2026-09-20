@@ -201,6 +201,25 @@ when it breaks, so nothing here is checked by eye.
   differently is written as those two columns only (`reclassifyListingStatements`). A full
   upsert would overwrite the description, price and poster the enrichment pass added, and
   with the content hash unchanged nothing would ever read the event page again.
+- **A social post is keyed on what an event IS, not on its cluster id.** `social_posts`
+  (migration 0008, empty until SCEC-88 fills it) carries `post_key` — municipality,
+  normalized title and local date — because on govStack, Drupal rows and SPACES a
+  rescheduled event becomes a new cluster with a new id, so "have we posted this?" asked of
+  `event_id` would post it twice. There is no foreign key to `events` for the same reason:
+  the draft has to outlive the row it was drafted from. `series_key` drops the date and is
+  what keeps a weekly storytime from being posted every Tuesday for ever.
+- **`social_posts`' unique index is partial, and that is the point.** `(platform,
+  post_key)` is unique only `WHERE status IN ('approved','posting','posted')`. A plain one
+  would mean a draft nobody approved before its date burns that event for good — one
+  unattended weekend and those events, and their series, are gone. Undecided drafts turn
+  `expired` instead, which frees them, and the draft pass reads the day's rows itself
+  rather than relying on `INSERT OR IGNORE`, which a partial index does not give it.
+- **`snapshot` holds the template inputs, never the whole event row.** Six ingest runs
+  happen between drafting at 18:00 and sending at 09:00, and dedup rewrites every event in
+  its window each time: `updated_at` moves on nearly all of them, `listing_count` and
+  `source_slugs` move when another source picks the event up, `description` and `image_url`
+  move when enrichment reads the page, and `cost` moves when the judge prices one. Compare
+  the whole row and almost every draft goes stale every night.
 - **Dedup: a listing with no municipality must never bridge two towns.** News-site copies
   (SPACES) often have `municipalitySlug = null`; `buildClusters` applies edges strongest-first
   and refuses one that would join two different placed municipalities. Listings that start
