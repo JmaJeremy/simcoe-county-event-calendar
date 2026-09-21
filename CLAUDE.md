@@ -201,25 +201,29 @@ when it breaks, so nothing here is checked by eye.
   differently is written as those two columns only (`reclassifyListingStatements`). A full
   upsert would overwrite the description, price and poster the enrichment pass added, and
   with the content hash unchanged nothing would ever read the event page again.
-- **A social post is keyed on what an event IS, not on its cluster id.** `social_posts`
-  (migration 0008, empty until SCEC-88 fills it) carries `post_key` — municipality,
-  normalized title and local date — because on govStack, Drupal rows and SPACES a
-  rescheduled event becomes a new cluster with a new id, so "have we posted this?" asked of
-  `event_id` would post it twice. There is no foreign key to `events` for the same reason:
-  the draft has to outlive the row it was drafted from. `series_key` drops the date and is
-  what keeps a weekly storytime from being posted every Tuesday for ever.
-- **`social_posts`' unique index is partial, and that is the point.** `(platform,
-  post_key)` is unique only `WHERE status IN ('approved','posting','posted')`. A plain one
-  would mean a draft nobody approved before its date burns that event for good — one
-  unattended weekend and those events, and their series, are gone. Undecided drafts turn
-  `expired` instead, which frees them, and the draft pass reads the day's rows itself
-  rather than relying on `INSERT OR IGNORE`, which a partial index does not give it.
-- **`snapshot` holds the template inputs, never the whole event row.** Six ingest runs
-  happen between drafting at 18:00 and sending at 09:00, and dedup rewrites every event in
-  its window each time: `updated_at` moves on nearly all of them, `listing_count` and
-  `source_slugs` move when another source picks the event up, `description` and `image_url`
-  move when enrichment reads the page, and `cost` moves when the judge prices one. Compare
-  the whole row and almost every draft goes stale every night.
+- **The social poster lives in its own repository.** `JmaJeremy/social-event-poster` picks
+  a few of each day's events and posts them to the site's Facebook, X and Instagram
+  accounts. Like the news scraper, its worker binds **this** database with no
+  `migrations_dir` of its own: `social_posts` and `social_runs` are created by
+  `0008_social_posts.sql` here, and this repo's deploy applies them. It reads `events` and
+  `municipalities` and writes nothing else. Three pieces stay on this side, for reasons
+  that will not change: the **approval screen** (SCEC-89) belongs in the console, because
+  it is a view over shared rows behind an Access application that already exists — the same
+  place the scraper's drafts are reviewed; the **Instagram cards** (SCEC-93) are rendered
+  by `apps/web/scripts` into `apps/web/public/social/` and served by the web worker,
+  because Meta fetches them over public HTTPS and takes JPEG only; and `/privacy`, which
+  names the social accounts.
+- **Two decisions in `0008_social_posts.sql` are not obvious and are load-bearing.** A row
+  is keyed on `post_key` — municipality, normalized title and local date — and has no
+  foreign key to `events`, because on govStack, Drupal rows and SPACES a rescheduled event
+  becomes a new cluster with a new id: asked of `event_id`, "have we posted this?" answers
+  no and it goes out twice, and a foreign key would take the draft down with the retired
+  row. And the unique index is **partial**, over `('approved','posting','posted')` only, so
+  a draft nobody approved before its date does not burn that event for good — one
+  unattended weekend would otherwise spend those events and their series' cooldown.
+  Undecided drafts turn `expired` instead. `snapshot` holds ten template inputs rather than
+  the row, because dedup rewrites every event in its window on each of the six runs between
+  drafting and sending.
 - **Dedup: a listing with no municipality must never bridge two towns.** News-site copies
   (SPACES) often have `municipalitySlug = null`; `buildClusters` applies edges strongest-first
   and refuses one that would join two different placed municipalities. Listings that start
