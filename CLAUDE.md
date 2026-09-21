@@ -569,6 +569,18 @@ when it breaks, so nothing here is checked by eye.
   (2026-09-21): 21 matched, 64 listings from five libraries, no false positives. A notice
   already stored is retired by the next run, since reconciliation marks inactive whatever
   a source stopped returning. Check a new pattern against every live title the same way.
+- **An observance is a date, not an event: dropped when its title is one AND it has no
+  time.** Collingwood and simcoe.com carry the same list of days — "Remembrance Day",
+  "Diwali", "Hispanic Heritage Month", "International Men's Day", four "PA Day"s — each
+  with a paragraph about what the day marks and nothing to attend. Neither labels them and
+  they share real events' URL path, so the title is the only signal, and it is not enough
+  alone: "PA Day: Rollercoaster Science" is a camp and New Tecumseth's "Family Day" an
+  afternoon at the community centre. Those have start times; observances never do.
+  `OBSERVANCE_PATTERNS` applies only to untimed listings. Description length was tried and
+  rejected — observances run 27 to 300 characters, among real events. The bare holiday
+  names are only ones seen in the data: an untimed "Canada Day" may be a town's own
+  celebration. Measured 2026-09-21: 35 dropped, all observances; 17 same-shaped titles with
+  a time kept.
 - **Barrie Public Library says every programme is free**, structurally: 848 events, every one
   `registration_cost: "0"` with billing off. That is taken at its word. Its online events are
   dropped, both the 21 typed ONLINE and the few in-person ones held at the "Online branch".

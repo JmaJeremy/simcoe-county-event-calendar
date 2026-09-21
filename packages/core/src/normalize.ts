@@ -37,9 +37,43 @@ const NON_EVENT_PATTERNS: RegExp[] = [
   /^flag[- ]raising\b.*\b(proclamation)\b/i,
 ]
 
+/**
+ * Days on the calendar rather than things happening on them.
+ *
+ * Collingwood's events view and simcoe.com both carry the same list of observances —
+ * "Remembrance Day", "Diwali", "Hispanic Heritage Month", "International Men's Day", four
+ * kinds of "PA Day" — each a date with a paragraph about what the day commemorates, and
+ * nothing to attend. Neither source labels them, and their pages sit on the same path as
+ * real events, so the title is the only signal — and the title alone is not enough:
+ * "PA Day: Rollercoaster Science" is a camp, "PA Day Fun at the Penetanguishene Museum" is
+ * a museum programme, New Tecumseth's "Family Day" is an afternoon at the community
+ * centre. What those have and the observances lack is a start time. So an observance is
+ * an observance-shaped title AND no time given.
+ *
+ * Description length was measured as a signal and rejected: the observances run 27 to
+ * 300 characters, interleaved with real events ("Barrie Film Festival" at 173). The bare
+ * holiday names are only the ones seen in the data; an untimed "Canada Day" on a town
+ * calendar may well be the town's own celebration, and is left alone until one shows up.
+ * Measured on all live listings (2026-09-21): 35 dropped, every one an observance; 17
+ * titles of the same shape carry a time and are kept.
+ */
+const OBSERVANCE_PATTERNS: RegExp[] = [
+  /\b(heritage|history|awareness) month$/i,
+  /^(international|world|national)\b.*\bday\b/i,
+  /^(remembrance day|thanksgiving( day)?|halloween|diwali|family day|inuit day|franco-ontarian day|indigenous veterans day|human rights day|(autumn|fall|spring) equinox|(summer|winter) solstice)$/i,
+  /^(chanukah|hanukkah|ramadan|passover|lent) (begins|ends)$/i,
+  /^pa day\b/i,
+]
+
+function isObservance(event: RawEvent): boolean {
+  const untimed = event.allDay || event.timePrecision === 'date-only'
+  return !!untimed && OBSERVANCE_PATTERNS.some((re) => re.test(event.title.trim()))
+}
+
 export function isPublicEvent(event: RawEvent): boolean {
   const candidates = [event.title, ...event.categories]
-  return !candidates.some((value) => NON_EVENT_PATTERNS.some((re) => re.test(value.trim())))
+  if (candidates.some((value) => NON_EVENT_PATTERNS.some((re) => re.test(value.trim())))) return false
+  return !isObservance(event)
 }
 
 const clean = (value: string | undefined | null): string | null => {
