@@ -253,4 +253,27 @@ describe('normalizeAll', () => {
       'not a public event',
     ])
   })
+
+  it('drops a library announcing its own hours, and keeps events that only use the words', () => {
+    const notices = [
+      'CLOSED',
+      'CLOSED - All Branches',
+      'CLOSED for Staff Training All Branches',
+      'Christmas Closure',
+      'National Truth and Reconciliation Day All Branches CLOSED',
+      'Christmas Eve - OPEN Special Hours (9am - 12pm)',
+      'Remembrance Day - OPEN (Regular Hours)',
+    ]
+    const events = [
+      'Museum After Hours',
+      'After Hours Election Service Centre',
+      'Indigenous Medicine Garden Closing and Gathering',
+      'Closed Captioned Movie Matinee',
+    ]
+    const { listings } = normalizeAll(
+      severn,
+      [...notices, ...events].map((title, i) => raw({ externalId: String(i), title })),
+    )
+    expect(listings.map((l) => l.title)).toEqual(events)
+  })
 })

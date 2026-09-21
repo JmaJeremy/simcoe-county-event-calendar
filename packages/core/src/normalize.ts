@@ -16,6 +16,19 @@ const NON_EVENT_PATTERNS: RegExp[] = [
   // Cart and Organics Cart Pick-up" on every Tuesday). Not something to attend.
   /\b(garbage|recycling|organics|yard waste|blue box|green bin)\b.*\b(pick-?up|collection|day)\b/i,
   /\b(office|facility|arena|library|landfill|transfer station) (closed|closure)\b/i,
+  // Library feeds publish the building's status as if it were a programme: Bradford's
+  // "CLOSED" for Truth and Reconciliation Day, Clearview's "CLOSED - All Branches",
+  // New Tecumseth's "Christmas Closure", Springwater's "... All Branches CLOSED",
+  // Clearview's "Christmas Eve - OPEN Special Hours (9am - 12pm)". Only the title is read,
+  // anchored at its start or end, because the word alone is everywhere in real events:
+  // "Museum After Hours", "Medicine Garden Closing and Gathering", and a parade whose
+  // description lists the roads closed for it. Measured against all 2,037 live titles
+  // (2026-09-21): 21 matched, 64 listings across five libraries, every one a notice.
+  // Not bare /^closed\b/: that would take "Closed Captioned Movie Matinee" with it.
+  /^closed\s*($|[-–—:(]|(for|on|today)\b)/i,
+  /\b(closed|closure)\s*$/i,
+  /\bbranches (are |will be )?closed\b/i,
+  /\b(special|regular|holiday|modified|reduced) hours\b/i,
   /^(holiday|statutory holiday)\b/i,
   // Collingwood's events view carries council proclamations and the nightly colour of the
   // clock tower. Civic notices, not things to attend.

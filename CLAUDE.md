@@ -559,6 +559,16 @@ when it breaks, so nothing here is checked by eye.
   then the street address; `splitLocation` keeps the first segment as the venue and the whole
   string as the address when a street number follows, because an event page without an
   address is a structured-data error.
+- **A library's own opening hours are not an event, and are dropped by title.** Tockify
+  and LibCal feeds publish the building's status as entries: Bradford's "CLOSED",
+  Clearview's "CLOSED - All Branches" (28 of them), New Tecumseth's "Christmas Closure",
+  Clearview's "Christmas Eve - OPEN Special Hours". `NON_EVENT_PATTERNS` in `normalize.ts`
+  catches them from the title only, anchored at its start or end, because the words turn
+  up in real events — "Museum After Hours", "Medicine Garden Closing and Gathering", a
+  parade whose description lists the roads closed for it. Measured on 2,037 live titles
+  (2026-09-21): 21 matched, 64 listings from five libraries, no false positives. A notice
+  already stored is retired by the next run, since reconciliation marks inactive whatever
+  a source stopped returning. Check a new pattern against every live title the same way.
 - **Barrie Public Library says every programme is free**, structurally: 848 events, every one
   `registration_cost: "0"` with billing off. That is taken at its word. Its online events are
   dropped, both the 21 typed ONLINE and the few in-person ones held at the "Online branch".
