@@ -210,6 +210,33 @@ export function compatibleMunicipality(a: Listing, b: Listing): boolean {
   return !a.municipalitySlug || !b.municipalitySlug || a.municipalitySlug === b.municipalitySlug
 }
 
+/**
+ * The one exception to the municipality gate: the same street address at the same minute.
+ *
+ * A municipal calendar files everything it posts under its own town, whatever the address
+ * says. Quest Art's "Indigenous Art and Culture Awareness Week" at 333 King Street, Midland,
+ * was posted by Midland, Tay and Penetanguishene alike, so the site showed it three times a
+ * day for a week: each copy carried a different town, and the gate never let them meet.
+ * The gate exists for two townships' "Farmers' Market" at 9:00 — two places. An identical
+ * street address says it is one place, and with the time identical too the pair is
+ * worth scoring; `scorePair` still decides, and its title cap keeps two different events
+ * at one venue apart.
+ *
+ * Measured on live data (2026-09-21): 49 cross-municipality pairs share a date, the exact
+ * time and a street key, and all 49 were kept apart. The 46 with titles alike at 0.6 or
+ * more are every one the same event reposted by a neighbour (Sainte-Marie among the Hurons
+ * by Midland and Penetanguishene, a Waypoint gala by four towns, the county museum's quilt
+ * fair by the county and Springwater); the 3 below are different events at one venue
+ * ("Hometown Harvest Festival" and "Living History at Sainte-Marie"), and score distinct.
+ * Both addresses must carry a street number: "King Street" alone is in half the towns here.
+ */
+export function samePlaceAndTime(a: Listing, b: Listing): boolean {
+  const dated = (l: Listing) => l.allDay || l.timePrecision === 'date-only'
+  if (dated(a) || dated(b) || Date.parse(a.startsAtUtc) !== Date.parse(b.startsAtUtc)) return false
+  const ka = streetKey(a.address)
+  return !!ka && ka === streetKey(b.address)
+}
+
 /** Everything a listing says about where it is, as one comparable string. */
 const venueKey = (l: Listing): string =>
   `${l.venueName ?? ''} ${l.address ?? ''}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
@@ -266,7 +293,7 @@ export function candidatePairs(listings: Listing[]): Array<[Listing, Listing]> {
       for (let j = i + 1; j < bucket.length; j++) {
         const [a, b] = bucket[i]!.id < bucket[j]!.id ? [bucket[i]!, bucket[j]!] : [bucket[j]!, bucket[i]!]
         if (a.sourceSlug === b.sourceSlug && !sameSourceCandidate(a, b)) continue
-        if (!compatibleMunicipality(a, b)) continue
+        if (!compatibleMunicipality(a, b) && !samePlaceAndTime(a, b)) continue
         const key = `${a.id} ${b.id}`
         if (seen.has(key)) continue
         seen.add(key)
@@ -438,7 +465,9 @@ export function buildClusters(input: ClusterInput): ClusterOutput {
     if (ra === rb) continue
     const ma = municipalityOf.get(ra) ?? null
     const mb = municipalityOf.get(rb) ?? null
-    if (ma && mb && ma !== mb) continue
+    // Two towns may join only through a direct edge between two listings at the same street
+    // address and minute — never through a copy that says nothing about where it is.
+    if (ma && mb && ma !== mb && !samePlaceAndTime(byId.get(a)!, byId.get(b)!)) continue
     uf.union(a, b)
     municipalityOf.set(uf.find(a), ma ?? mb)
   }

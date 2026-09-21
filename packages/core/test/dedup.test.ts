@@ -146,6 +146,53 @@ describe('candidatePairs', () => {
     expect(pairs).toHaveLength(0)
   })
 
+  describe('one street address, one minute, several towns', () => {
+    // Quest Art is in Midland; Tay and Penetanguishene reposted its week on their own calendars.
+    const questArt = (town: string, over: Partial<Listing> = {}) =>
+      listing({
+        id: `${town}:quest`,
+        sourceSlug: town,
+        municipalitySlug: town,
+        title: 'Indigenous Art and Culture Awareness Week',
+        address: '333 King Street',
+        ...over,
+      })
+
+    it('pairs listings from different municipalities at the same address and minute, and merges them', () => {
+      const pairs = candidatePairs([questArt('midland'), questArt('tay'), questArt('penetanguishene')])
+      expect(pairs).toHaveLength(3)
+      for (const [a, b] of pairs) expect(scorePair(a, b).score).toBeGreaterThanOrEqual(MERGE_THRESHOLD)
+    })
+
+    it('still keeps apart the same address at another time, or another number on the street', () => {
+      const later = questArt('tay', { startsAtUtc: '2026-09-26T15:00:00.000Z', localTime: '11:00' })
+      const nextDoor = questArt('tay', { address: '335 King Street' })
+      expect(candidatePairs([questArt('midland'), later])).toHaveLength(0)
+      expect(candidatePairs([questArt('midland'), nextDoor])).toHaveLength(0)
+    })
+
+    it('leaves two different events at one venue to the score, which calls them distinct', () => {
+      const venue = { address: '16164 Highway 12 East' }
+      const [pair] = candidatePairs([
+        listing({ id: 'midland:h', sourceSlug: 'midland', municipalitySlug: 'midland', title: 'Hometown Harvest Festival', ...venue }),
+        listing({ id: 'penetanguishene:l', sourceSlug: 'penetanguishene', municipalitySlug: 'penetanguishene', title: 'Living History at Sainte-Marie', ...venue }),
+      ])
+      expect(scorePair(pair![0], pair![1]).score).toBeLessThanOrEqual(DISTINCT_THRESHOLD)
+    })
+
+    it('lets the clustering join those towns, through the direct edges only', () => {
+      const [m, t, p] = [questArt('midland'), questArt('tay'), questArt('penetanguishene')]
+      const { events } = buildClusters({
+        listings: [m, t, p],
+        sameEdges: [['midland:quest', 'tay:quest', 1], ['midland:quest', 'penetanguishene:quest', 1]],
+        existingClusters: [],
+        priorityOf: priority,
+      })
+      expect(events).toHaveLength(1)
+      expect(events[0]!.listingIds).toHaveLength(3)
+    })
+  })
+
   it('pairs across dates a multi-day listing spans, and treats an unplaced listing as compatible', () => {
     const market = listing({
       id: 'a',
