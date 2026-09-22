@@ -331,6 +331,15 @@ when it breaks, so nothing here is checked by eye.
   ordinary cost rules over it. Never let a model's verdict set a cost directly. The bar is
   higher for paid than for free on purpose: a free event wrongly marked paid vanishes from
   the view almost everyone uses.
+- **A share card states its own size; a source's poster does not.** Facebook will not hold
+  a story open while it fetches an image, so without `og:image:width`/`height` the first
+  share of a URL is a bare link and the picture only appears once the crawler has been
+  round — which is after the moment that mattered. `renderHead` declares `SHARE_IMAGE`'s
+  1200x630 whenever the card is our own `og.png`, and stays silent for a source's poster,
+  which arrives at whatever size that site chose: Facebook lays the card out from these
+  numbers, so a guessed one is worse than none. `index.html` carries its own copy, as it
+  does for every og tag. Change `brand.ts`'s canvas, change `SHARE_IMAGE`. A URL Facebook
+  has already scraped keeps its old card until the Sharing Debugger re-scrapes it.
 - **A govStack poster cannot be a share image.** Those hosts 403 anything that is not a
   browser, crawlers included, so `shareableImage` in the web worker keeps them out of
   `og:image` while the page still shows them to visitors.

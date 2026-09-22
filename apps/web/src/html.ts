@@ -10,6 +10,16 @@
 
 export const SITE_NAME = 'Out in Simcoe'
 /**
+ * The site's own share card, as `scripts/brand.ts` renders it. The numbers are declared
+ * so a first share shows the image rather than a bare link; change the script, change
+ * these. Repeated in `public/index.html`, which has its own head — as the og tags are.
+ */
+export const SHARE_IMAGE = {
+  width: 1200,
+  height: 630,
+  alt: 'Out in Simcoe — free things to do across the county, in one place.',
+}
+/**
  * The site's Facebook Page, named in `article:publisher` so a shared link is attributed
  * to it. This is NOT a way to tag the Page in someone's post: `sharer.php` honours only
  * its `u` parameter — `quote` and the rest stopped working years ago — and a tag can only
@@ -80,6 +90,18 @@ export const jsonLdBlock = (data: unknown): string =>
 /** The head shared by every server-rendered page. */
 export function renderHead(meta: PageMeta, origin: string): string {
   const image = meta.image ?? `${origin}/og.png`
+  /*
+   * Facebook renders no preview at all on a first share unless it already knows the
+   * image's size: it will not hold the story open while it fetches the file, so the card
+   * appears as a bare link until the crawler has been round and cached it. Stating the
+   * dimensions makes the image show the first time, which is the only time that matters
+   * for a link someone just sent.
+   *
+   * Only for our own card, whose size is fixed by `brand.ts`. A source's poster arrives
+   * at whatever size that site chose, and a width we guessed would be worse than none —
+   * Facebook lays the card out from these numbers and then has to correct it.
+   */
+  const ownCard = image === `${origin}/og.png`
   const card = meta.twitterCard ?? 'summary_large_image'
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -94,6 +116,7 @@ ${meta.noindex ? '<meta name="robots" content="noindex,follow">\n' : ''}<link re
 <meta property="og:title" content="${escapeHtml(meta.title)}">
 <meta property="og:description" content="${escapeHtml(meta.description)}">
 <meta property="og:image" content="${escapeHtml(image)}">
+${ownCard ? `<meta property="og:image:width" content="${SHARE_IMAGE.width}">\n<meta property="og:image:height" content="${SHARE_IMAGE.height}">\n<meta property="og:image:alt" content="${escapeHtml(SHARE_IMAGE.alt)}">\n` : ''}
 <meta property="article:publisher" content="${FACEBOOK_PAGE}">
 <meta property="fb:pages" content="${FACEBOOK_PAGE_ID}">
 <meta property="fb:app_id" content="${FACEBOOK_APP_ID}">
