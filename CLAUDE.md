@@ -183,7 +183,17 @@ when it breaks, so nothing here is checked by eye.
   value is five hours off there and right on adjtos.ca. The adapter reads the JSON-LD wall
   clock instead; keep it that way.
 - **Never merge on title + time alone across different municipalities.** Two townships'
-  "Farmers' Market" at 9:00 are two events. The municipality gate in dedup enforces this.
+  "Farmers' Market" at 9:00 are two events. The municipality gate in dedup enforces this —
+  with one exception, `samePlaceAndTime`: an identical street address (number and street)
+  at the identical minute. A municipal calendar files everything under its own town, so
+  Quest Art's week at 333 King Street, Midland, reposted by Tay and Penetanguishene, showed
+  three times a day. The exception only makes the pair a candidate; `scorePair` still
+  decides, and its title cap keeps two different events at one venue apart. It opens the
+  clustering guard too, but only for that direct edge, never through an unplaced copy.
+  Measured 2026-09-21: 49 such pairs, all kept apart before; 46 the same event reposted,
+  3 different events at one venue, which score distinct. No `RULES_VERSION` bump, since
+  `scorePair` is unchanged. The merged event is filed under whichever town's listing is
+  the representative — for three municipal copies that is a tie, not the true host.
 - **A category is read from what an event is about, in order of how much each input says.**
   `classifyCategory` tries the source's subject labels ("Performing & Visual Arts"), then
   the title with place names removed ("Wasaga Beach Chess Club" is about chess), then
