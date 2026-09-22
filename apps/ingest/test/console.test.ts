@@ -788,6 +788,25 @@ describe('the news drafts inbox', () => {
    * The whole point of the review page: the quotes the scraper checked against the article,
    * and a way to open the article, so the reading can be checked rather than believed.
    */
+  /**
+   * An exhibit that opened before the article and runs for weeks more is still work to do.
+   * Bucketed by its start date it would sit under "Their date has passed" from day one.
+   */
+  it('keeps a draft that is still running in the waiting list, by its end date', async () => {
+    const running = stagedRow({ title: 'Residential Schools Travelling Exhibit', local_date: '2020-09-15', end_date: '2099-10-31' })
+    const { db } = fakeDb([], [], [], [running])
+    const body = await (await handleConsole(get('/staged'), env(db), keys)).text()
+    expect(body).toContain('until 2099-10-31')
+    expect(body).not.toContain('Their date has passed')
+  })
+
+  it('files a draft whose end has passed too under the passed heading', async () => {
+    const over = stagedRow({ local_date: '2020-09-15', end_date: '2020-10-31' })
+    const { db } = fakeDb([], [], [], [over])
+    const body = await (await handleConsole(get('/staged'), env(db), keys)).text()
+    expect(body).toContain('Their date has passed')
+  })
+
   it('shows the supporting quotes and a link to the article', async () => {
     const { db } = fakeDb([], [], [], [stagedRow()])
     const body = await (await handleConsole(get(`/staged/${STAGED_ID}`), env(db), keys)).text()

@@ -378,7 +378,7 @@ async function listPage(db: D1Like, url: URL, publicOrigin: string, email: strin
     (
       await db
         .prepare(
-          "SELECT COUNT(*) AS n FROM staged_events WHERE handled_at IS NULL AND local_date >= date('now', 'localtime')",
+          "SELECT COUNT(*) AS n FROM staged_events WHERE handled_at IS NULL AND COALESCE(end_date, local_date) >= date('now', 'localtime')",
         )
         .first<{ n: number }>()
     )?.n ?? 0
@@ -1284,7 +1284,7 @@ async function stagedPage(db: D1Like, url: URL, publicOrigin: string, email: str
   const { results } = await db
     .prepare(
       `SELECT s.id, s.source_slug, s.article_url, s.article_title, s.article_published_at, s.title,
-              s.title_generated, s.municipality_slug, s.local_date, s.local_time, s.venue_name,
+              s.title_generated, s.municipality_slug, s.local_date, s.local_time, s.end_date, s.venue_name,
               s.cost, s.confidence, s.evidence, s.created_at, s.handled_at, s.handled_as,
               s.handled_listing_id, e.short_code AS event_code
          FROM staged_events s ${STAGED_EVENT_JOIN}
@@ -1294,13 +1294,18 @@ async function stagedPage(db: D1Like, url: URL, publicOrigin: string, email: str
     .all<StagedRow>()
 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })
-  const waiting = results.filter((s) => !s.handled_at && s.local_date >= today)
+  // By the END date where there is one: an exhibit that opened last week and runs another
+  // six is still something to review, not something nobody got to in time.
+  const lastDay = (s: StagedRow): string => s.end_date ?? s.local_date
+  const waiting = results.filter((s) => !s.handled_at && lastDay(s) >= today)
   // A draft nobody looked at before its date is not dismissed, just too late to add.
-  const missed = results.filter((s) => !s.handled_at && s.local_date < today)
+  const missed = results.filter((s) => !s.handled_at && lastDay(s) < today)
   const done = results.filter((s) => s.handled_at).slice(0, 50)
 
   const row = (s: StagedRow): string => {
-    const when = `${escapeHtml(s.local_date)}${s.local_time ? ` at ${escapeHtml(s.local_time)}` : ' (no time given)'}`
+    const when = `${escapeHtml(s.local_date)}${s.local_time ? ` at ${escapeHtml(s.local_time)}` : ' (no time given)'}${
+      s.end_date ? ` until ${escapeHtml(s.end_date)}` : ''
+    }`
     const place = s.municipality_slug ? escapeHtml(municipalityBySlug(s.municipality_slug)?.shortName ?? s.municipality_slug) : 'Not specified'
     return `<li>
       <div class="row-main"><a href="/staged/${s.id}"><strong>${escapeHtml(s.title)}</strong></a>${
