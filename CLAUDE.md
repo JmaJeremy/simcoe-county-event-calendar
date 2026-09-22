@@ -414,8 +414,11 @@ when it breaks, so nothing here is checked by eye.
   a Page tag in a post can only be typed by the person posting. What the site can do is
   claim the link: `article:publisher` names the Page (`FACEBOOK_PAGE` in `html.ts`, repeated
   in `index.html`'s own head), and the share dialog carries a plain "Follow Out in Simcoe on
-  Facebook" link. `fb:pages` and `fb:app_id` want the numeric Page and App ids, and
-  attribution only takes full effect once outinsimcoe.ca is verified in Meta Business Suite.
+  Facebook" link. `fb:pages` carries the numeric Page id (`FACEBOOK_PAGE_ID`), which is
+  public — it is on the Page's transparency panel — and is not the poster's `META_PAGE_TOKEN`.
+  Attribution only takes full effect once outinsimcoe.ca is verified in Meta Business Suite.
+  The Messenger Send Dialog still wants an **App ID**, which no store here holds: the social
+  poster's secrets are `META_PAGE_ID`, `META_PAGE_TOKEN`, `IG_USER_ID` and no app id.
   An **App ID is public** and belongs in the client; an app secret or access token is
   neither and must never reach `share.js` or any other served file.
 - **Messenger is in the share dialog but only on touch devices.** Facebook's Send Dialog
