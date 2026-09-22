@@ -1,7 +1,7 @@
 import { MUNICIPALITIES, buildIcal, municipalityBySlug } from '@scec/core'
 import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
-import { renderEventPage, renderNotFound, renderPlacePage } from './pages.ts'
+import { renderEventPage, renderNotFound, renderPlacePage, shareableImage } from './pages.ts'
 import { descriptionText } from './markdown.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
 import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
@@ -112,6 +112,25 @@ const html = (body: string, status = 200, extra: Record<string, string> = {}): R
  */
 const placeLinks = (): string =>
   MUNICIPALITIES.map((m) => `<a href="/place/${m.slug}">${escapeHtml(m.shortName)}</a>`).join(' · ')
+
+/**
+ * A poster's measured size, if the ingest pass has read it. One indexed lookup on the
+ * event page only — never on the list, which shares no poster of its own.
+ *
+ * Absent or unmeasurable (the row exists with NULL) means no dimensions are written at
+ * all. Facebook lays the card out from them, so silence beats a guess: the picture then
+ * appears on the second share rather than being drawn at the wrong shape on the first.
+ */
+async function measuredImageSize(env: Env, image: string | null): Promise<{ width: number; height: number } | undefined> {
+  if (!image) return undefined
+  try {
+    const row = await env.DB.prepare('SELECT width, height FROM image_sizes WHERE url = ?').bind(image).first<{ width: number | null; height: number | null }>()
+    return row?.width && row.height ? { width: row.width, height: row.height } : undefined
+  } catch {
+    // A share card is not worth failing an event page over.
+    return undefined
+  }
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -241,7 +260,8 @@ export default {
         if (!row) {
           return notFound(origin, 'Event not found', 'That link does not match any event we list. It may have been taken down by whoever published it.')
         }
-        return html(renderEventPage(rowToEvent(row), origin, listUrlFrom(url)), 200, {
+        const shareEvent = rowToEvent(row)
+        return html(renderEventPage(shareEvent, origin, listUrlFrom(url), await measuredImageSize(env, shareableImage(shareEvent))), 200, {
           'Cache-Control': 'public, max-age=600',
           ...indexHeaders,
         })

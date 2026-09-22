@@ -349,7 +349,18 @@ describe('share card dimensions', () => {
     expect(meta(html, 'og:image:alt')).toContain('Out in Simcoe')
   })
 
-  it('states no size for a source’s poster, whose dimensions nothing here knows', async () => {
+  it('states a source’s poster size once the ingest pass has measured it', async () => {
+    const env = stubEnv({
+      'FROM events e LEFT JOIN municipalities': [{ ...EVENT_ROW, image_url: 'https://cdn.example.org/poster.jpg' }],
+      'FROM image_sizes': [{ width: 900, height: 1200 }],
+    })
+    const html = await (await get('/e/tay7', APEX, env)).text()
+    expect(meta(html, 'og:image')).toBe('https://cdn.example.org/poster.jpg')
+    expect(meta(html, 'og:image:width')).toBe('900')
+    expect(meta(html, 'og:image:height')).toBe('1200')
+  })
+
+  it('states no size for a poster nothing has measured yet', async () => {
     const env = stubEnv({
       'FROM events e LEFT JOIN municipalities': [{ ...EVENT_ROW, image_url: 'https://cdn.example.org/poster.jpg' }],
     })
