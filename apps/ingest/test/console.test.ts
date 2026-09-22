@@ -80,16 +80,30 @@ interface Executed {
   batch: number
 }
 
+/** The last draft run, as the poster records it in social_runs. */
+const SOCIAL_RUN = {
+  local_date: '2099-10-02',
+  ran_at: '2099-10-01T22:07:00.000Z',
+  stats: JSON.stringify({ judge: 'claude-opus-5', judging: { hooksKept: 4, hooksRejected: { unquoted: 1 } } }),
+}
+
 /** Answers the console's reads from the rows given, and records every write. */
 function fakeDb(
   listings: Array<Record<string, unknown>> = [],
   events: Array<Record<string, unknown>> = [],
   suggestions: Array<Record<string, unknown>> = [],
   staged: Array<Record<string, unknown>> = [],
+  social: Array<Record<string, unknown>> = [],
+  /** `changes` is what a conditional UPDATE reports; `fail` makes every write throw it. */
+  write: { changes?: number; fail?: string } = {},
 ) {
   const executed: Executed[] = []
   let batches = 0
   const answer = (sql: string, values: unknown[]): unknown[] => {
+    if (sql.includes('FROM social_posts WHERE id = ?')) return social.filter((s) => s.id === values[0])
+    if (sql.includes('FROM social_posts WHERE post_date >=')) return social
+    if (sql.includes('COUNT(*) AS n FROM social_posts')) return [{ n: social.filter((s) => s.status === 'drafted').length }]
+    if (sql.includes('FROM social_runs')) return social.length ? [SOCIAL_RUN] : []
     if (sql.includes('LEFT JOIN event_overrides o') && sql.includes('WHERE e.short_code = ?')) return events.filter((e) => e.short_code === values[0])
     if (sql.includes('LEFT JOIN event_overrides o')) return events
     if (sql.startsWith('SELECT * FROM listings WHERE id IN')) return listings.filter((l) => values.includes(l.id))
@@ -113,8 +127,9 @@ function fakeDb(
     all: async () => ({ results: answer(sql, values) }),
     first: async () => answer(sql, values)[0] ?? null,
     run: async () => {
+      if (write.fail) throw new Error(write.fail)
       executed.push({ sql, values, batch: -1 })
-      return {}
+      return write.changes === undefined ? {} : { meta: { changes: write.changes } }
     },
   })
   const db: ConsoleEnv['DB'] = {
@@ -888,5 +903,193 @@ describe('the news drafts inbox', () => {
     })
     expect((await handleConsole(request, env(db), keys)).status).toBe(403)
     expect(executed.filter((e) => e.sql.includes('UPDATE staged_events'))).toHaveLength(0)
+  })
+})
+
+describe('social posts', () => {
+  const FB = '3c1d2e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f'
+  const X = '4d2e3f50-6b7c-4d8e-9fa0-1b2c3d4e5f60'
+  const SNAPSHOT = JSON.stringify({
+    title: 'Waubaushene Fall Fair',
+    localDate: '2099-10-03',
+    localTime: '10:00',
+    allDay: false,
+    timePrecision: 'exact',
+    venueName: 'Memorial Park',
+    municipalitySlug: 'tay',
+    cost: 'free',
+    costText: null,
+    shortCode: 'abc1234',
+  })
+  const socialRow = (overrides: Record<string, unknown> = {}) => ({
+    id: FB,
+    platform: 'facebook',
+    post_date: '2099-10-02',
+    event_id: 'tay:1',
+    short_code: 'abc1234',
+    post_key: 'tay|waubaushene fall fair|2099-10-03',
+    series_key: 'tay|waubaushene fall fair',
+    rank: 1,
+    score: 9.5,
+    cost: 'free',
+    snapshot: SNAPSHOT,
+    hook: null,
+    hook_source: 'none',
+    body: 'Waubaushene Fall Fair\n\nSat Oct 3, 10:00 a.m.\nMemorial Park, Tay\nFree\n\nhttps://outinsimcoe.ca/e/abc1234',
+    image_path: null,
+    status: 'drafted',
+    error: null,
+    decided_at: null,
+    decided_by: null,
+    posted_at: null,
+    ...overrides,
+  })
+  const xRow = () => socialRow({ id: X, platform: 'x', body: 'Waubaushene Fall Fair\nSat Oct 3 · Tay · Free\nhttps://outinsimcoe.ca/e/abc1234' })
+  const withSocial = (rows: Array<Record<string, unknown>>, write: { changes?: number; fail?: string } = {}) =>
+    fakeDb([], [], [], [], rows, write)
+
+  it('are counted on the console home page while any are waiting', async () => {
+    const body = await (await handleConsole(get('/'), env(withSocial([socialRow()]).db), keys)).text()
+    expect(body).toContain('1 social post waiting for approval')
+    expect(body).toContain('href="/social"')
+  })
+
+  it('are listed by the day they go out, one event at a time with every platform under it', async () => {
+    const body = await (await handleConsole(get('/social'), env(withSocial([socialRow(), xRow()]).db), keys)).text()
+    expect(body).toContain('Going out')
+    expect(body).toContain('Waubaushene Fall Fair')
+    expect(body).toContain('Approve for every platform')
+    expect(body).toContain('Approve all 2 waiting')
+    expect(body).toContain('href="https://site.example.ca/e/abc1234"')
+    // The X post is counted against X's limit; Facebook's is just a length.
+    expect(body).toMatch(/\d+\/280/)
+  })
+
+  it('credit the judge only where its hook is actually in the post', async () => {
+    const used = xRow()
+    const rows = [
+      socialRow({ hook_source: 'model', hook: 'Rides, a midway and the pie tent' }),
+      { ...used, hook_source: 'model', hook: 'Rides, a midway and the pie tent', body: `Rides, a midway and the pie tent
+${used.body}` },
+    ]
+    const body = await (await handleConsole(get('/social'), env(withSocial(rows).db), keys)).text()
+    expect(body.match(/Hook by the judge/g)).toHaveLength(1)
+  })
+
+  it('show the last draft run and what the judge did', async () => {
+    const body = await (await handleConsole(get('/social'), env(withSocial([socialRow()]).db), keys)).text()
+    expect(body).toContain('judge claude-opus-5')
+    expect(body).toContain('4 hooks kept')
+    expect(body).toContain('rejected 1 unquoted')
+  })
+
+  it('escape everything a post says, since its words came from someone else’s calendar', async () => {
+    const hostile = socialRow({ body: '<script>alert(1)</script> https://outinsimcoe.ca/e/abc1234' })
+    const body = await (await handleConsole(get('/social'), env(withSocial([hostile]).db), keys)).text()
+    expect(body).not.toContain('<script>alert(1)</script>')
+    expect(body).toContain('&lt;script&gt;')
+  })
+
+  it('refuse an approval that did not come from this console, and change nothing', async () => {
+    const { db, executed } = withSocial([socialRow()])
+    const res = await handleConsole(post(`/social/${FB}/approve`, {}, { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' }), env(db), keys)
+    expect(res.status).toBe(403)
+    expect(executed).toEqual([])
+  })
+
+  /* One click per event: the same event's posts on the other platforms go with it. */
+  it('approve an event on every platform, only where it is still waiting, and record who did', async () => {
+    const { db, writes } = withSocial([socialRow(), xRow()])
+    const res = await handleConsole(post(`/social/${FB}/approve`, {}), env(db), keys)
+    expect(res.status).toBe(303)
+    expect(res.headers.get('Location')).toBe('/social?done=approve')
+    const [update] = writes('UPDATE social_posts SET status = \'approved\'')
+    expect(update!.sql).toContain("status = 'drafted'")
+    expect(update!.sql).toContain('post_key = ? AND post_date = ?')
+    expect(update!.values).toEqual([expect.any(String), 'jeremy@example.com', 'tay|waubaushene fall fair|2099-10-03', '2099-10-02', expect.any(String)])
+  })
+
+  it('say so when a post had already moved on, rather than claiming it was approved', async () => {
+    const res = await handleConsole(post(`/social/${FB}/approve`, {}), env(withSocial([socialRow()], { changes: 0 }).db), keys)
+    expect(res.headers.get('Location')).toBe('/social?done=missed')
+  })
+
+  it('explain an event already approved on that platform instead of failing', async () => {
+    const db = withSocial([socialRow()], { fail: 'D1_ERROR: UNIQUE constraint failed: social_posts.platform, social_posts.post_key' }).db
+    const res = await handleConsole(post(`/social/${FB}/approve`, {}), env(db), keys)
+    expect(res.headers.get('Location')).toBe('/social?done=duplicate')
+  })
+
+  it('approve a whole day in one go', async () => {
+    const { db, writes } = withSocial([socialRow(), xRow()])
+    const res = await handleConsole(post('/social/day/2099-10-02/approve', {}), env(db), keys)
+    expect(res.headers.get('Location')).toBe('/social?done=day')
+    const [update] = writes("UPDATE social_posts SET status = 'approved'")
+    expect(update!.sql).toContain("WHERE post_date = ? AND status = 'drafted'")
+    expect(update!.values.slice(1, 3)).toEqual(['jeremy@example.com', '2099-10-02'])
+  })
+
+  it('answer 404 for a day that is not a date, and for a row that is not a uuid', async () => {
+    expect((await handleConsole(post('/social/day/tomorrow/approve', {}), env(withSocial([]).db), keys)).status).toBe(404)
+    expect((await handleConsole(get('/social/tay:1'), env(withSocial([]).db), keys)).status).toBe(404)
+  })
+
+  it('skip one platform’s post and leave the others', async () => {
+    const { db, writes } = withSocial([socialRow(), xRow()])
+    await handleConsole(post(`/social/${X}/skip`, {}), env(db), keys)
+    const [update] = writes("SET status = 'skipped'")
+    expect(update!.sql).toContain("WHERE id = ? AND status IN ('drafted', 'approved')")
+    expect(update!.values).toEqual([expect.any(String), 'jeremy@example.com', X])
+  })
+
+  it('undo an approval or a skip, but only while the day has not passed', async () => {
+    const { db, writes } = withSocial([socialRow({ status: 'approved' })])
+    await handleConsole(post(`/social/${FB}/unapprove`, {}), env(db), keys)
+    expect(writes("SET status = 'drafted'")[0]!.sql).toContain("status = 'approved' AND post_date >= ?")
+  })
+
+  describe('editing', () => {
+    const edited = (body: string, orig = socialRow().body) => post(`/social/${FB}`, { body, orig_body: orig })
+
+    it('stores nothing when the form comes back unchanged, line endings and all', async () => {
+      const { db, executed } = withSocial([socialRow()])
+      const res = await handleConsole(edited(socialRow().body.replace(/\n/g, '\r\n')), env(db), keys)
+      expect(res.headers.get('Location')).toBe('/social?done=unchanged')
+      expect(executed).toEqual([])
+    })
+
+    /* `edited` is what tells the send pass never to re-render this post from the event. */
+    it('saves an edit, marks it edited, and only over the text that was edited', async () => {
+      const { db, writes } = withSocial([socialRow()])
+      const changed = socialRow().body.replace('Free', 'Free, bring a lawn chair')
+      const res = await handleConsole(edited(changed), env(db), keys)
+      expect(res.headers.get('Location')).toBe('/social?done=edit')
+      const [update] = writes('UPDATE social_posts SET body = ?')
+      expect(update!.sql).toContain("hook_source = 'edited'")
+      expect(update!.sql).toContain("status = 'drafted' AND body = ?")
+      expect(update!.values).toEqual([changed, FB, socialRow().body])
+    })
+
+    it('refuses an edit that removes the link to the event, and writes nothing', async () => {
+      const { db, executed } = withSocial([socialRow()])
+      const res = await handleConsole(edited('Waubaushene Fall Fair, come along!'), env(db), keys)
+      expect(res.status).toBe(422)
+      expect(await res.text()).toContain('The link to the event has been removed')
+      expect(executed).toEqual([])
+    })
+
+    it('refuses an X post over 280 characters', async () => {
+      const { db, executed } = withSocial([xRow()])
+      const long = `${'x'.repeat(280)} https://outinsimcoe.ca/e/abc1234`
+      const res = await handleConsole(post(`/social/${X}`, { body: long, orig_body: xRow().body }), env(db), keys)
+      expect(res.status).toBe(422)
+      expect(executed).toEqual([])
+    })
+
+    it('offers no form once a post is approved, and says how to get one back', async () => {
+      const res = await handleConsole(get(`/social/${FB}`), env(withSocial([socialRow({ status: 'approved' })]).db), keys)
+      expect(res.status).toBe(409)
+      expect(await res.text()).toContain('Undo its approval first')
+    })
   })
 })
