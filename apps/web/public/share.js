@@ -55,6 +55,9 @@ function build() {
             <span>Email</span>
           </a>
         </div>
+        <p class="share-follow">
+          <a href="https://www.facebook.com/OutInSimcoe/" target="_blank" rel="noopener noreferrer">Follow Out in Simcoe on Facebook</a>
+        </p>
       </div>
     </div>`
   document.body.appendChild(dialog)

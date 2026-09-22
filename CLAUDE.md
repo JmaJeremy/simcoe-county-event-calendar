@@ -409,6 +409,15 @@ when it breaks, so nothing here is checked by eye.
   in. `ADMIN_ADDRESS` in `worker.ts` belongs in mail headers only. `test/no-email.test.ts`
   scans every served file and the worker's replies for anything email-shaped — including
   an example address in a comment.
+- **No share URL can tag the Facebook Page, and nothing should pretend otherwise.**
+  `sharer.php` honours only its `u` parameter — `quote` and `hashtag` stopped working — and
+  a Page tag in a post can only be typed by the person posting. What the site can do is
+  claim the link: `article:publisher` names the Page (`FACEBOOK_PAGE` in `html.ts`, repeated
+  in `index.html`'s own head), and the share dialog carries a plain "Follow Out in Simcoe on
+  Facebook" link. `fb:pages` and `fb:app_id` want the numeric Page and App ids, and
+  attribution only takes full effect once outinsimcoe.ca is verified in Meta Business Suite.
+  An **App ID is public** and belongs in the client; an app secret or access token is
+  neither and must never reach `share.js` or any other served file.
 - **Messenger is in the share dialog but only on touch devices.** Facebook's Send Dialog
   needs a registered app id, so the only unauthenticated route is the `fb-messenger://`
   deep link, which nothing on a desktop can open. `share.js` builds the button and hides it

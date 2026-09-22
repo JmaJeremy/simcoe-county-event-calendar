@@ -9,6 +9,14 @@
  */
 
 export const SITE_NAME = 'Out in Simcoe'
+/**
+ * The site's Facebook Page, named in `article:publisher` so a shared link is attributed
+ * to it. This is NOT a way to tag the Page in someone's post: `sharer.php` honours only
+ * its `u` parameter — `quote` and the rest stopped working years ago — and a tag can only
+ * be typed by the person posting. Repeated in `public/index.html`'s own head, as the other
+ * og tags are, and in `share.js`'s follow link.
+ */
+export const FACEBOOK_PAGE = 'https://www.facebook.com/OutInSimcoe/'
 
 export const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
@@ -77,6 +85,7 @@ ${meta.noindex ? '<meta name="robots" content="noindex,follow">\n' : ''}<link re
 <meta property="og:title" content="${escapeHtml(meta.title)}">
 <meta property="og:description" content="${escapeHtml(meta.description)}">
 <meta property="og:image" content="${escapeHtml(image)}">
+<meta property="article:publisher" content="${FACEBOOK_PAGE}">
 <meta name="twitter:card" content="${card}">
 <meta name="twitter:title" content="${escapeHtml(meta.title)}">
 <meta name="twitter:description" content="${escapeHtml(meta.description)}">
