@@ -70,6 +70,11 @@ export interface PageMeta {
   image?: string
   /** 'summary' when the image is a poster rather than a 1200x630 card. */
   twitterCard?: 'summary' | 'summary_large_image'
+  /**
+   * A source poster's measured size, when `image_sizes` has it. Only ever a measurement:
+   * Facebook lays the card out from these numbers, so a guess is worse than silence.
+   */
+  imageSize?: { width: number; height: number }
   /** An iCal feed covering this page's events, advertised as an alternate. */
   feed?: string
   /** Structured data blocks, serialized here so callers cannot forget the escaping. */
@@ -116,7 +121,7 @@ ${meta.noindex ? '<meta name="robots" content="noindex,follow">\n' : ''}<link re
 <meta property="og:title" content="${escapeHtml(meta.title)}">
 <meta property="og:description" content="${escapeHtml(meta.description)}">
 <meta property="og:image" content="${escapeHtml(image)}">
-${ownCard ? `<meta property="og:image:width" content="${SHARE_IMAGE.width}">\n<meta property="og:image:height" content="${SHARE_IMAGE.height}">\n<meta property="og:image:alt" content="${escapeHtml(SHARE_IMAGE.alt)}">\n` : ''}
+${ownCard ? `<meta property="og:image:width" content="${SHARE_IMAGE.width}">\n<meta property="og:image:height" content="${SHARE_IMAGE.height}">\n<meta property="og:image:alt" content="${escapeHtml(SHARE_IMAGE.alt)}">\n` : ''}${!ownCard && meta.imageSize ? `<meta property="og:image:width" content="${meta.imageSize.width}">\n<meta property="og:image:height" content="${meta.imageSize.height}">\n` : ''}
 <meta property="article:publisher" content="${FACEBOOK_PAGE}">
 <meta property="fb:pages" content="${FACEBOOK_PAGE_ID}">
 <meta property="fb:app_id" content="${FACEBOOK_APP_ID}">

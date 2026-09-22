@@ -338,6 +338,19 @@ when it breaks, so nothing here is checked by eye.
   ordinary cost rules over it. Never let a model's verdict set a cost directly. The bar is
   higher for paid than for free on purpose: a free event wrongly marked paid vanishes from
   the view almost everyone uses.
+- **A source's poster is measured once, and keyed on its URL.** `image_sizes` (migration
+  0012) holds a poster's pixel size; `measureImageSizes` fills it after dedup, a few a run,
+  by reading only the first 64KB — every format states its size in a header, so a ranged
+  request is enough. Keyed on the URL because a poster is shared: 1,961 upcoming events
+  carried 694 distinct images when this was written, and Barrie library's 598 listings use
+  46 between them. A row with NULL width means "read, and it did not say" (an SVG, a 404, a
+  JPEG whose frame header sat past the range) — it exists so the pass does not retry that
+  URL every two hours. The event page reads the size when it renders, so nothing waits on
+  the pass and a failure costs a share card, never a run. `imageSize` in core never guesses:
+  Facebook lays the card out from these numbers, so silence beats a wrong width. The
+  one-time catch-up for posters already on the site is
+  `apps/ingest/scripts/backfill-image-sizes.ts`, which runs on a laptop precisely because
+  a laptop has no subrequest ceiling, no CPU limit and no cron to fit inside.
 - **A share card states its own size; a source's poster does not.** Facebook will not hold
   a story open while it fetches an image, so without `og:image:width`/`height` the first
   share of a URL is a bare link and the picture only appears once the crawler has been

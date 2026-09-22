@@ -138,7 +138,7 @@ function eventJsonLd(event: PublicEvent, canonical: string): unknown {
   return data
 }
 
-export function renderEventPage(event: PublicEvent, origin: string, backHref = '/'): string {
+export function renderEventPage(event: PublicEvent, origin: string, backHref = '/', imageSize?: { width: number; height: number }): string {
   const when = describeWhen(event)
   const place = [event.venueName, event.address].filter((v): v is string => !!v).join(', ')
   const cost = event.cost === 'free' ? 'Free' : event.costText ?? COST_LABEL[event.cost] ?? ''
@@ -188,6 +188,7 @@ ${renderHead(
     canonical,
     image: shareableImage(event) ?? undefined,
     twitterCard: shareableImage(event) ? 'summary' : 'summary_large_image',
+    ...(imageSize ? { imageSize } : {}),
     ...(feed ? { feed } : {}),
     jsonLd: [eventJsonLd(event, canonical), crumbs.jsonLd],
     extraHead: '<script type="module" src="/share.js"></script>',

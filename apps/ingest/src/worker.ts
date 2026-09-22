@@ -3,6 +3,7 @@ import { handleConsole } from './console.ts'
 import { noJudge, runDedup, type DedupStats, type Judge } from './dedup.ts'
 import { enrich, type EnrichStats } from './enrich.ts'
 import { judgeCosts, type CostPassStats } from './cost.ts'
+import { measureImageSizes, type ImageSizeStats } from './image-sizes.ts'
 import { claudeCostJudge, noCostJudge, type CostJudge } from './cost-judge.ts'
 import { claudeJudge } from './judge.ts'
 import { adapterContextFrom, defaultWindow, syncSource } from './pipeline.ts'
@@ -104,6 +105,8 @@ export interface IngestReport {
   costError?: string
   dedup?: DedupStats
   dedupError?: string
+  images?: ImageSizeStats
+  imagesError?: string
 }
 
 export function judgeFor(env: Env): Judge {
@@ -116,7 +119,7 @@ export function costJudgeFor(env: Env): CostJudge {
 
 export async function ingestAll(
   env: Env,
-  options: { sources?: Source[]; dedup?: boolean; detail?: boolean; cost?: boolean } = {},
+  options: { sources?: Source[]; dedup?: boolean; detail?: boolean; cost?: boolean; images?: boolean } = {},
 ): Promise<IngestReport> {
   // Every source, not just the enabled ones: the disabled `manual` source must still exist
   // in D1, because hand-entered listings reference it.
@@ -168,6 +171,18 @@ export async function ingestAll(
       report.dedup = await runDedup(env.DB, defaultWindow(), judgeFor(env))
     } catch (err) {
       report.dedupError = err instanceof Error ? err.message : String(err)
+    }
+  }
+
+  // After dedup, not before: it reads `events`, which dedup has just rewritten, so a
+  // poster that arrived this run is measured this run. Nothing downstream waits on it —
+  // the event page reads the size when it renders — so a failure here costs a share card,
+  // never the run.
+  if (options.images ?? true) {
+    try {
+      report.images = await measureImageSizes(env.DB)
+    } catch (err) {
+      report.imagesError = err instanceof Error ? err.message : String(err)
     }
   }
   return report
