@@ -253,4 +253,48 @@ describe('normalizeAll', () => {
       'not a public event',
     ])
   })
+
+  it('drops a library announcing its own hours, and keeps events that only use the words', () => {
+    const notices = [
+      'CLOSED',
+      'CLOSED - All Branches',
+      'CLOSED for Staff Training All Branches',
+      'Christmas Closure',
+      'National Truth and Reconciliation Day All Branches CLOSED',
+      'Christmas Eve - OPEN Special Hours (9am - 12pm)',
+      'Remembrance Day - OPEN (Regular Hours)',
+    ]
+    const events = [
+      'Museum After Hours',
+      'After Hours Election Service Centre',
+      'Indigenous Medicine Garden Closing and Gathering',
+      'Closed Captioned Movie Matinee',
+    ]
+    const { listings } = normalizeAll(
+      severn,
+      [...notices, ...events].map((title, i) => raw({ externalId: String(i), title })),
+    )
+    expect(listings.map((l) => l.title)).toEqual(events)
+  })
+
+  it('drops an observance that is only a date, and keeps the same words with a time', () => {
+    const untimed = { allDay: true, timePrecision: 'date-only' as const, localStart: '2026-11-11T00:00' }
+    const observances = [
+      'Remembrance Day',
+      'Hispanic Heritage Month',
+      "International Men's Day",
+      'National Day for Truth and Reconciliation',
+      'PA Day - elementary only',
+      'Chanukah begins',
+    ].map((title, i) => raw({ externalId: `o${i}`, title, ...untimed }))
+    const kept = [
+      raw({ externalId: 'k1', title: 'PA Day: Rollercoaster Science', localStart: '2026-10-09T09:00' }),
+      raw({ externalId: 'k2', title: 'Family Day', localStart: '2027-02-15T11:00' }),
+      raw({ externalId: 'k3', title: 'Remembrance Day', localStart: '2026-11-11T10:45' }),
+      // Untimed, but not an observance name: a studio tour runs all weekend.
+      raw({ externalId: 'k4', title: 'Autumn Leaves Studio Tour 2026', ...untimed }),
+    ]
+    const { listings } = normalizeAll(severn, [...observances, ...kept])
+    expect(listings.map((l) => l.externalId)).toEqual(['k1', 'k2', 'k3', 'k4'])
+  })
 })
