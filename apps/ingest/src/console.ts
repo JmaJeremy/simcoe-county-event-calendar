@@ -117,6 +117,21 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
     if (path === '/suggestions' && request.method === 'GET') return page(await suggestionsPage(env.DB, url, publicOrigin, auth.email))
     if (path === '/staged' && request.method === 'GET') return page(await stagedPage(env.DB, url, publicOrigin, auth.email))
     if (path === '/find' && request.method === 'GET') return page(await findPage(env.DB, url, publicOrigin, auth.email))
+    if (path === '/social' && request.method === 'GET') return page(await socialPage(env.DB, url, publicOrigin, auth.email))
+
+    // A day's drafts approved in one go. The date is checked before it reaches any SQL.
+    const socialDay = path.match(/^\/social\/day\/(\d{4}-\d{2}-\d{2})\/approve$/)
+    if (socialDay && request.method === 'POST') return await approveSocialDay(env.DB, socialDay[1]!, auth.email)
+
+    // Addressed by the row's uuid, never the event id: listing ids carry colons and slashes.
+    const socialRoute = path.match(/^\/social\/([^/]+)(?:\/(approve|unapprove|skip|unskip))?$/)
+    if (socialRoute) {
+      const [, id, action] = socialRoute
+      if (!UUID.test(id!)) return notFound(auth.email)
+      if (!action && request.method === 'GET') return await socialEditPage(env.DB, id!, publicOrigin, auth.email)
+      if (!action && request.method === 'POST') return await saveSocialEdit(env.DB, request, id!, publicOrigin, auth.email)
+      if (action && request.method === 'POST') return await socialAction(env.DB, id!, action as SocialAction, auth.email)
+    }
 
     // Short codes are seven hex characters; listing ids can contain slashes.
     const eventRoute = path.match(/^\/event\/([0-9a-f]{7})(?:\/(clear|hide|show))?$/)
@@ -367,6 +382,14 @@ async function listPage(db: D1Like, url: URL, publicOrigin: string, email: strin
         )
         .first<{ n: number }>()
     )?.n ?? 0
+  // Only posts that can still go out: a draft whose day has passed is expired within the hour.
+  const posts =
+    (
+      await db
+        .prepare("SELECT COUNT(*) AS n FROM social_posts WHERE status = 'drafted' AND post_date >= ?")
+        .bind(today)
+        .first<{ n: number }>()
+    )?.n ?? 0
   const row = (r: (typeof results)[number]): string => {
     const uuid = r.id.slice(MANUAL_ID_PREFIX.length)
     const place = MUNICIPALITIES.find((m) => m.slug === r.municipality_slug)?.shortName ?? 'Not specified'
@@ -396,6 +419,7 @@ async function listPage(db: D1Like, url: URL, publicOrigin: string, email: strin
     `${flash}
     ${waiting ? `<p class="notice">${waiting} suggestion${waiting === 1 ? '' : 's'} from the site waiting. <a href="/suggestions">Review ${waiting === 1 ? 'it' : 'them'}</a></p>` : ''}
     ${staged ? `<p class="notice">${staged} event${staged === 1 ? '' : 's'} found in the news waiting. <a href="/staged">Review ${staged === 1 ? 'it' : 'them'}</a></p>` : ''}
+    ${posts ? `<p class="notice">${posts} social post${posts === 1 ? '' : 's'} waiting for approval. <a href="/social">Review ${posts === 1 ? 'it' : 'them'}</a></p>` : ''}
     <p><a class="button" href="/new">Add an event</a></p>
     ${section('Upcoming', upcoming, 'No upcoming events added by hand yet.')}
     ${past.length ? section('Past', past, '') : ''}`,
@@ -1383,6 +1407,377 @@ async function setStagedDismissed(db: D1Like, id: string, dismiss: boolean): Pro
   return redirect(dismiss ? `/staged?dismissed=${id}` : `/staged/${id}`)
 }
 
+/* ------------------------------------------------------------------------- social posts */
+
+/**
+ * The approval screen for the social poster's drafts.
+ *
+ * `JmaJeremy/social-event-poster` drafts each evening's posts into `social_posts` — this
+ * database, the calendar's schema (0008) — and this page is where a person says yes. It
+ * lives here rather than in the poster because it is a view over shared rows behind the
+ * Access application that already guards everything else, the same place the news
+ * scraper's drafts are reviewed.
+ *
+ * Every write is a conditional UPDATE that only moves a row out of the state it was shown
+ * in, so a stale tab cannot approve something already sent or skipped, and nothing here
+ * ever sends a post: approving marks a row for the poster's send pass (SCEC-90) to pick up.
+ */
+
+type SocialAction = 'approve' | 'unapprove' | 'skip' | 'unskip'
+
+interface SocialRow {
+  id: string
+  platform: 'facebook' | 'x' | 'instagram'
+  post_date: string
+  event_id: string
+  short_code: string
+  post_key: string
+  rank: number
+  score: number
+  cost: string
+  snapshot: string
+  hook: string | null
+  hook_source: 'model' | 'none' | 'edited'
+  body: string
+  image_path: string | null
+  status: 'drafted' | 'approved' | 'posting' | 'posted' | 'failed' | 'skipped' | 'stale' | 'expired'
+  error: string | null
+  decided_at: string | null
+  decided_by: string | null
+  posted_at: string | null
+}
+
+/** What the post said about its event when it was drafted. camelCase: the poster writes it. */
+interface SocialSnapshot {
+  title: string
+  localDate: string
+  localTime: string
+  allDay: boolean
+  timePrecision: string
+  venueName: string | null
+  municipalitySlug: string | null
+  cost: string
+}
+
+const PLATFORM_NAMES: Record<SocialRow['platform'], string> = { facebook: 'Facebook', x: 'X', instagram: 'Instagram' }
+
+/**
+ * The most a platform will take. X's is counted crudely here — the poster's `xLength`
+ * weighs links at 23 and emoji at two, and its send pass checks again — because only a
+ * rough ceiling is needed to stop an edit that could never go out.
+ */
+const SOCIAL_LIMITS: Record<SocialRow['platform'], number> = { x: 280, facebook: 63_206, instagram: 2_200 }
+
+const STATUS_FLAGS: Record<SocialRow['status'], string> = {
+  drafted: '<span class="flag warn">Waiting</span>',
+  approved: '<span class="flag ok">Approved</span>',
+  posting: '<span class="flag">Sending</span>',
+  posted: '<span class="flag ok">Posted</span>',
+  failed: '<span class="flag off">Failed</span>',
+  skipped: '<span class="flag off">Skipped</span>',
+  stale: '<span class="flag warn">Stale — the event changed</span>',
+  expired: '<span class="flag">Expired</span>',
+}
+
+const snapshotOf = (row: Pick<SocialRow, 'snapshot'>): SocialSnapshot | null => {
+  try {
+    return JSON.parse(row.snapshot) as SocialSnapshot
+  } catch {
+    return null
+  }
+}
+
+const socialWhen = (snap: SocialSnapshot): string =>
+  when({ local_date: snap.localDate, local_time: snap.localTime, all_day: snap.allDay ? 1 : 0, time_precision: snap.timePrecision } as never)
+
+const dayHeading = (date: string): string =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })
+
+async function loadSocialRow(db: D1Like, id: string): Promise<SocialRow | null> {
+  return db.prepare('SELECT * FROM social_posts WHERE id = ?').bind(id).first<SocialRow>()
+}
+
+async function socialPage(db: D1Like, url: URL, publicOrigin: string, email: string): Promise<string> {
+  const today = todayLocal()
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM social_posts WHERE post_date >= date(?, '-7 days')
+        ORDER BY post_date, rank, platform LIMIT 500`,
+    )
+    .bind(today)
+    .all<SocialRow>()
+  const lastRun = await db
+    .prepare(`SELECT local_date, ran_at, stats FROM social_runs WHERE kind = 'draft' ORDER BY ran_at DESC LIMIT 1`)
+    .first<{ local_date: string; ran_at: string; stats: string | null }>()
+
+  const upcoming = results.filter((r) => r.post_date >= today && r.status !== 'expired')
+  const earlier = results.filter((r) => r.post_date < today || r.status === 'expired').reverse().slice(0, 60)
+
+  const post = (r: SocialRow): string => {
+    const limit = SOCIAL_LIMITS[r.platform]
+    const length = r.body.length
+    const count = r.platform === 'x' ? `${length}/${limit}` : `${length} characters`
+    const actions: string[] = []
+    if (r.status === 'drafted') {
+      actions.push(`<a href="/social/${r.id}">Edit</a>`)
+      actions.push(`<form method="post" action="/social/${r.id}/skip"><button type="submit" class="link">Skip ${PLATFORM_NAMES[r.platform]}</button></form>`)
+    }
+    if (r.status === 'approved') {
+      actions.push(`<form method="post" action="/social/${r.id}/unapprove"><button type="submit" class="link">Undo approval</button></form>`)
+      actions.push(`<form method="post" action="/social/${r.id}/skip"><button type="submit" class="link">Skip</button></form>`)
+    }
+    if (r.status === 'skipped' && r.post_date >= today) {
+      actions.push(`<form method="post" action="/social/${r.id}/unskip"><button type="submit" class="link">Undo skip</button></form>`)
+    }
+    const decided = r.decided_by && (r.status === 'approved' || r.status === 'skipped')
+      ? `<span class="muted"> by ${escapeHtml(r.decided_by)}</span>`
+      : ''
+    return `<div class="post">
+      <div class="row-meta"><strong>${PLATFORM_NAMES[r.platform]}</strong>${STATUS_FLAGS[r.status]}${
+        r.hook_source === 'edited'
+          ? '<span class="flag edited">Edited</span>'
+          : // Offered is not used: Facebook and Instagram drop a hook their excerpt already says.
+            r.hook_source === 'model' && r.hook && r.body.includes(r.hook)
+            ? '<span class="flag">Hook by the judge</span>'
+            : ''
+      } · <span class="${length > limit ? 'over' : ''}">${count}</span>${decided}</div>
+      ${r.image_path ? `<img class="thumb" src="${escapeHtml(`${publicOrigin}${r.image_path}`)}" alt="The image that will go with this post">` : ''}
+      <p class="body">${escapeHtml(r.body)}</p>
+      ${r.error ? `<p class="error">${escapeHtml(r.error)}</p>` : ''}
+      ${actions.length ? `<div class="row-actions">${actions.join('')}</div>` : ''}
+    </div>`
+  }
+
+  // One event, every platform it is drafted for, and one approval for all of them.
+  const event = (rows: SocialRow[]): string => {
+    const first = rows[0]!
+    const snap = snapshotOf(first)
+    const place = snap?.municipalitySlug ? municipalityBySlug(snap.municipalitySlug)?.shortName ?? snap.municipalitySlug : 'Not specified'
+    const waiting = rows.find((r) => r.status === 'drafted')
+    const approve = waiting
+      ? `<form method="post" action="/social/${waiting.id}/approve"><button type="submit" class="button">Approve${rows.length > 1 ? ' for every platform' : ''}</button></form>`
+      : ''
+    return `<div class="social-event">
+      <div class="row-main"><div><strong>${first.rank}. ${escapeHtml(snap?.title ?? first.short_code)}</strong>
+        <a href="${escapeHtml(`${publicOrigin}/e/${first.short_code}`)}" target="_blank" rel="noopener">View on site ↗</a>
+        ${first.cost === 'paid' ? '<span class="flag">Paid</span>' : ''}</div>${approve}</div>
+      ${snap ? `<div class="row-meta">${escapeHtml(socialWhen(snap))} · ${escapeHtml(place)}${snap.venueName ? ` · ${escapeHtml(snap.venueName)}` : ''}</div>` : ''}
+      ${rows.map(post).join('')}
+    </div>`
+  }
+
+  const days = [...new Set(upcoming.map((r) => r.post_date))].map((date) => {
+    const rows = upcoming.filter((r) => r.post_date === date)
+    const events = [...new Set(rows.map((r) => r.post_key))].map((key) => rows.filter((r) => r.post_key === key))
+    const waiting = rows.filter((r) => r.status === 'drafted').length
+    const approveAll = waiting
+      ? `<form method="post" action="/social/day/${date}/approve"><button type="submit" class="button ghost">Approve all ${waiting} waiting</button></form>`
+      : ''
+    return `<div class="day"><h2>Going out ${escapeHtml(dayHeading(date))}</h2>${approveAll}</div>${events.map(event).join('')}`
+  })
+
+  const pastRow = (r: SocialRow): string => {
+    const snap = snapshotOf(r)
+    return `<li><div class="row-main"><strong>${escapeHtml(snap?.title ?? r.short_code)}</strong> · ${PLATFORM_NAMES[r.platform]}${STATUS_FLAGS[r.status]}</div>
+      <div class="row-meta">For ${escapeHtml(dayHeading(r.post_date))}${r.decided_by ? ` · decided by ${escapeHtml(r.decided_by)}` : ''}</div></li>`
+  }
+
+  let run = ''
+  if (lastRun) {
+    let stats: Record<string, any> = {}
+    try {
+      stats = JSON.parse(lastRun.stats ?? '{}')
+    } catch {}
+    const rejected = Object.entries(stats.judging?.hooksRejected ?? {}).map(([why, n]) => `${n} ${why}`).join(', ')
+    run = `<p class="muted run">Last drafted ${escapeHtml(received(lastRun.ran_at))} for ${escapeHtml(dayHeading(lastRun.local_date))} ·
+      judge ${escapeHtml(String(stats.judge ?? 'unknown'))}${
+        stats.judge && stats.judge !== 'none' ? ` · ${Number(stats.judging?.hooksKept ?? 0)} hook${stats.judging?.hooksKept === 1 ? '' : 's'} kept${rejected ? `, rejected ${escapeHtml(rejected)}` : ''}` : ''
+      }${stats.judgeError ? ` · <span class="error">the judge failed: ${escapeHtml(String(stats.judgeError))}</span>` : ''}</p>`
+  }
+
+  const flash = socialFlash(url)
+  return shell(
+    'Social posts',
+    `${flash}
+    <p class="muted">Drafted each evening by the social poster from the next few days' events. Nothing
+    here has been posted: approving a post marks it to go out the next morning, and it goes out
+    exactly as written below.</p>
+    ${run}
+    ${days.length ? days.join('') : '<p class="muted">Nothing waiting. Tomorrow’s posts are drafted from 6 p.m.</p>'}
+    ${earlier.length ? `<h2>Earlier</h2><ul class="rows">${earlier.map(pastRow).join('')}</ul>` : ''}`,
+    email,
+  )
+}
+
+function socialFlash(url: URL): string {
+  const done = url.searchParams.get('done')
+  const messages: Record<string, string> = {
+    approve: 'Approved.',
+    day: 'Approved every waiting post for that day.',
+    unapprove: 'Approval undone; the post is waiting again.',
+    skip: 'Skipped. It will not be posted.',
+    unskip: 'Skip undone; the post is waiting again.',
+    edit: 'Saved. The post will go out as edited.',
+    unchanged: 'Nothing had changed, so nothing was saved.',
+    missed: 'That post had already moved on — sent, skipped, or its day passed — so it was left as it was.',
+    duplicate: 'That event already has an approved post on that platform, so this one was left waiting.',
+  }
+  const message = done ? messages[done] : undefined
+  if (!message) return ''
+  const bad = done === 'missed' || done === 'duplicate'
+  return `<p class="flash${bad ? ' error' : ''}">${message}</p>`
+}
+
+/** D1's own word for a conditional UPDATE that matched nothing. Absent in some test doubles. */
+const changedNothing = (result: { meta?: { changes?: number } }): boolean => result.meta?.changes === 0
+
+/**
+ * Approve, un-approve, skip or un-skip.
+ *
+ * Approving takes the row's siblings with it — the same event on the other platforms, the
+ * same day — because a person approves an event, not a platform; skipping stays per row, so
+ * one platform's post can be dropped while the others go out. Nothing moves a row out of a
+ * state other than the one the page showed it in, and nothing touches a day already past.
+ */
+async function socialAction(db: D1Like, id: string, action: SocialAction, email: string): Promise<Response> {
+  const row = await loadSocialRow(db, id)
+  if (!row) return notFound(email)
+  const today = todayLocal()
+  const now = new Date().toISOString()
+  const statement = {
+    approve: () =>
+      db
+        .prepare(
+          `UPDATE social_posts SET status = 'approved', decided_at = ?, decided_by = ?
+            WHERE post_key = ? AND post_date = ? AND status = 'drafted' AND post_date >= ?`,
+        )
+        .bind(now, email, row.post_key, row.post_date, today),
+    unapprove: () =>
+      db
+        .prepare(
+          `UPDATE social_posts SET status = 'drafted', decided_at = NULL, decided_by = NULL
+            WHERE id = ? AND status = 'approved' AND post_date >= ?`,
+        )
+        .bind(id, today),
+    skip: () =>
+      db
+        .prepare(
+          `UPDATE social_posts SET status = 'skipped', decided_at = ?, decided_by = ?
+            WHERE id = ? AND status IN ('drafted', 'approved')`,
+        )
+        .bind(now, email, id),
+    unskip: () =>
+      db
+        .prepare(
+          `UPDATE social_posts SET status = 'drafted', decided_at = NULL, decided_by = NULL
+            WHERE id = ? AND status = 'skipped' AND post_date >= ?`,
+        )
+        .bind(id, today),
+  }[action]()
+
+  try {
+    const result = await statement.run()
+    return redirect(`/social?done=${changedNothing(result) ? 'missed' : action}`)
+  } catch (err) {
+    // The partial unique index: an event already approved or sent on that platform.
+    if (/UNIQUE/i.test(err instanceof Error ? err.message : String(err))) return redirect('/social?done=duplicate')
+    throw err
+  }
+}
+
+async function approveSocialDay(db: D1Like, date: string, email: string): Promise<Response> {
+  try {
+    const result = await db
+      .prepare(
+        `UPDATE social_posts SET status = 'approved', decided_at = ?, decided_by = ?
+          WHERE post_date = ? AND status = 'drafted' AND post_date >= ?`,
+      )
+      .bind(new Date().toISOString(), email, date, todayLocal())
+      .run()
+    return redirect(`/social?done=${changedNothing(result) ? 'missed' : 'day'}`)
+  } catch (err) {
+    if (/UNIQUE/i.test(err instanceof Error ? err.message : String(err))) return redirect('/social?done=duplicate')
+    throw err
+  }
+}
+
+/** Browsers submit a textarea's line breaks as CRLF; the stored body has LF. */
+const lf = (value: unknown): string => String(value ?? '').replace(/\r\n?/g, '\n')
+
+function socialEditForm(row: SocialRow, publicOrigin: string, email: string, problem = '', value = row.body): Response {
+  const snap = snapshotOf(row)
+  const title = `Edit the ${PLATFORM_NAMES[row.platform]} post`
+  return page(
+    shell(
+      title,
+      `<p class="muted">${escapeHtml(snap?.title ?? row.short_code)} · going out ${escapeHtml(dayHeading(row.post_date))} ·
+        <a href="${escapeHtml(`${publicOrigin}/e/${row.short_code}`)}" target="_blank" rel="noopener">View the event ↗</a></p>
+      <p class="hint">This is sent exactly as written. Once saved it is never rewritten from the event again, so a
+      change to the event after this — a new time, a new venue — makes the post stale rather than updating it.</p>
+      ${problem ? `<p class="flash error">${escapeHtml(problem)}</p>` : ''}
+      <form method="post" action="/social/${row.id}" class="event-form">
+        <input type="hidden" name="orig_body" value="${escapeHtml(row.body)}">
+        <div class="field${problem ? ' has-error' : ''}"><label for="body">Post</label>
+          <textarea id="body" name="body" rows="14">${escapeHtml(value)}</textarea>
+          <span class="hint">At most ${SOCIAL_LIMITS[row.platform].toLocaleString('en-CA')} characters on ${PLATFORM_NAMES[row.platform]}. Keep the link to the event.</span></div>
+        <div class="actions"><button type="submit" class="button">Save</button><a href="/social">Cancel</a></div>
+      </form>`,
+      email,
+    ),
+    problem ? 422 : 200,
+  )
+}
+
+async function socialEditPage(db: D1Like, id: string, publicOrigin: string, email: string): Promise<Response> {
+  const row = await loadSocialRow(db, id)
+  if (!row) return notFound(email)
+  if (row.status !== 'drafted') {
+    return page(
+      shell(
+        'Not editable',
+        `<p>Only a post still waiting can be edited. ${row.status === 'approved' ? 'Undo its approval first.' : 'This one has moved on.'}</p><p><a href="/social">Back to the posts</a></p>`,
+        email,
+      ),
+      409,
+    )
+  }
+  return socialEditForm(row, publicOrigin, email)
+}
+
+/**
+ * Save an edited post.
+ *
+ * Compared with what the form was filled in with, never re-read from the row, for the
+ * reason the event editor does the same: an unchanged form must store nothing. An edited
+ * body is marked `edited`, which is what tells the send pass never to re-render it from the
+ * event — and the UPDATE only lands if the stored body is still the one that was edited, so
+ * two tabs cannot silently overwrite each other.
+ */
+async function saveSocialEdit(db: D1Like, request: Request, id: string, publicOrigin: string, email: string): Promise<Response> {
+  const row = await loadSocialRow(db, id)
+  if (!row) return notFound(email)
+  const form = await readForm(request)
+  const body = lf(form.body).trim()
+  const original = lf(form.orig_body)
+  if (body === original.trim()) return redirect('/social?done=unchanged')
+  if (row.status !== 'drafted') return redirect('/social?done=missed')
+
+  if (!body) return socialEditForm(row, publicOrigin, email, 'A post cannot be empty.', body)
+  if (body.length > SOCIAL_LIMITS[row.platform]) {
+    return socialEditForm(row, publicOrigin, email, `That is ${body.length} characters; ${PLATFORM_NAMES[row.platform]} takes ${SOCIAL_LIMITS[row.platform]}.`, body)
+  }
+  // Every post exists to send a reader to the event; one without the link has lost its point.
+  if (!body.includes(`/e/${row.short_code}`)) {
+    return socialEditForm(row, publicOrigin, email, 'The link to the event has been removed. Put it back before saving.', body)
+  }
+
+  const result = await db
+    .prepare(`UPDATE social_posts SET body = ?, hook_source = 'edited' WHERE id = ? AND status = 'drafted' AND body = ?`)
+    .bind(body, id, original)
+    .run()
+  return redirect(`/social?done=${changedNothing(result) ? 'missed' : 'edit'}`)
+}
+
 function shell(title: string, body: string, email: string): string {
   return `<!doctype html><html lang="en-CA"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1452,11 +1847,22 @@ function shell(title: string, body: string, email: string): string {
   .error { color: var(--bad); font-size: 13px; font-weight: 600; }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 12px 0; }
   .actions form { margin: 0; }
+  .day { margin: 26px 0 8px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+  .day h2 { margin: 0; }
+  .day form { margin: 0; }
+  .social-event { padding: 12px 0 4px; border-bottom: 1px solid var(--line); }
+  .social-event .row-main { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+  .social-event .row-main form { margin: 0; }
+  .post { margin: 8px 0 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .post .body { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+  .post .row-meta .flag:first-of-type { margin-left: 8px; }
+  .over { color: var(--bad); font-weight: 700; }
+  .run { font-size: 13.5px; }
   @media (max-width: 600px) { .pair, .details { grid-template-columns: 1fr; } }
 </style>
 </head><body>
 <header><a href="/">Out in Simcoe · console</a>${
-  email ? `<nav><a href="/">Added by hand</a><a href="/find">All events</a><a href="/suggestions">Suggestions</a><a href="/staged">In the news</a></nav><span class="who">Signed in as ${escapeHtml(email)}</span>` : ''
+  email ? `<nav><a href="/">Added by hand</a><a href="/find">All events</a><a href="/suggestions">Suggestions</a><a href="/staged">In the news</a><a href="/social">Social</a></nav><span class="who">Signed in as ${escapeHtml(email)}</span>` : ''
 }</header>
 <main><h1>${escapeHtml(title)}</h1>${body}</main>
 </body></html>`

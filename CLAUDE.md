@@ -213,6 +213,26 @@ when it breaks, so nothing here is checked by eye.
   by `apps/web/scripts` into `apps/web/public/social/` and served by the web worker,
   because Meta fetches them over public HTTPS and takes JPEG only; and `/privacy`, which
   names the social accounts.
+- **The console's `/social` page is where a person says yes to a post.** It lists the poster's
+  drafts by the day they go out, then by event with every platform's post under it, exactly
+  as they will be sent, and shows the last run's judge stats. Rows are addressed by their own
+  uuid, never the event id, because listing ids carry colons and slashes. Approving is per
+  **event** — the row and its siblings on the other platforms, same day — because a person
+  approves an event, not a platform; skipping is per row, so one platform's post can be
+  dropped while the others go out; `/social/day/{date}/approve` does a whole day. Every write
+  is a conditional UPDATE that only moves a row out of the state it was shown in and never
+  touches a day already past, so a stale tab cannot approve something sent or skipped — a
+  write that matched nothing says "already moved on" rather than claiming success, and the
+  partial unique index refusing a second approval says so too. Nothing here sends anything:
+  approving marks a row for the poster's send pass (SCEC-90).
+- **An edited post is compared with what the form was filled in with, and is never
+  re-rendered.** The edit form posts `orig_body` beside `body` and stores nothing when they
+  match — after turning the textarea's CRLF back into LF, or every untouched save would look
+  edited. A save sets `hook_source = 'edited'`, which is what tells the send pass not to
+  rebuild the post from the event, and only lands where the stored body is still the one
+  edited, so two tabs cannot silently overwrite each other. An edit may not remove the link
+  to the event or run past the platform's length; X's ceiling here is a plain character
+  count, since the poster's `xLength` is the real one and its send pass checks again.
 - **Two decisions in `0008_social_posts.sql` are not obvious and are load-bearing.** A row
   is keyed on `post_key` — municipality, normalized title and local date — and has no
   foreign key to `events`, because on govStack, Drupal rows and SPACES a rescheduled event
