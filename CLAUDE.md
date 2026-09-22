@@ -29,6 +29,7 @@ curl -X POST 'http://localhost:8787/run?token=dev'                 # add &source
 npx wrangler dev --config apps/web/wrangler.jsonc --port 8788 --persist-to apps/ingest/.wrangler/state
 node --experimental-strip-types apps/ingest/scripts/dedup-report.ts apps/ingest/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite
 node --experimental-strip-types apps/web/scripts/brand.ts          # re-render icons + og.png
+node --experimental-strip-types apps/web/scripts/social-cards.ts   # re-render the Instagram cards
 ```
 
 A full run takes ~2 min and ~660 HTTP requests: 39/39 sources for ~5,300 listings (Eventbrite
@@ -223,6 +224,16 @@ when it breaks, so nothing here is checked by eye.
   by `apps/web/scripts` into `apps/web/public/social/` and served by the web worker,
   because Meta fetches them over public HTTPS and takes JPEG only; and `/privacy`, which
   names the social accounts.
+- **The Instagram cards are static files, one per category in three colourways.**
+  `scripts/social-cards.ts` writes `public/social/{category}-{0,1,2}.jpg` (1080x1080, JPEG
+  quality 88 — Instagram refuses PNG, so never copy `brand.ts`'s screenshot call), and the
+  poster picks a colourway by hashing the post's key. `civic-meeting` has none (it is never
+  posted) and `other` is the card for anything unmapped. Static rather than rendered per
+  event because `public/` is served from the edge with no route, so a card is public the
+  moment it deploys and Meta can always fetch it; a per-event card would add a renderer that
+  can fail on the one evening it matters. The category labels are `CATEGORY_LABELS` from
+  `app.js` and the colours `--cat-*` from `style.css`, repeated in the script — change
+  either, re-run it. Renaming or removing a card breaks any draft that already names it.
 - **The console's `/social` page is where a person says yes to a post.** It lists the poster's
   drafts by the day they go out, then by event with every platform's post under it, exactly
   as they will be sent, and shows the last run's judge stats. Rows are addressed by their own
