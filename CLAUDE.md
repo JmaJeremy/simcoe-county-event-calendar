@@ -35,9 +35,16 @@ node --experimental-strip-types apps/web/scripts/social-cards.ts   # re-render t
 A full run takes ~2 min and ~660 HTTP requests: 39/39 sources for ~5,300 listings (Eventbrite
 alone is 13 slow requests, ~25 s; Barrie's 823 library events are one request), then up to 300
 event pages read for price and posters, then the unclear listings that mention a sum sent to the cost judge (a few a run, capped at 200),
-then dedup over ~9,000 pairs into ~4,650 events. The subrequest ceiling is
-1,000 per invocation, so the two budgets in `enrich.ts` and `cost.ts` are what keeps the
-run inside it — raise either and check the total.
+then dedup over ~9,000 pairs into ~4,650 events. **The subrequest ceiling is 10,000 per
+invocation**, the paid-plan default since 2026-02-11 (it was 1,000 before, and the older
+figure is still written in a few comments), and it can be raised to 10M with a
+`subrequests` limit in wrangler config. A subrequest is not only a `fetch()`: **every D1
+call counts**, as do R2, KV, Cache and Queue operations — so a run's true total is its
+~660 HTTP requests plus every statement the repository executes, which is the larger
+number of the two. The budgets in `enrich.ts` and `cost.ts` therefore exist to bound the
+token bill and the run's wall clock, not because the ceiling is close; there is roughly an
+order of magnitude of headroom. Six outbound connections may await response headers at
+once, whatever the plan, which is what actually paces a run.
 
 ## Architecture
 
