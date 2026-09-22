@@ -46,8 +46,10 @@ export interface EnrichOptions {
  * backlog; after that only new and edited events come through.
  */
 export async function enrich(db: D1Like, options: EnrichOptions = {}): Promise<EnrichStats> {
-  // 300 detail pages sit alongside ~320 list requests, well inside a Worker's 1,000
-  // subrequests, and clear a full backlog in a handful of runs.
+  // 300 detail pages sit alongside ~320 list requests, far inside a paid Worker's 10,000
+  // subrequests (1,000 until 2026-02-11), and clear a full backlog in a handful of runs.
+  // The ceiling is not what this budget is for: the token bill and the wall clock are.
+  // Note a D1 call is a subrequest too, so the real total is well above the HTTP count.
   const { budget = 300, concurrency = 5, now = new Date().toISOString() } = options
   const stats: EnrichStats = { fetched: 0, costResolved: 0, images: 0, fuller: 0, failed: 0, remaining: 0 }
 
