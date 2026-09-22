@@ -476,13 +476,20 @@ describeIfChrome('filter menus (real browser)', () => {
       const targets = await page.$$eval('.share-target', (els) =>
         els.map((e) => ({ id: e.id, label: e.textContent!.trim(), hidden: (e as HTMLElement).hidden, href: e.getAttribute('href') })),
       )
-      expect(targets.filter((t) => !t.hidden).map((t) => t.label)).toEqual(['Facebook', 'X', 'Email'])
-      // Messenger's only unauthenticated route is the app's own deep link, which nothing
-      // on a desktop can open, so it is built but hidden wherever the pointer is not
-      // coarse. The href is still correct, because a touch device shows the same markup.
+      expect(targets.filter((t) => !t.hidden).map((t) => t.label)).toEqual(['Facebook', 'Messenger', 'X', 'Email'])
+      // Messenger goes two ways. This is a desktop pointer, so it gets the Send Dialog,
+      // which needs the app id and a redirect back to the canonical host — Facebook checks
+      // that against the app's allowed domains. A touch device gets the app's own deep
+      // link instead, which needs no app id at all.
       const messenger = targets.find((t) => t.id === 'share-messenger')!
-      expect(messenger.hidden).toBe(true)
-      expect(messenger.href).toMatch(/^fb-messenger:\/\/share\?link=http/)
+      expect(messenger.hidden).toBe(false)
+      const sent = new URL(messenger.href!)
+      expect(sent.origin + sent.pathname).toBe('https://www.facebook.com/dialog/send')
+      expect(sent.searchParams.get('app_id')).toBe('1400817094828583')
+      expect(sent.searchParams.get('link')).toContain('http')
+      expect(sent.searchParams.get('redirect_uri')).toMatch(/^https?:\/\/[^/]+\/$/)
+      // The plain Facebook button stays on sharer.php: no app, no configuration, cannot break.
+      expect(targets.find((t) => t.id === 'share-fb')!.href).toContain('/sharer/sharer.php?u=')
     })
   })
 

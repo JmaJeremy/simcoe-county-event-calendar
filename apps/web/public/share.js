@@ -8,6 +8,37 @@
 
 const TITLE = document.querySelector('meta[property="og:title"]')?.content ?? document.title
 
+/**
+ * The site's Facebook app id. Public by design — it identifies the app to Facebook and is
+ * meant to be read by every visitor; it is NOT the app secret or the Page access token the
+ * social poster holds, neither of which may ever appear in a file the site serves.
+ *
+ * It buys one thing here: the Send Dialog, the only route to Messenger that works without
+ * the app being installed, so the button finally does something on a desktop. Touch devices
+ * keep the `fb-messenger://` deep link, which opens the app directly and needs no app id —
+ * the dialog would be a worse experience there and a regression if the app is ever
+ * misconfigured. The main Facebook button deliberately stays on `sharer.php`: it needs no
+ * app, no configuration and no Live-mode review, so it cannot break.
+ */
+const FB_APP_ID = '1400817094828583'
+
+/**
+ * Where Facebook returns the sender afterwards. The Send Dialog demands it, and Facebook
+ * checks it against the app's allowed domains — so it must be the canonical host, never
+ * whatever host answered (the workers.dev fallback serves the identical site and is not,
+ * and should not be, on that list).
+ */
+function canonicalOrigin() {
+  const link = document.querySelector('link[rel="canonical"]')?.href
+  try {
+    return new URL(link || location.href).origin
+  } catch {
+    return location.origin
+  }
+}
+
+const onTouch = () => matchMedia('(pointer: coarse)').matches
+
 function canonicalUrl() {
   const link = document.querySelector('link[rel="canonical"]')?.href
   // The list carries its filters in the query string, so share what is actually on screen.
@@ -68,11 +99,13 @@ function build() {
     if (ev.target === dialog) dialog.close()
   })
   dialog.addEventListener('close', () => document.body.classList.remove('modal-open'))
-  // Messenger has no web share endpoint that works unauthenticated: the Send Dialog needs
-  // a registered Facebook app id, so the only option is the app's own deep link, which
-  // nothing on a desktop can open. Offer it only where an app could answer, rather than
-  // show a button that silently does nothing.
-  if (!matchMedia('(pointer: coarse)').matches) dialog.querySelector('#share-messenger').hidden = true
+  // A desktop opens the Send Dialog in a tab; the deep link hands off to the app instead,
+  // and must not be given a target, or a blank tab is left behind after the app takes over.
+  if (!onTouch()) {
+    const messenger = dialog.querySelector('#share-messenger')
+    messenger.target = '_blank'
+    messenger.rel = 'noopener noreferrer'
+  }
   dialog.querySelector('#share-copy').onclick = copy
   dialog.querySelector('#share-url').onclick = (ev) => ev.target.select()
 }
@@ -101,7 +134,10 @@ function open(url, what) {
   dialog.querySelector('#share-status').textContent = ''
   dialog.querySelector('#share-fb').href =
     `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
-  dialog.querySelector('#share-messenger').href = `fb-messenger://share?link=${encodeURIComponent(url)}`
+  dialog.querySelector('#share-messenger').href = onTouch()
+    ? `fb-messenger://share?link=${encodeURIComponent(url)}`
+    : `https://www.facebook.com/dialog/send?app_id=${FB_APP_ID}&link=${encodeURIComponent(url)}` +
+      `&redirect_uri=${encodeURIComponent(canonicalOrigin() + '/')}`
   dialog.querySelector('#share-x').href =
     `https://x.com/intent/post?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
   dialog.querySelector('#share-email').href =

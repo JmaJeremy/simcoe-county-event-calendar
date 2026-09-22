@@ -24,6 +24,8 @@ export const FACEBOOK_PAGE = 'https://www.facebook.com/OutInSimcoe/'
  * poster holds; those are secrets and must never reach a file the site serves.
  */
 export const FACEBOOK_PAGE_ID = '1312882425245299'
+/** The app id, public and repeated in `share.js` and `index.html`. Enables Page Insights. */
+export const FACEBOOK_APP_ID = '1400817094828583'
 
 export const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
@@ -94,6 +96,7 @@ ${meta.noindex ? '<meta name="robots" content="noindex,follow">\n' : ''}<link re
 <meta property="og:image" content="${escapeHtml(image)}">
 <meta property="article:publisher" content="${FACEBOOK_PAGE}">
 <meta property="fb:pages" content="${FACEBOOK_PAGE_ID}">
+<meta property="fb:app_id" content="${FACEBOOK_APP_ID}">
 <meta name="twitter:card" content="${card}">
 <meta name="twitter:title" content="${escapeHtml(meta.title)}">
 <meta name="twitter:description" content="${escapeHtml(meta.description)}">
