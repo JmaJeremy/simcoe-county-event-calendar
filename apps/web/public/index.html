@@ -10,8 +10,15 @@
 <link rel="alternate" type="text/calendar" title="Out in Simcoe — every event in the county (iCal)" href="__ORIGIN__/calendar.ics">
 <!-- __ORIGIN__ is substituted by the worker with whichever host answered, so shares stay
      correct on the workers.dev origin today and on a custom domain later. -->
+<!-- Meta's domain verification for outinsimcoe.ca. Static, in the head, on the home page:
+     Facebook fails the check if it is injected by script or sits outside <head>. It is a
+     published token, not a credential, and it is what makes fb:pages attribution count. -->
+<meta name="facebook-domain-verification" content="rizb5wva3cm5wewj461imk6i8g6pmv">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Out in Simcoe">
+<meta property="article:publisher" content="https://www.facebook.com/OutInSimcoe/">
+<meta property="fb:pages" content="1312882425245299">
+<meta property="fb:app_id" content="1400817094828583">
 <meta property="og:locale" content="en_CA">
 <meta property="og:url" content="__ORIGIN__/">
 <meta property="og:title" content="Out in Simcoe — free things to do across Simcoe County">

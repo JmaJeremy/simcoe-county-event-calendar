@@ -409,13 +409,29 @@ when it breaks, so nothing here is checked by eye.
   in. `ADMIN_ADDRESS` in `worker.ts` belongs in mail headers only. `test/no-email.test.ts`
   scans every served file and the worker's replies for anything email-shaped — including
   an example address in a comment.
-- **Messenger is in the share dialog but only on touch devices.** Facebook's Send Dialog
-  needs a registered app id, so the only unauthenticated route is the `fb-messenger://`
-  deep link, which nothing on a desktop can open. `share.js` builds the button and hides it
-  unless `(pointer: coarse)` matches, rather than showing one that silently does nothing;
-  `.share-targets` is an auto-fit grid for the same reason, since the count changes. If an
-  app id ever exists (see the Facebook page ticket), the Send Dialog would work everywhere
-  and the gate could go.
+- **No share URL can tag the Facebook Page, and nothing should pretend otherwise.**
+  `sharer.php` honours only its `u` parameter — `quote` and `hashtag` stopped working — and
+  a Page tag in a post can only be typed by the person posting. What the site can do is
+  claim the link: `article:publisher` names the Page (`FACEBOOK_PAGE` in `html.ts`, repeated
+  in `index.html`'s own head), and the share dialog carries a plain "Follow Out in Simcoe on
+  Facebook" link. `fb:pages` carries the numeric Page id (`FACEBOOK_PAGE_ID`), which is
+  public — it is on the Page's transparency panel — and is not the poster's `META_PAGE_TOKEN`.
+  Attribution only takes full effect once outinsimcoe.ca is verified in Meta Business Suite.
+  `fb:app_id` carries the app id, which is public for the same reason.
+  An **App ID is public** and belongs in the client; an app secret or access token is
+  neither and must never reach `share.js` or any other served file.
+- **Messenger goes two ways, and the plain Facebook button goes neither.** A touch device
+  gets the `fb-messenger://` deep link, which hands off to the app and needs no app id; a
+  desktop gets the Send Dialog, which does (`FB_APP_ID` in `share.js`, public). The deep
+  link keeps its lack of a `target`, or the app takes over and leaves a blank tab behind.
+  The Send Dialog needs `redirect_uri`, and Facebook checks it against the app's allowed
+  domains, so it is built from the **canonical** origin and never from whatever host
+  answered — the workers.dev fallback serves the identical site and is deliberately not on
+  that list. Two things live in the Meta dashboard, not here: `outinsimcoe.ca` among the
+  app's domains, and the app in **Live** mode, or the dialog only opens for app roles.
+  The main Facebook button stays on `sharer.php` on purpose: no app, no configuration, no
+  review, so it cannot break. `.share-targets` is an auto-fit grid because the count
+  changes with the device.
 - **Never give an element the id `turnstile`.** An id becomes a global of the same name,
   so `window.turnstile` was the widget's own `<div>`: Turnstile warned "already has been
   loaded" and `render` was "not a function", and no widget ever appeared.
