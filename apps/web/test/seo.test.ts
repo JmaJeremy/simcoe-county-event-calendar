@@ -336,3 +336,26 @@ describe('the shell', () => {
     expect(body).toContain('href="/place/wasaga-beach"')
   })
 })
+
+describe('share card dimensions', () => {
+  const meta = (html: string, prop: string) =>
+    html.match(new RegExp(`<meta property="${prop}" content="([^"]*)"`))?.[1]
+
+  it('declares the size of our own card, so a first share shows it rather than a bare link', async () => {
+    const html = await (await get('/e/tay7')).text()
+    expect(meta(html, "og:image")).toBe(`https://${APEX}/og.png`)
+    expect(meta(html, 'og:image:width')).toBe('1200')
+    expect(meta(html, 'og:image:height')).toBe('630')
+    expect(meta(html, 'og:image:alt')).toContain('Out in Simcoe')
+  })
+
+  it('states no size for a source’s poster, whose dimensions nothing here knows', async () => {
+    const env = stubEnv({
+      'FROM events e LEFT JOIN municipalities': [{ ...EVENT_ROW, image_url: 'https://cdn.example.org/poster.jpg' }],
+    })
+    const html = await (await get('/e/tay7', APEX, env)).text()
+    expect(meta(html, 'og:image')).toBe('https://cdn.example.org/poster.jpg')
+    expect(meta(html, 'og:image:width')).toBeUndefined()
+    expect(meta(html, 'og:image:height')).toBeUndefined()
+  })
+})
