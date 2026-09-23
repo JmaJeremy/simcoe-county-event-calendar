@@ -360,13 +360,30 @@ describe('share card dimensions', () => {
     expect(meta(html, 'og:image:height')).toBe('1200')
   })
 
-  it('states no size for a poster nothing has measured yet', async () => {
+  const posterPage = async (sizes: unknown[]) => {
     const env = stubEnv({
       'FROM events e LEFT JOIN municipalities': [{ ...EVENT_ROW, image_url: 'https://cdn.example.org/poster.jpg' }],
+      ...(sizes.length ? { 'FROM image_sizes': sizes } : {}),
     })
-    const html = await (await get('/e/tay7', APEX, env)).text()
-    expect(meta(html, 'og:image')).toBe('https://cdn.example.org/poster.jpg')
-    expect(meta(html, 'og:image:width')).toBeUndefined()
-    expect(meta(html, 'og:image:height')).toBeUndefined()
+    return (await get('/e/tay7', APEX, env)).text()
+  }
+
+  it('takes our own card when the poster is too small for a wide one', async () => {
+    // 300x214: Facebook would draw a small square thumbnail, or nothing under 200px.
+    const html = await posterPage([{ width: 300, height: 214 }])
+    expect(meta(html, 'og:image')).toBe(`https://${APEX}/og.png`)
+    expect(meta(html, 'og:image:width')).toBe('1200')
+  })
+
+  it('takes our own card while a poster is still unmeasured', async () => {
+    // A card that certainly draws beats a poster that may draw nothing on a first share.
+    const html = await posterPage([])
+    expect(meta(html, 'og:image')).toBe(`https://${APEX}/og.png`)
+  })
+
+  it('always asks for a wide card, never the small square', async () => {
+    const html = await posterPage([{ width: 1200, height: 900 }])
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image">')
+    expect(html).not.toContain('content="summary"')
   })
 })

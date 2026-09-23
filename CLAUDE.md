@@ -341,7 +341,9 @@ when it breaks, so nothing here is checked by eye.
 - **A source's poster is measured once, and keyed on its URL.** `image_sizes` (migration
   0012) holds a poster's pixel size; `measureImageSizes` fills it after dedup, a few a run,
   by reading only the first 64KB — every format states its size in a header, so a ranged
-  request is enough. Keyed on the URL because a poster is shared: 1,961 upcoming events
+  request is enough. It skips what `shareablePoster` rejects, the one copy of the govStack
+  host rule that core now holds for both apps: 208 of the first 1,009 rows measured were
+  posters nothing could ever share. Keyed on the URL because a poster is shared: 1,961 upcoming events
   carried 694 distinct images when this was written, and Barrie library's 598 listings use
   46 between them. A row with NULL width means "read, and it did not say" (an SVG, a 404, a
   JPEG whose frame header sat past the range) — it exists so the pass does not retry that
@@ -360,6 +362,16 @@ when it breaks, so nothing here is checked by eye.
   numbers, so a guessed one is worse than none. `index.html` carries its own copy, as it
   does for every og tag. Change `brand.ts`'s canvas, change `SHARE_IMAGE`. A URL Facebook
   has already scraped keeps its old card until the Sharing Debugger re-scrapes it.
+- **A poster is the share image only when it is big enough to be one.** `shareCard` in
+  `pages.ts`: a measured poster of at least 600x315 travels with the link, and everything
+  else takes the site's own 1200x630 card. Below that floor Facebook draws a small square
+  thumbnail beside the text, and below 200px it drops the picture altogether — so for those
+  the card says less but shows up. Measured on the live site (2026-09-22): of 2,012 upcoming
+  events with a usable poster, 1,317 clear the bar, 599 would be a thumbnail, 96 nothing.
+  An **unmeasured** poster takes the card too, the same trade a beat later — the pass reads
+  it within a run or two. Every card the site emits is therefore wide, and `twitterCard` is
+  always `summary_large_image`; the old `summary` case is gone. The event page itself always
+  shows the poster, whatever travels with the link.
 - **A govStack poster cannot be a share image.** Those hosts 403 anything that is not a
   browser, crawlers included, so `shareableImage` in the web worker keeps them out of
   `og:image` while the page still shows them to visitors.
