@@ -95,9 +95,17 @@ const FREE_ADMISSION =
   /\b(free admission|admission is free|free of charge|free to attend|free event|free program|free drop-?in|no charge|no cost|no fee|free entry|entry is free|pwyc|pay what you can|by donation|donations? (are )?(welcome|appreciated|accepted|gratefully)|free will offering|complimentary)\b/i
 /** Just the word, anywhere: believable, but not on its own for a long page of text. */
 const FREE_WORD = /\bfree\b/i
-/** Money is being asked for, without a number attached. */
+/**
+ * Money is being asked for, without a number attached.
+ *
+ * Negations are excluded, because they say the opposite in the same words. Bradford
+ * Greenhouses' holiday market ends "No Ticket Required!" and was read as ticketed, which
+ * put a free market behind the "Paid only" filter — the failure this file guards against
+ * hardest, since a free event wrongly marked paid vanishes from the view almost everyone
+ * uses. "No" and "not" are the only negations that turned up in 5,300 live listings.
+ */
 const PAID_PHRASE =
-  /\b(tickets? (are )?(required|available|on sale)|registration fee|admission fee|cover charge|paid admission|purchase tickets?|buy tickets?)\b/i
+  /(?<!\b(no|not)\s)\b(tickets? (are )?(required|available|on sale)|registration fee|admission fee|cover charge|paid admission|purchase tickets?|buy tickets?)\b/i
 /** "free" inside a phrase that is not about cost. */
 const FREE_FALSE_FRIENDS = /\b(free parking|scent[- ]free|nut[- ]free|smoke[- ]free|barrier[- ]free|gluten[- ]free|hands[- ]free|free play|freestyle|free-?style|free the|duty[- ]free|free[- ]range|free[- ]standing|free[- ]roam|free wi-?fi|free refreshments|free coffee|free popcorn)\b/gi
 const stripFalseFriends = (text: string): string => text.replace(FREE_FALSE_FRIENDS, ' ')

@@ -49,6 +49,22 @@ describe('classifyCost', () => {
   })
 })
 
+describe('classifyCost: a negation says the opposite in the same words', () => {
+  it('does not price an event that says no ticket is required', () => {
+    // Bradford Greenhouses' holiday market ends "No Ticket Required!", and reading that as
+    // ticketed put a free market behind the "Paid only" filter.
+    expect(classifyCost({ description: 'Immerse yourself in the magic of the season. No Ticket Required!' })).not.toBe('paid')
+    expect(classifyCost({ description: 'No tickets required for this one.' })).not.toBe('paid')
+  })
+
+  it('still prices one that says a ticket IS required', () => {
+    expect(classifyCost({ description: 'Tickets required.' })).toBe('paid')
+    expect(classifyCost({ description: 'Tickets are required for entry.' })).toBe('paid')
+    expect(classifyCost({ description: 'Purchase tickets at the door.' })).toBe('paid')
+    expect(classifyCost({ description: 'An admission fee applies.' })).toBe('paid')
+  })
+})
+
 describe('assessCost: what is strong evidence and what is a guess', () => {
   it('will not read a fundraising total as an admission price', () => {
     // The event that exposed this: a giving circle whose page says the chapter expects to
