@@ -24,6 +24,7 @@ node --experimental-strip-types apps/ingest/src/cli.ts [--source <slug>] [--plat
 
 # Full pipeline against a LOCAL D1 (ingest + dedup), then the site on top of it
 npx wrangler d1 migrations apply scec --local --config apps/ingest/wrangler.jsonc
+npx wrangler d1 migrations apply scec-accounts --local --config apps/web/wrangler.jsonc   # account DB (see below)
 npx wrangler dev --config apps/ingest/wrangler.jsonc --port 8787 --var INGEST_TOKEN:dev
 curl -X POST 'http://localhost:8787/run?token=dev'                 # add &source=<slug> or &dedup=0
 npx wrangler dev --config apps/web/wrangler.jsonc --port 8788 --persist-to apps/ingest/.wrangler/state
@@ -123,6 +124,20 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   enables it (the `prepare` script sets `core.hooksPath`). It fails closed if gitleaks is not
   installed (`brew install gitleaks`). `.gitleaks.toml` allowlists three public identifiers
   the generic-api-key rule mistakes for secrets — keep that list short and specific.
+
+- **Account data lives in its own database, and the split is load-bearing.**
+  `scec-accounts` (id `6e341ad6-ad42-4957-9756-563490fdc33f`) holds everything personal;
+  `scec` keeps the public calendar and gains nothing. The web worker binds both (`DB` and
+  `ACCOUNTS`); **the ingest worker binds only `DB`, ever** — it parses hostile HTML from 40
+  sites, and the binding it does not have is the guarantee. Consequences that will bite:
+  **no cross-database joins** (reads needing both do two queries and join in the worker,
+  with `IN` lists chunked against D1's parameter limit — a reader with two hundred pins
+  must not be the first to find out), **no cross-database transactions** (`batch()` is
+  per-database; no write spans both by design), and **two migration authorities** —
+  `apps/web/migrations/` owns `scec-accounts`, `apps/ingest/migrations/` owns `scec`, and
+  deploy applies both before deploying either worker. The test stub for it throws on an
+  unstubbed `ACCOUNTS` query instead of answering empty, so a query sent to the wrong
+  database fails a test instead of passing one. Design: `docs/user-accounts.md` (SCEC-102).
 
 ## Search
 

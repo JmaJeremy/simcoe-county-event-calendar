@@ -48,7 +48,7 @@ const EVENT_ROW = {
 }
 
 /** Answers whichever of the worker's queries it recognises, by a phrase unique to each. */
-function stubEnv(overrides: Record<string, unknown[]> = {}): Env {
+function stubEnv(overrides: Record<string, unknown[]> = {}, accounts: Record<string, unknown[]> = {}): Env {
   const answer = (raw: string): unknown[] => {
     // Queries are written across lines; match on their words, not their layout.
     const sql = raw.replace(/\s+/g, ' ')
@@ -67,8 +67,26 @@ function stubEnv(overrides: Record<string, unknown[]> = {}): Env {
     first: async () => (answer(sql)[0] ?? null) as any,
     run: async () => ({}),
   })
+  // The account database is a separate stub with the opposite default: an unrecognised
+  // query THROWS rather than answering empty. A test that accidentally sent an accounts
+  // query to the events stub — or the reverse — would silently pass, hiding exactly the
+  // class of bug the two-database split exists to prevent.
+  const accountsAnswer = (raw: string): unknown[] => {
+    const sql = raw.replace(/\s+/g, ' ')
+    for (const [needle, rows] of Object.entries(accounts)) {
+      if (sql.includes(needle)) return rows
+    }
+    throw new Error(`stubEnv: unstubbed ACCOUNTS query: ${sql.slice(0, 120)}`)
+  }
+  const accountsStatement = (sql: string) => ({
+    bind: () => accountsStatement(sql),
+    all: async () => ({ results: accountsAnswer(sql) as any[] }),
+    first: async () => (accountsAnswer(sql)[0] ?? null) as any,
+    run: async () => ({ meta: { changes: accountsAnswer(sql).length } }),
+  })
   return {
     DB: { prepare: (sql: string) => statement(sql) as any },
+    ACCOUNTS: { prepare: (sql: string) => accountsStatement(sql) as any },
     ASSETS: {
       fetch: async () =>
         new Response('<html>__ORIGIN__ __PLACE_LINKS__</html>', { headers: { 'Content-Type': 'text/html' } }),
