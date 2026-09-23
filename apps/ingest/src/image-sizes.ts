@@ -1,4 +1,4 @@
-import { imageSize } from '@scec/core'
+import { imageSize, shareablePoster } from '@scec/core'
 import { runBatched, type D1Like } from './repository.ts'
 
 /**
@@ -65,9 +65,11 @@ export async function measureImageSizes(db: D1Like, options: ImageSizeOptions = 
   const { budget = 60, concurrency = 4, now = new Date().toISOString(), fetchImpl = fetch } = options
   const stats: ImageSizeStats = { measured: 0, unreadable: 0, remaining: 0 }
 
-  const urls = await unmeasured(db, budget + 1)
-  stats.remaining = Math.max(0, urls.length - budget)
-  const todo = urls.slice(0, budget)
+  // Ask for more than the budget, because the host rule below throws some away: a poster
+  // on a govStack calendar can never be a share image, so measuring it is a wasted fetch.
+  const candidates = (await unmeasured(db, (budget + 1) * 3)).filter(shareablePoster)
+  stats.remaining = Math.max(0, candidates.length - budget)
+  const todo = candidates.slice(0, budget)
   if (todo.length === 0) return stats
 
   const rows: Array<{ url: string; size: { width: number; height: number } | null }> = []

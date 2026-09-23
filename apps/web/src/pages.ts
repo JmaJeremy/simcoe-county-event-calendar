@@ -1,4 +1,4 @@
-import { MANUAL_SOURCE_SLUG, sourceBySlug, type Municipality } from '@scec/core'
+import { LARGE_CARD, MANUAL_SOURCE_SLUG, shareablePoster, sourceBySlug, type Municipality } from '@scec/core'
 import type { PublicEvent } from './query.ts'
 import {
   FOOTER_NOTES,
@@ -36,10 +36,32 @@ export const placeUrl = (origin: string, slug: string): string => `${origin}/pla
  * not at all for Facebook or Slack, which would turn every share of those events into a
  * broken image. They keep the poster on the page and the site's own card in the preview.
  */
-export const shareableImage = (event: PublicEvent): string | null => {
-  if (!event.imageUrl) return null
-  const host = URL.parse?.(event.imageUrl)?.hostname ?? ''
-  return /^(calendar|events)\./i.test(host) ? null : event.imageUrl
+export const shareableImage = (event: PublicEvent): string | null =>
+  shareablePoster(event.imageUrl) ? event.imageUrl : null
+
+/**
+ * Which picture a share of this event carries, now that a poster's size is known.
+ *
+ * A poster is the better picture when it is big enough to be one. Below Facebook's
+ * 600x315 it is drawn as a small square thumbnail beside the text, and below 200px it is
+ * dropped and the story carries no picture at all — so for those the site's own 1200x630
+ * card is the better share, even though it says less. Measured on the live site: of 2,012
+ * upcoming events with a usable poster, 1,317 clear the bar, 599 would be a thumbnail and
+ * 96 would show nothing.
+ *
+ * An unmeasured poster takes the card too. It is the same trade a beat later: the pass
+ * measures it within a run or two, and until then a card that certainly draws beats a
+ * poster that might not draw at all on the first share. The event page itself always shows
+ * the poster; this is only what travels with the link.
+ */
+export function shareCard(
+  event: PublicEvent,
+  size?: { width: number; height: number },
+): { image?: string; imageSize?: { width: number; height: number } } {
+  const poster = shareableImage(event)
+  if (!poster || !size) return {}
+  const large = size.width >= LARGE_CARD.width && size.height >= LARGE_CARD.height
+  return large ? { image: poster, imageSize: size } : {}
 }
 
 /**
@@ -186,9 +208,10 @@ ${renderHead(
     title,
     description,
     canonical,
-    image: shareableImage(event) ?? undefined,
-    twitterCard: shareableImage(event) ? 'summary' : 'summary_large_image',
-    ...(imageSize ? { imageSize } : {}),
+    ...shareCard(event, imageSize),
+    // Every card the site now emits is a wide one: either a poster that cleared the bar
+    // or our own 1200x630, never the small square that an undersized poster would draw.
+    twitterCard: 'summary_large_image',
     ...(feed ? { feed } : {}),
     jsonLd: [eventJsonLd(event, canonical), crumbs.jsonLd],
     extraHead: '<script type="module" src="/share.js"></script>',

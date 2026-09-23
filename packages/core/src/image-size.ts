@@ -88,3 +88,25 @@ export function imageSize(bytes: Uint8Array): ImageSize | null {
   const sane = (n: number) => Number.isInteger(n) && n > 0 && n <= 65535
   return sane(size.width) && sane(size.height) ? size : null
 }
+
+/**
+ * Facebook's floor for a wide card. Below it the story gets a small square thumbnail, and
+ * below 200px in either direction it gets no picture at all.
+ */
+export const LARGE_CARD = { width: 600, height: 315 }
+
+/**
+ * Whether a poster can be a share image at all, judged by its host.
+ *
+ * govStack calendars sit behind a WAF that answers 403 to anything that does not look like
+ * a browser, share crawlers included: the poster renders perfectly for a visitor and not at
+ * all for Facebook or Slack, which would turn every share of those events into a broken
+ * image. Shared by the web worker, which keeps them out of `og:image`, and by the ingest
+ * pass, which would otherwise spend a fetch measuring a poster nothing can ever share —
+ * 208 of the first 1,009 rows measured were exactly that.
+ */
+export function shareablePoster(imageUrl: string | null | undefined): boolean {
+  if (!imageUrl) return false
+  const host = URL.parse?.(imageUrl)?.hostname ?? ''
+  return !/^(calendar|events)\./i.test(host)
+}

@@ -12,7 +12,7 @@
  * the deploy does. Re-running is safe: it only asks for URLs `image_sizes` has no row for.
  */
 import { execFileSync } from 'node:child_process'
-import { imageSize } from '../../../packages/core/src/image-size.ts'
+import { imageSize, shareablePoster } from '../../../packages/core/src/image-size.ts'
 
 const REMOTE = process.argv.includes('--local') ? '--local' : '--remote'
 const DRY = process.argv.includes('--dry-run')
@@ -47,7 +47,7 @@ const urls = d1(`
     FROM events e LEFT JOIN image_sizes s ON s.url = e.image_url
    WHERE e.active = 1 AND e.image_url IS NOT NULL AND e.image_url != '' AND s.url IS NULL
    GROUP BY e.image_url ORDER BY n DESC
-`).map((r) => String(r.url))
+`).map((r) => String(r.url)).filter(shareablePoster)
 
 console.log(`${urls.length} posters with no size on record.`)
 if (DRY || urls.length === 0) process.exit(0)
