@@ -32,7 +32,7 @@ node --experimental-strip-types apps/web/scripts/brand.ts          # re-render i
 node --experimental-strip-types apps/web/scripts/social-cards.ts   # re-render the Instagram cards
 ```
 
-A full run takes ~2 min and ~660 HTTP requests: 39/39 sources for ~5,300 listings (Eventbrite
+A full run takes ~2 min and ~660 HTTP requests: 40/40 sources for ~5,300 listings (Eventbrite
 alone is 13 slow requests, ~25 s; Barrie's 823 library events are one request), then up to 300
 event pages read for price and posters, then the unclear listings that mention a sum sent to the cost judge (a few a run, capped at 200),
 then dedup over ~9,000 pairs into ~4,650 events. **The subrequest ceiling is 10,000 per
@@ -64,7 +64,7 @@ still unclear on price (`cost.ts`), then cluster (`dedup.ts`). The order is load
 dedup rewrites every event from its representative listing, so anything the middle two
 passes learn reaches the site in the same run instead of two hours later.
 
-**Adapters are per platform, sources are per site.** Fifteen adapters cover 39 sources; adding a
+**Adapters are per platform, sources are per site.** Sixteen adapters cover 40 enabled sources; adding a
 site on a supported platform is a row in `packages/core/src/sources.ts`. Eventbrite and
 Ticketmaster need credentials, passed to adapters as an `AdapterContext` the worker builds
 from its secrets and the dry-run CLI from the environment (`adapterContextFrom`).
@@ -618,6 +618,25 @@ when it breaks, so nothing here is checked by eye.
   the most fragile source here and throws on a page with no films. Venue, address and
   admission are stated once on the page and live in the source config. A "TBA" film is kept
   as a screening, film to be announced.
+- **A chamber of commerce runs on GrowthZone, and only its APPROVED rows are events.**
+  `growthzone.ts` reads `/api/events` on the `business.` host — ChamberMaster's own XML,
+  one request for the whole calendar, unpublished like Eventbrite's search, so it throws on
+  a shape it does not know. Of the Barrie chamber's 149 records, 137 were `PENDING` and
+  those were three series the platform generates years ahead: 104 copies of one weekly
+  networking night, running to 2028, with no description, location or admission on any of
+  them. The 12 `APPROVED` are the curated ones. A series is already expanded, one `EventID`
+  per occurrence, so `Recurrence` never needs expanding. `EventID` is the identity; the
+  slug carries the date. The `URL` field is the organiser's own site, not the event's page,
+  which is `/events/details/{Slug}-{EventID}`. `ContactEmail` is a real person's address
+  and is never read. The source claims no municipality: half its approved events are at a
+  greenhouse in Springwater, and the Santa Claus Parade is placed only by its title.
+- **An admission is what it costs to attend, not to take part.** The Barrie Santa Claus
+  Parade's `AdmissionDesc` reads "FLOAT ENTRIES are: $250 Non-Member, commercial
+  businesses" — the fee to put a float in it. Watching is free, and taken at face value
+  that marks the biggest free event of Barrie's year as paid, which drops it out of the
+  view almost everyone uses. `growthzone.ts` returns no cost text for a vendor's or
+  entrant's fee, and none for "Free to Chamber Members" either, which reads as free and
+  means free for some.
 - **Venues surveyed and left out (2026-09-18):** Casino Rama already arrives through
   Ticketmaster (39 upcoming); Five Points Theatre sells through Ticketpro, which sits behind
   Cloudflare's bot challenge, and its shows reach us via the City and Tourism Barrie; Theatre

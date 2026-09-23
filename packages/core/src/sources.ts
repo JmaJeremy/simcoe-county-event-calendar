@@ -334,6 +334,21 @@ export const SOURCES: Source[] = [
     homepage: 'https://www.tourismbarrie.com/festivals-events',
   }),
 
+  row({
+    // ChamberMaster's own XML, one request for the whole calendar. Only the APPROVED rows
+    // are real events — the PENDING ones are three series auto-generated to 2028, 104 of
+    // them one weekly networking night — which leaves the curated dozen: the Santa Claus
+    // Parade, Pet Palooza, the Women's Show. Regional despite the name: half of those are
+    // Bradford Greenhouses in Springwater, so the source claims no town and each event is
+    // placed on its own address.
+    slug: 'barrie-chamber',
+    name: 'Barrie Chamber of Commerce',
+    kind: 'organization',
+    municipalitySlug: null,
+    config: { platform: 'growthzone', origin: 'https://business.barriechamber.com' },
+    homepage: 'https://business.barriechamber.com/events/calendar/',
+  }),
+
   // ---- Local media: Barrie 360 --------------------------------------------------------
   row({
     // The Events Calendar's REST API: 336 events in the next six months (2026-09-18),

@@ -10,6 +10,7 @@ import { fetchGovstack, fetchGovstackDetail } from './govstack.ts'
 import { fetchIcs } from './ics.ts'
 import { fetchLibcal } from './libcal.ts'
 import { fetchFilmNights } from './mat-film-nights.ts'
+import { fetchGrowthZone } from './growthzone.ts'
 import { fetchSitefinity } from './sitefinity.ts'
 import { fetchTicketmaster } from './ticketmaster.ts'
 import { fetchTixhub } from './tixhub.ts'
@@ -33,6 +34,7 @@ export const ADAPTERS: Partial<Record<Platform, Adapter>> = {
   libcal: fetchLibcal,
   ics: fetchIcs,
   sitefinity: fetchSitefinity,
+  growthzone: fetchGrowthZone,
   tixhub: fetchTixhub,
   'mat-film-nights': fetchFilmNights,
   cfmws: fetchCfmws,
@@ -71,6 +73,7 @@ export * from './ical-read.ts'
 export * from './ics.ts'
 export * from './libcal.ts'
 export * from './mat-film-nights.ts'
+export * from './growthzone.ts'
 export * from './sitefinity.ts'
 export * from './ticketmaster.ts'
 export * from './tixhub.ts'
