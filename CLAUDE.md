@@ -103,6 +103,18 @@ done
 curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TOKEN"
 ```
 
+- **Dev first, live second.** `scec-web-dev` (`wrangler deploy --config apps/web/wrangler.jsonc
+  --env dev`) is a staging copy on workers.dev for trying account changes before they merge:
+  `DB` points at the **production** events database (read-mostly; dev is only useful against
+  real data), `ACCOUNTS` at its own `scec-accounts-dev`
+  (`706e2df6-bdbb-4b46-9952-65a4f76d1c88`), POSTERS deliberately unbound so a dev
+  suggestion cannot write into the production bucket. Bindings are not inherited into a
+  wrangler env, so the block restates them; secrets are per-env (`wrangler secret put NAME
+  --env dev`). Its `CANONICAL_HOST` is its own workers.dev host, so account cookies work
+  there without touching the apex. The Turnstile widget's domain list names hosts one by
+  one — `scec-web-dev...` had to be added before the widget would render there (done
+  2026-09-24, via `PUT /accounts/{id}/challenges/widgets/{sitekey}`); a future environment
+  needs the same, or the sign-up form loads with no check and refuses everything.
 - Site: https://outinsimcoe.ca (Worker `scec-web`; `scec-web.thejeremy-net.workers.dev`
   still answers as a fallback). `outinsimcoe.ca` and `www.outinsimcoe.ca` are custom
   domains on the worker; `CANONICAL_HOST` in `wrangler.jsonc` names the apex, which makes
@@ -439,6 +451,26 @@ when it breaks, so nothing here is checked by eye.
   `describeWhen` writes "September 5, 2026 to October 31, 2026, 9:00 a.m. to 5:00 p.m."
   rather than dropping the end date as it used to. The two are separate copies of the same
   rule, `app.js` and `pages.ts`, as `UNPLACED` is — change one, change the other.
+- **Everything under `/account` is the auth surface**, dispatched to `apps/web/src/auth/`
+  before any other route: server-rendered forms, POST then 303, `no-store`, noindex, CSP
+  `form-action 'self'`. It lives on the canonical host only — any other host 302s there —
+  because the site answers on three hosts and a cookie set on the fallback is a different
+  cookie jar. The session cookie is `__Host-session`: browser-enforced Secure/Path=/ and
+  no Domain. Sessions are opaque 256-bit tokens stored as SHA-256 hashes, idle out after
+  30 days, die at 180 regardless, and CSRF is SameSite=Lax plus the same-origin write
+  check copied from `access.ts`. **Without `PASSWORD_PEPPER` every account route answers
+  503**: a sign-in that quietly hashed without it would strand each password the moment it
+  was set. The pepper is HMAC'd over the password before PBKDF2 (600k iterations, 67ms
+  measured locally — re-measure deployed) and lives in no database, which is what makes
+  Worker-budget iteration counts survivable; rotating it invalidates every password at a
+  stroke. Turnstile guards sign-up and reset with action `account` — and deliberately NOT
+  sign-in, which must work with JavaScript off; the `auth_attempts` limiter (per IP AND
+  per account) covers stuffing. Responses never say whether an address has an account:
+  the mail says, to the address itself, and a missing account burns a dummy hash so the
+  timing does not say either. Verification and reset links are single-use hashed tokens
+  (24h / 1h); a reset also proves the mailbox, so it verifies an unverified address and
+  signs out every device. `no-email.test.ts` now scans all of `apps/web/src/**`; the one
+  address literal allowed anywhere is `ADMIN_ADDRESS`'s definition in `mail.ts`.
 - **Suggestions are stored before they are mailed.** `POST /api/suggest` validates
   (`src/suggest.ts`), inserts into `suggestions`, then sends two emails through the `EMAIL`
   binding (Cloudflare Email Service), recording each outcome on the row. A mail failure

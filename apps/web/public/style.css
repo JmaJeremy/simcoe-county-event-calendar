@@ -723,6 +723,8 @@ footer a { color: var(--ink-2); }
 .form-hint { margin: -4px 0 16px; color: var(--ink-3); font-size: 13px; }
 .field-hint { color: var(--ink-3); font-size: 13px; }
 .form-field input[type="file"] { padding: 7px 9px; cursor: pointer; }
+.account-form { max-width: 420px; }
+.account-links { margin-top: 16px; color: var(--ink-2); font-size: 14px; }
 /* Reserves the widget's height so the button does not jump when it appears. */
 .turnstile-widget { margin: 0 0 14px; min-height: 65px; }
 .form-error { margin: 0 0 12px; padding: 10px 13px; border-radius: 10px; background: var(--stop-bg); color: var(--stop); font-weight: 700; }

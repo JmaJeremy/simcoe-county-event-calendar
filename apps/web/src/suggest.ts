@@ -209,7 +209,7 @@ const TRY_AGAIN = 'The check that keeps bots out did not pass. Please try sendin
 
 export async function verifyTurnstile(
   token: unknown,
-  options: { secret: string; remoteip?: string | null; hostname: string },
+  options: { secret: string; remoteip?: string | null; hostname: string; action?: string },
   fetchImpl: FetchLike = fetch,
 ): Promise<TurnstileResult> {
   if (typeof token !== 'string' || !token) {
@@ -253,7 +253,7 @@ export async function verifyTurnstile(
   }
   // A token is only proof for the widget and page it was issued on. Without these, one
   // solved on another site sharing the key — or for another action — would do here too.
-  if (outcome.action !== TURNSTILE_ACTION) return { ok: false, status: 403, error: TRY_AGAIN, codes: ['action-mismatch'] }
+  if (outcome.action !== (options.action ?? TURNSTILE_ACTION)) return { ok: false, status: 403, error: TRY_AGAIN, codes: ['action-mismatch'] }
   if (outcome.hostname !== options.hostname) return { ok: false, status: 403, error: TRY_AGAIN, codes: ['hostname-mismatch'] }
   return { ok: true }
 }

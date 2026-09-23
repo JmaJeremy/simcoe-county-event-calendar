@@ -47,3 +47,34 @@ describe('worker responses', () => {
     expect(replies.filter((line) => line.includes('ADMIN_ADDRESS') || email.test(line))).toEqual([])
   })
 })
+
+describe('worker source', () => {
+  /**
+   * Every server-rendered surface, not only worker.ts: the account pages made src/ a
+   * place served text is written, so the whole tree is scanned. The one address allowed
+   * anywhere is ADMIN_ADDRESS's own definition in mail.ts — it belongs in mail headers,
+   * and anything else email-shaped in src is on its way into a page or a reply.
+   */
+  const SRC = new URL('../src/', import.meta.url)
+  const walk = (dir: URL): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory() ? walk(new URL(`${entry.name}/`, dir)) : entry.name.endsWith('.ts') ? [new URL(entry.name, dir).pathname] : [],
+    )
+
+  it('covers the whole tree, including the auth pages', () => {
+    const files = walk(SRC).map((p) => p.split('/src/')[1])
+    expect(files).toEqual(expect.arrayContaining(['worker.ts', 'mail.ts', 'auth/routes.ts', 'auth/pages.ts']))
+  })
+
+  for (const path of walk(SRC)) {
+    const short = path.split('/src/')[1]!
+    it(`${short} carries no email address beyond ADMIN_ADDRESS's definition`, () => {
+      const lines = decode(readFileSync(path, 'utf8')).split('\n')
+      const email = new RegExp(EMAIL.source, 'i')
+      const offending = lines.filter(
+        (line) => email.test(line) && !(short === 'mail.ts' && line.includes("export const ADMIN_ADDRESS")),
+      )
+      expect(offending).toEqual([])
+    })
+  }
+})

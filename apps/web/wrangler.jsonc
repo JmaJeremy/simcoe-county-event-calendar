@@ -35,6 +35,49 @@
   // inbox, one thanking the suggester. The domain is onboarded to Email Sending, which
   // is what lets the second one go to an address outside the account.
   "send_email": [{ "name": "EMAIL" }],
+  // A staging copy of this worker on workers.dev, for trying account changes against real
+  // events before they reach the live site: `wrangler deploy --env dev`. Bindings are not
+  // inherited into an env, so everything is restated. DB deliberately points at the
+  // PRODUCTION events database — read-mostly, and dev is only useful against real data —
+  // while ACCOUNTS points at its own scec-accounts-dev, so test users never touch the real
+  // account store. POSTERS is left unbound on purpose: a dev suggestion cannot write into
+  // the production bucket. Its secrets (PASSWORD_PEPPER, TURNSTILE_SECRET_KEY) are set per
+  // env: `wrangler secret put NAME --env dev`.
+  "env": {
+    "dev": {
+      "name": "scec-web-dev",
+      // Explicitly NO routes. Environments INHERIT top-level routes unless overridden,
+      // and on 2026-09-24 this env, deployed without the override under CI=true, answered
+      // the takeover prompt itself and took outinsimcoe.ca's custom domains with it —
+      // the dev worker served the live site until production was redeployed. The empty
+      // array is what stops the inheritance; never remove it.
+      "routes": [],
+      "workers_dev": true,
+      "vars": {
+        "CANONICAL_HOST": "scec-web-dev.thejeremy-net.workers.dev",
+        "CONSOLE_ORIGIN": "https://console.outinsimcoe.ca"
+      },
+      "assets": {
+        "directory": "./public",
+        "binding": "ASSETS",
+        "run_worker_first": ["/", "/index.html"]
+      },
+      "send_email": [{ "name": "EMAIL" }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "scec",
+          "database_id": "2a5bb740-6719-4498-9c0d-4f8eb7b601b9"
+        },
+        {
+          "binding": "ACCOUNTS",
+          "database_name": "scec-accounts-dev",
+          "database_id": "706e2df6-bdbb-4b46-9952-65a4f76d1c88",
+          "migrations_dir": "./migrations"
+        }
+      ]
+    }
+  },
   "d1_databases": [
     {
       "binding": "DB",
