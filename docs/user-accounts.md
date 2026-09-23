@@ -1,5 +1,8 @@
 # User accounts and personal calendars
 
+**Tracked as SCEC-102**, one story per step of the build order below (SCEC-103 through
+SCEC-109); the keys are in `docs/jira-keys.json`.
+
 A design for letting a reader keep their own calendar on Out in Simcoe: sign in, pin
 events, subscribe to standing criteria, take the result away as an `.ics` feed, optionally
 publish it at a shareable link, and optionally get it by email once a day or once a week.
@@ -312,7 +315,8 @@ Most runs will find nobody and do nothing.
 ### Two ceilings, not one
 
 Each message is a subrequest, and the digest cron is its own invocation on its own worker,
-so it never shares the ingest run's ~660 of the 1,000-subrequest budget.
+so it never shares the ingest run's budget — which since 2026-02-11 is 10,000 per
+invocation in any case, with every D1 call counting toward it (see CLAUDE.md).
 
 The other ceiling is the binding's: **1,000 messages a day, account-wide**. That is
 comfortable at current volume, but the suggestion thank-you and the acceptance email draw on
