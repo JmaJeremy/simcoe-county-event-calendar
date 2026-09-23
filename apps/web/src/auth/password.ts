@@ -17,9 +17,11 @@
 
 /**
  * OWASP's 2023 floor for PBKDF2-HMAC-SHA256. Locally (Node webcrypto, M-series) one
- * derivation measures 67ms; measure on the deployed Worker after SCEC-104 ships and
- * record the number here. If it does not fit comfortably, lower it deliberately — the
- * pepper is what makes a lower count survivable — never silently.
+ * derivation measures 67ms; deployed on scec-web-dev (2026-09-24) a sign-in attempt that
+ * burns exactly one derivation answers in ~310-360ms against a ~185ms no-hash baseline,
+ * so the derivation itself costs roughly 130-170ms on Cloudflare's metal. Comfortable.
+ * If it ever stops fitting, lower it deliberately — the pepper is what makes a lower
+ * count survivable — never silently.
  */
 export const PBKDF2_ITERATIONS = 600_000
 
