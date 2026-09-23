@@ -111,7 +111,10 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   suggestion cannot write into the production bucket. Bindings are not inherited into a
   wrangler env, so the block restates them; secrets are per-env (`wrangler secret put NAME
   --env dev`). Its `CANONICAL_HOST` is its own workers.dev host, so account cookies work
-  there without touching the apex.
+  there without touching the apex. The Turnstile widget's domain list names hosts one by
+  one — `scec-web-dev...` had to be added before the widget would render there (done
+  2026-09-24, via `PUT /accounts/{id}/challenges/widgets/{sitekey}`); a future environment
+  needs the same, or the sign-up form loads with no check and refuses everything.
 - Site: https://outinsimcoe.ca (Worker `scec-web`; `scec-web.thejeremy-net.workers.dev`
   still answers as a fallback). `outinsimcoe.ca` and `www.outinsimcoe.ca` are custom
   domains on the worker; `CANONICAL_HOST` in `wrangler.jsonc` names the apex, which makes
