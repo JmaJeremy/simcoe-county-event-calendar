@@ -238,8 +238,12 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     }
     const userId = crypto.randomUUID()
     const stamp = now.toISOString()
+    // Hash BEFORE the first insert. When the PBKDF2 ceiling threw, the user row was
+    // already written, and the address was stranded: registered, no password, and a retry
+    // told its owner they already had an account.
+    const encoded = await hashPassword(password, pepper)
     await env.ACCOUNTS.prepare('INSERT INTO users (id, email, created_at, updated_at) VALUES (?, ?, ?, ?)').bind(userId, email, stamp, stamp).run()
-    await env.ACCOUNTS.prepare('INSERT INTO user_passwords (user_id, encoded, changed_at) VALUES (?, ?, ?)').bind(userId, await hashPassword(password, pepper), stamp).run()
+    await env.ACCOUNTS.prepare('INSERT INTO user_passwords (user_id, encoded, changed_at) VALUES (?, ?, ?)').bind(userId, encoded, stamp).run()
     await sendVerification(env, origin, userId, email, now)
     return redirect('/account/check-email')
   }

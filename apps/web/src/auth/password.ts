@@ -16,14 +16,23 @@
  */
 
 /**
- * OWASP's 2023 floor for PBKDF2-HMAC-SHA256. Locally (Node webcrypto, M-series) one
- * derivation measures 67ms; deployed on scec-web-dev (2026-09-24) a sign-in attempt that
- * burns exactly one derivation answers in ~310-360ms against a ~185ms no-hash baseline,
- * so the derivation itself costs roughly 130-170ms on Cloudflare's metal. Comfortable.
- * If it ever stops fitting, lower it deliberately — the pepper is what makes a lower
- * count survivable — never silently.
+ * The PLATFORM's ceiling, not a chosen budget: workerd refuses anything higher with
+ * "Pbkdf2 failed: iteration counts above 100000 are not supported (requested 600000)" —
+ * discovered when the first deployed registration answered error 1101, after every test
+ * had passed, because vitest runs in Node and Node enforces no cap. A test now pins this
+ * constant at or below the cap so it can never drift up again.
+ *
+ * 100k is far below OWASP's 600k floor for PBKDF2-HMAC-SHA256, and that is exactly the
+ * situation the pepper exists for: it is HMAC'd over the password first and stored in no
+ * database, so an attacker holding a dump of scec-accounts still has nothing to grind
+ * against. The iterations only defend the (stolen-pepper) worst case, and the platform
+ * has decided how many we get.
+ *
+ * Deployed, a sign-in burning exactly one derivation answers roughly 120-180ms over a
+ * no-hash baseline (scec-web-dev, 2026-09-24, measured after the cap fix — an earlier
+ * "measurement" in this comment's history was in fact timing the exception).
  */
-export const PBKDF2_ITERATIONS = 600_000
+export const PBKDF2_ITERATIONS = 100_000
 
 const encoder = new TextEncoder()
 

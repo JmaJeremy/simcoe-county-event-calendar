@@ -186,6 +186,13 @@ const sessionCookieOf = (res: Response): string => {
 }
 
 describe('password hashing', () => {
+  it('never asks for more iterations than workerd will run', () => {
+    // These tests run in Node, which happily derives any count; the deployed runtime
+    // refuses anything above 100,000 with a NotSupportedError, which surfaced as error
+    // 1101 on the first real registration. This is the only guard that spans the gap.
+    expect(PBKDF2_ITERATIONS).toBeLessThanOrEqual(100_000)
+  })
+
   it('round-trips, refuses a wrong password and a wrong pepper', async () => {
     const encoded = await hashPassword('open sesame', 'pepper')
     expect(encoded).toMatch(new RegExp(`^pbkdf2\\$sha256\\$${PBKDF2_ITERATIONS}\\$`))
