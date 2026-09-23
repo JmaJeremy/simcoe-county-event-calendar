@@ -44,6 +44,11 @@ export interface Env {
    * set.
    */
   PASSWORD_PEPPER?: string
+  /** Google sign-in, all three or nothing (see auth/routes.ts). The client id is public;
+   * the other two are secrets. */
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  OAUTH_STATE_KEY?: string
   /**
    * Secret for the Turnstile widget on /suggest. Deliberately NOT optional in behaviour:
    * without it the form refuses every suggestion rather than accept them unchecked.

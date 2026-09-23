@@ -471,6 +471,19 @@ when it breaks, so nothing here is checked by eye.
   (24h / 1h); a reset also proves the mailbox, so it verifies an unverified address and
   signs out every device. `no-email.test.ts` now scans all of `apps/web/src/**`; the one
   address literal allowed anywhere is `ADMIN_ADDRESS`'s definition in `mail.ts`.
+- **Google sign-in trusts Google for exactly one fact: that it verified the address.**
+  Authorization Code with PKCE (`auth/google.ts`); `state`, `nonce` and the verifier
+  travel in `__Host-oauth`, a ten-minute HMAC-signed cookie (`OAUTH_STATE_KEY`), never a
+  database row — a row per *attempt* would hand every bot a write. The `id_token` is
+  verified with `jose` against Google's JWKS exactly as the console verifies Access
+  (`access.ts` is the model, injectable key set and all — the tests answer the JWKS URL
+  from a stubbed fetch and sign with a local pair, since `npm test` runs with no network).
+  `email_verified` must be true, and the linking order is the takeover rule at work: a
+  known (provider, subject) wins outright; a verified user with the address gets the
+  identity linked; an **unverified** user with the address is **deleted**, password and
+  all, because that row proved nothing and whoever registered it set its password. All
+  three of `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OAUTH_STATE_KEY` or the button is
+  not rendered and the routes 404. Scope is `openid email`, no profile, on purpose.
 - **Suggestions are stored before they are mailed.** `POST /api/suggest` validates
   (`src/suggest.ts`), inserts into `suggestions`, then sends two emails through the `EMAIL`
   binding (Cloudflare Email Service), recording each outcome on the row. A mail failure

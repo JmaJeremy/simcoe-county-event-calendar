@@ -58,19 +58,24 @@ const passwordField = (label: string, autocomplete: 'current-password' | 'new-pa
   `<div class="form-field"><label for="password">${label}</label>
 <input type="password" id="password" name="password" required minlength="8" maxlength="200" autocomplete="${autocomplete}"></div>`
 
-export const signInForm = (email = ''): string => `<form method="post" action="/account/signin" class="account-form">
+/** A plain link, not a POST: the start route only mints a signed cookie and redirects. */
+const googleButton = `<p class="account-google"><a class="btn ghost" href="/account/google/start">Continue with Google</a></p>`
+
+export const signInForm = (email = '', google = false): string => `<form method="post" action="/account/signin" class="account-form">
 ${emailField(email)}
 ${passwordField('Password', 'current-password')}
 <button class="btn" type="submit">Sign in</button>
 </form>
+${google ? googleButton : ''}
 <p class="account-links"><a href="/account/signup">Create an account</a> · <a href="/account/reset">Forgot your password?</a></p>`
 
-export const signUpForm = (email = ''): string => `<form method="post" action="/account/signup" class="account-form">
+export const signUpForm = (email = '', google = false): string => `<form method="post" action="/account/signup" class="account-form">
 ${emailField(email)}
 ${passwordField('Choose a password (at least 8 characters)', 'new-password')}
 ${turnstileWidget}
 <button class="btn" type="submit">Create account</button>
 </form>
+${google ? googleButton : ''}
 <p class="account-links">Already have one? <a href="/account/signin">Sign in</a></p>`
 
 export const resetRequestForm = (email = ''): string => `<form method="post" action="/account/reset" class="account-form">

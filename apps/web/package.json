@@ -3,5 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "dependencies": { "@scec/core": "*" }
+  "dependencies": {
+    "@scec/core": "*",
+    "jose": "^6.2.12"
+  }
 }
