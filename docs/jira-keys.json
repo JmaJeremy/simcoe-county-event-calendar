@@ -77,11 +77,18 @@
   "social-cards": "SCEC-93",
   "social-instagram": "SCEC-94",
   "social-auto": "SCEC-95",
-  "p2-retired-permalink": "SCEC-74",
   "p2-branch-stopword": "SCEC-76",
   "p2-messenger-send-dialog": "SCEC-77",
   "p2-tourism-barrie": "SCEC-96",
   "p2-orillia-venues": "SCEC-99",
   "p2-barrie360-borden": "SCEC-98",
-  "p2-category-labels": "SCEC-97"
+  "p2-category-labels": "SCEC-97",
+  "accounts-epic": "SCEC-102",
+  "accounts-database": "SCEC-103",
+  "accounts-password-auth": "SCEC-104",
+  "accounts-google": "SCEC-105",
+  "accounts-pins-page": "SCEC-106",
+  "accounts-private-feed": "SCEC-107",
+  "accounts-shared-calendars": "SCEC-108",
+  "accounts-digests": "SCEC-109"
 }
