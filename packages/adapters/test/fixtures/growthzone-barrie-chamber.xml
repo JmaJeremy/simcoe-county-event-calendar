@@ -1,0 +1,867 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfEventDisplay xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <EventDisplay>
+    <EventID>6094</EventID>
+    <CCID>2454</CCID>
+    <Name>FREE Community Coworking Day</Name>
+    <DisplayFlags />
+    <Status>PENDING</Status>
+    <StartDate>2026-10-15T09:00:00</StartDate>
+    <EndDate>2026-10-15T16:30:00</EndDate>
+    <MemID>45416652</MemID>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapService>NONE</MapService>
+    <VisibilityFlags>None</VisibilityFlags>
+    <CreatedDate>2024-04-09T14:15:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>free-community-coworking-day-10-15-2026</Slug>
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>6094</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>0</Iteration>
+      <SeriesEventId>6064</SeriesEventId>
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>3</int>
+      <int>12</int>
+      <int>22</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>6095</EventID>
+    <CCID>2454</CCID>
+    <Name>FREE Community Coworking Day</Name>
+    <DisplayFlags />
+    <Status>PENDING</Status>
+    <StartDate>2026-11-19T09:00:00</StartDate>
+    <EndDate>2026-11-19T16:30:00</EndDate>
+    <MemID>45416652</MemID>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapService>NONE</MapService>
+    <VisibilityFlags>None</VisibilityFlags>
+    <CreatedDate>2024-04-09T14:15:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>free-community-coworking-day-11-19-2026</Slug>
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>6095</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>0</Iteration>
+      <SeriesEventId>6064</SeriesEventId>
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>3</int>
+      <int>12</int>
+      <int>22</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8219</EventID>
+    <CCID>2454</CCID>
+    <Name>2026 Free Pumpkin Painting</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;span style="font-family:lato; font-size:18px"&gt;It is time to get creative and get&amp;nbsp;into the Halloween spirit! Join us in Barrie or Bradford&amp;nbsp;to decorate your own personal pumpkin FOR FREE!&lt;/span&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;span style="font-family:lato; font-size:18px"&gt;Suggested minimum donation of $5 encouraged. 100% of net proceeds will be donated to&amp;nbsp;&lt;/span&gt;&lt;a href="https://www.rootsforyouth.com/" style="box-sizing: border-box; margin: 0px; padding: 0px; border: 0px; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-alternates: inherit; font-variant-position: inherit; font-variant-emoji: inherit; font-stretch: inherit; font-size: 18px; line-height: inherit; font-family: Lato; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; vertical-align: baseline; color: rgb(99, 115, 129); transition: color 0.1s, border-color 0.1s, opacity 0.1s; text-decoration-line: none; text-align: center; background-color: rgb(17, 18, 19);" target="_blank"&gt;Roots For Youth&lt;/a&gt;&lt;span style="font-family:lato; font-size:18px"&gt;. Open to children under the age of 12. Pie Pumpkins will be provided. Please wear relaxed clothing that you are comfortable getting dirty.&amp;nbsp;First come, first serve.&lt;/span&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;span style="font-family:lato; font-size:13.5px"&gt;*No purchase necessary*&lt;br /&gt;
+*Event Ticket NOT REQUIRED*&lt;/span&gt;</Description>
+    <StartDate>2026-10-04T11:00:00</StartDate>
+    <EndDate>2026-10-04T14:00:00</EndDate>
+    <URL>https://shop.bradfordgreenhouses.com/pages/events</URL>
+    <MemID>44727066</MemID>
+    <LocationDesc>&lt;span style="color:rgb(31, 31, 31); font-family:arial,sans-serif; font-size:14px"&gt;4346 County Rd 90, Springwater, ON L9X 1T7&lt;/span&gt;</LocationDesc>
+    <AdmissionDesc>&lt;h3&gt;FREE&lt;/h3&gt;
+</AdmissionDesc>
+    <HoursDesc>&lt;h3&gt;October 4th, 2026&lt;br /&gt;
+11am - 2pm&lt;/h3&gt;
+</HoursDesc>
+    <ContactDesc>Marissa Nazaruk </ContactDesc>
+    <ContactEmail>mnazaruk@bghl.ca</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>4346 Hwy 90</MapAddr1>
+    <MapCity>Springwater</MapCity>
+    <MapState>Ontario</MapState>
+    <MapPostalCode>L9X1T7</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-01-07T11:08:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>2026-free-pumpkin-painting</Slug>
+    <EventsPageVideoURL />
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8219</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>1</int>
+      <int>3</int>
+      <int>12</int>
+      <int>22</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8220</EventID>
+    <CCID>2454</CCID>
+    <Name>2026 BGHL Annual Holiday Market</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;div&gt;Bradford Greenhouses is thrilled to unveil something spectacular!&amp;nbsp;&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/t7/1/16/1f384.png" style="border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&lt;span style="font-family:inherit"&gt;&lt;img alt="?" class="xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/tf4/1/16/2728.png" style="border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&lt;/div&gt;
+
+&lt;div&gt;Get ready for a festive treat with our 5-week Holiday Market, running every Saturday and Sunday from November 7th through December 6th!&amp;nbsp;&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/t88/1/16/1f385.png" style="border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&lt;span style="font-family:inherit"&gt;&lt;img alt="???" class="xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/taf/1/16/1f6cd.png" style="border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&lt;/div&gt;
+
+&lt;div&gt;Immerse yourself in the magic of the season as local artisans and crafters showcase their creations, bringing holiday cheer to life!&amp;nbsp;&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/t84/1/16/1f381.png" style="border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/te0/1/16/1f31f.png" style="border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&lt;/div&gt;
+
+&lt;div&gt;No Ticket Required!&lt;/div&gt;
+</Description>
+    <StartDate>2026-11-07T10:00:00</StartDate>
+    <EndDate>2026-11-07T16:00:00</EndDate>
+    <URL>https://shop.bradfordgreenhouses.com/pages/events</URL>
+    <MemID>44727066</MemID>
+    <LocationDesc>4346 Highway 90, Springwater, ON&amp;nbsp; L9X 1T7</LocationDesc>
+    <AdmissionDesc>N/A</AdmissionDesc>
+    <HoursDesc>&lt;h3 style="text-align:center"&gt;&amp;nbsp;&lt;/h3&gt;
+
+&lt;h3 style="text-align:center"&gt;&lt;em&gt;10:00am - 4:00pm&lt;/em&gt;&lt;/h3&gt;
+</HoursDesc>
+    <ContactDesc>Marissa Nazaruk</ContactDesc>
+    <ContactEmail>mnazaruk@bghl.ca</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>4346 Hwy 90</MapAddr1>
+    <MapCity>Springwater</MapCity>
+    <MapState>Ontario</MapState>
+    <MapPostalCode>L9X1T7</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-01-07T11:09:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>2026-bghl-annual-holiday-market</Slug>
+    <EventsPageVideoURL />
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>65</DayOfWeek>
+      <EndDate>2026-12-06T00:00:00</EndDate>
+      <EventID>8220</EventID>
+      <Frequency>FREQ_WEEKLY</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>2</int>
+      <int>3</int>
+      <int>12</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8480</EventID>
+    <CCID>2454</CCID>
+    <Name>2026 Pet Palooza Show</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;div&gt;&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="x15mokao x16uus16 x1ga7v0g xbiv7yw xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/tde/1/16/1f43e.png" style="border-end-end-radius:0px; border-end-start-radius:0px; border-start-end-radius:0px; border-start-start-radius:0px; border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&amp;nbsp;Barrie Pet Palooza Show&amp;nbsp;&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="x15mokao x16uus16 x1ga7v0g xbiv7yw xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/tde/1/16/1f43e.png" style="border-end-end-radius:0px; border-end-start-radius:0px; border-start-end-radius:0px; border-start-start-radius:0px; border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&lt;br /&gt;
+Get ready for a tail-wagging good time at one of Barrie&amp;rsquo;s most exciting pet-friendly events of the year!&lt;/div&gt;
+
+&lt;div&gt;The Barrie Pet Palooza Show brings together everything pet lovers adore under one roof. Enjoy inspiring guest speakers, live pet performances, and explore a wide variety of pet food, accessories, and care products&amp;mdash;plus so much more for both pets and their people.&lt;/div&gt;
+
+&lt;div&gt;Shop unique and exclusive items from local vendors, many offering one-of-a-kind products you won&amp;rsquo;t find anywhere else. Whether you&amp;rsquo;re coming with family, friends, or your four-legged companion, there&amp;rsquo;s something to delight everyone!&lt;/div&gt;
+
+&lt;div&gt;&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="x15mokao x16uus16 x1ga7v0g xbiv7yw xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/td8/1/16/1f39f.png" style="border-end-end-radius:0px; border-end-start-radius:0px; border-start-end-radius:0px; border-start-start-radius:0px; border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&amp;nbsp;Admission: $3 + HST&lt;br /&gt;
+&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="x15mokao x16uus16 x1ga7v0g xbiv7yw xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/t6c/1/16/1f499.png" style="border-end-end-radius:0px; border-end-start-radius:0px; border-start-end-radius:0px; border-start-start-radius:0px; border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&amp;nbsp;100% of net proceeds support the Ontario SPCA&lt;br /&gt;
+&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="x15mokao x16uus16 x1ga7v0g xbiv7yw xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/t8d/1/16/1f467.png" style="border-end-end-radius:0px; border-end-start-radius:0px; border-start-end-radius:0px; border-start-start-radius:0px; border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&amp;nbsp;Children under 12 get in FREE&lt;br /&gt;
+&lt;span style="font-family:inherit"&gt;&lt;img alt="??" class="x15mokao x16uus16 x1ga7v0g xbiv7yw xz74otr" height="16" src="https://static.xx.fbcdn.net/images/emoji.php/v9/t70/1/16/1f415.png" style="border-end-end-radius:0px; border-end-start-radius:0px; border-start-end-radius:0px; border-start-start-radius:0px; border:0px; height:16px; object-fit:fill; width:16px" width="16" /&gt;&lt;/span&gt;&amp;nbsp;Pets are welcome! All pets must remain on a leash at all times.&lt;br /&gt;
+Don&amp;rsquo;t miss out on this fun-filled day celebrating pets, community, and a great cause!&lt;/div&gt;
+</Description>
+    <StartDate>2026-10-17T10:00:00</StartDate>
+    <EndDate>2026-10-18T16:00:00</EndDate>
+    <URL>https://shop.bradfordgreenhouses.com/pages/barrie-pet-palooza-show</URL>
+    <MemID>44727066</MemID>
+    <LocationDesc>4346 Highway 90, Springwater, On</LocationDesc>
+    <AdmissionDesc>3+HST -&amp;nbsp;100% of net proceeds support the Ontario SPCA</AdmissionDesc>
+    <HoursDesc>&lt;h3&gt;&lt;em&gt;October 17th &amp;amp; 18th, 2026&lt;br /&gt;
+(Barrie&amp;nbsp;Location)&lt;/em&gt;&lt;/h3&gt;
+
+&lt;h3&gt;Saturday 10am - 5pm&lt;br /&gt;
+Sunday 10am - 4pm&lt;/h3&gt;
+</HoursDesc>
+    <ContactDesc>Marissa Nazaruk</ContactDesc>
+    <ContactEmail>mnazaruk@bghl.ca</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>4346 Hwy 90</MapAddr1>
+    <MapCity>Springwater</MapCity>
+    <MapState>Ontario</MapState>
+    <MapPostalCode>L9X1T7</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-04-29T14:03:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>pet-palooza-show</Slug>
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8480</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>1</int>
+      <int>3</int>
+      <int>22</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8481</EventID>
+    <CCID>2454</CCID>
+    <Name>2027 Women's Show</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;p&gt;The Annual Barrie Women&amp;rsquo;s Show is back! A wonderful and fun day out with your girlfriends.&lt;/p&gt;
+
+&lt;p&gt;The Barrie Women&amp;#39;s Show will feature guest speakers, live fashion shows, makeovers, health, wellness &amp;amp; beauty secrets, food inspiration, d&amp;eacute;cor advice, travel ideas and so much more.&lt;/p&gt;
+
+&lt;p&gt;No matter what you&amp;rsquo;re looking for, we&amp;#39;ve got it! Enjoy shopping exclusive products from local vendors. Everyone in your group is sure to be entertained at Barrie&amp;rsquo;s hottest event of the year!&lt;/p&gt;
+
+&lt;p&gt;Admission is $7 and 1?00% of the NET proceeds from ticket sales with go to Roots For Youth (rootsforyouth.com)&lt;/p&gt;
+
+&lt;p&gt;*Please note: Out of respect for our vendors, we will not be allowing pets in the Show area.*&lt;/p&gt;
+</Description>
+    <StartDate>2027-01-23T10:00:00</StartDate>
+    <EndDate>2027-01-24T16:00:00</EndDate>
+    <URL>https://womensshowbarrie.com/</URL>
+    <MemID>44727066</MemID>
+    <LocationDesc>&lt;div&gt;Bradford Greenhouses Garden Gallery&lt;/div&gt;
+
+&lt;div&gt;4346 Highway 90, Springwater, ON, L9X 1T7&lt;/div&gt;
+</LocationDesc>
+    <AdmissionDesc>$7</AdmissionDesc>
+    <HoursDesc>January 23rd from 10-5pm&lt;br /&gt;
+January 24th from 10-4pm</HoursDesc>
+    <ContactDesc>Marissa Nazaruk</ContactDesc>
+    <ContactEmail>mnazaruk@bghl.ca</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>4346 Hwy 90</MapAddr1>
+    <MapCity>Springwater</MapCity>
+    <MapState>Ontario</MapState>
+    <MapPostalCode>L9X1T7</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-04-29T14:05:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>2027-women-s-show</Slug>
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8481</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>3</int>
+      <int>12</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8482</EventID>
+    <CCID>2454</CCID>
+    <Name>2027 Barrie Spring Garden and Home Show</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;span style="background-color:rgb(255, 251, 246); color:rgb(99, 115, 129); font-family:poppins; font-size:18px"&gt;The&amp;nbsp;&lt;/span&gt;&lt;strong&gt;Barrie Spring&amp;nbsp;Garden &amp;amp; Home Show&lt;/strong&gt;&lt;span style="background-color:rgb(255, 251, 246); color:rgb(99, 115, 129); font-family:poppins; font-size:18px"&gt;&amp;nbsp;will feature guest speakers, live demos, home renovations,&amp;nbsp;home d&amp;eacute;cor, interior design, home accents,&amp;nbsp;outdoor activities, landscaping and so much more. No matter what you&amp;rsquo;re looking for, we&amp;#39;ve got it!&lt;/span&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;span style="background-color:rgb(255, 251, 246); color:rgb(99, 115, 129); font-family:poppins; font-size:18px"&gt;Enjoy shopping exclusive products from local vendors, and many of them are one of a kind. Everyone in your group is sure to be entertained at one of&amp;nbsp;&lt;/span&gt;&lt;strong&gt;Barrie&amp;rsquo;s hottest events of the year&lt;/strong&gt;&lt;span style="background-color:rgb(255, 251, 246); color:rgb(99, 115, 129); font-family:poppins; font-size:18px"&gt;!&lt;/span&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;span style="background-color:rgb(255, 251, 246); color:rgb(99, 115, 129); font-family:poppins; font-size:18px"&gt;Tickets can be purchased in advance online&amp;nbsp;or at the door the day of the show.&amp;nbsp;&lt;/span&gt;&lt;strong&gt;Admission is $7+HST with 100% of NET proceeds going to&amp;nbsp;&lt;a href="https://www.rootsforyouth.com/" style="box-sizing: border-box; margin: 0px; padding: 0px; border: 0px; font: inherit; vertical-align: baseline; color: rgb(99, 115, 129); transition: color 0.1s, border-color 0.1s, opacity 0.1s; text-decoration-line: none;" target="_blank"&gt;Roots For Youth&lt;/a&gt;&lt;/strong&gt;&lt;span style="background-color:rgb(255, 251, 246); color:rgb(99, 115, 129); font-family:poppins; font-size:18px"&gt;.&lt;/span&gt;&lt;br /&gt;
+&lt;span style="background-color:rgb(255, 251, 246); color:rgb(99, 115, 129); font-family:poppins; font-size:13.5px"&gt;&lt;span style="font-family:inherit; font-size:10.125px"&gt;*Children Under 12 get in for&lt;strong&gt;&amp;nbsp;FREE&lt;/strong&gt;&lt;/span&gt;&lt;/span&gt;</Description>
+    <StartDate>2027-03-06T10:00:00</StartDate>
+    <EndDate>2027-03-07T16:00:00</EndDate>
+    <URL>https://shop.bradfordgreenhouses.com/pages/barrie-spring-garden-and-home-show</URL>
+    <MemID>44727066</MemID>
+    <LocationDesc>&lt;span style="color:#4B4D4F"&gt;&lt;span style="font-family:times,serif"&gt;&lt;span style="font-size:8.0pt"&gt;4346 Hwy 90, Springwater, ON L9X&amp;nbsp;1T7&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;</LocationDesc>
+    <AdmissionDesc>$7</AdmissionDesc>
+    <HoursDesc>March 6th and 7th, 2026&lt;br /&gt;
+Saturday 10-5&lt;br /&gt;
+Sunday 10-4</HoursDesc>
+    <ContactDesc>Marissa Nazaruk</ContactDesc>
+    <ContactEmail>mnazaruk@bghl.ca</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>4346 Hwy 90</MapAddr1>
+    <MapCity>Springwater</MapCity>
+    <MapState>Ontario</MapState>
+    <MapPostalCode>L9X1T7</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-04-29T14:07:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>2027-barrie-spring-garden-and-home-show</Slug>
+    <EventsPageVideoURL />
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8482</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>1</int>
+      <int>3</int>
+      <int>12</int>
+      <int>17</int>
+      <int>22</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8483</EventID>
+    <CCID>2454</CCID>
+    <Name>Barrie-Allandale Railway Modellers - Model Train Show</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>All Aboard! The Barrie-Allandale Railway Modelers will be hosting the largest Train Show in Ontario at Bradford Greenhouses - Barrie.&amp;nbsp;&lt;br /&gt;
+&lt;br /&gt;
+There will be many vendors and displays! This event is great for all ages.&lt;br /&gt;
+&lt;br /&gt;
+Saturday, Feb 13 from 10am-4pm&lt;br /&gt;
+Sunday, Feb 14 from 10am-4pm&lt;br /&gt;
+&lt;br /&gt;
+For information about the Barrie-Allandale Railway Modelers and this show, please visit www.barm.ca</Description>
+    <StartDate>2027-02-13T10:00:00</StartDate>
+    <EndDate>2027-02-14T16:00:00</EndDate>
+    <URL>http://www.barm.ca</URL>
+    <MemID>44727066</MemID>
+    <LocationDesc>&lt;span style="color:#3B3C3E"&gt;&lt;span style="font-family:times,serif"&gt;&lt;span style="font-size:12.0pt"&gt;4346 Highway 90, Springwater, ON&amp;nbsp; L9X 1T7&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;</LocationDesc>
+    <AdmissionDesc>&lt;span style="background-color:rgb(17, 18, 19); color:rgb(240, 240, 240); font-family:lato; font-size:18px"&gt;Admission $8&lt;/span&gt;&lt;br /&gt;
+&lt;span style="background-color:rgb(17, 18, 19); color:rgb(240, 240, 240); font-family:lato; font-size:18px"&gt;Family Admission $30&lt;/span&gt;&lt;br /&gt;
+&lt;span style="background-color:rgb(17, 18, 19); color:rgb(240, 240, 240); font-family:lato; font-size:18px"&gt;Children Under 6 are FREE&lt;/span&gt;</AdmissionDesc>
+    <HoursDesc>Saturday, Feb 13 from 10am-4pm&lt;br /&gt;
+Sunday, Feb 14 from 10am-4pm</HoursDesc>
+    <ContactDesc>www.barm.ca</ContactDesc>
+    <ContactEmail>mnazaruk@bghl.ca</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>4346 Hwy 90</MapAddr1>
+    <MapCity>Springwater</MapCity>
+    <MapState>Ontario</MapState>
+    <MapPostalCode>L9X1T7</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-04-29T14:14:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>barrie-allandale-railway-modellers-model-train-show-02-13-2027</Slug>
+    <EventsPageVideoURL />
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8483</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>3</int>
+      <int>12</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8490</EventID>
+    <CCID>2454</CCID>
+    <Name>2026 Barrie Santa Claus Parade</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;p style="margin: 1em 0px; padding: 0px; line-height: inherit; bottom: auto; box-sizing: content-box; clear: none; color: rgb(94, 94, 94); content: normal; direction: inherit; empty-cells: show; float: none; font-variant-numeric: inherit; font-stretch: inherit; font-size: 12px; font-family: verdana; left: auto; max-height: none; max-width: none; min-height: initial; min-width: initial; opacity: 1; outline-offset: 0px; overflow: visible; position: static; resize: none; right: auto; table-layout: auto; text-overflow: clip; top: auto; vertical-align: baseline; visibility: inherit; word-break: inherit; word-wrap: inherit; z-index: auto; background: none; border: none; border-collapse: separate; border-radius: 0px; height: auto; width: auto; box-shadow: none;"&gt;&amp;#8203;The Barrie Chamber of Commerc&lt;span style="background-color: initial;"&gt;e is excited to announce the return of&amp;nbsp;Santa!&amp;nbsp;A&amp;nbsp;night parade full of fantastic lights, &lt;/span&gt;colours&lt;span style="background-color: initial;"&gt;&amp;nbsp;and music.&lt;/span&gt;&lt;/p&gt;
+
+&lt;p style="margin: 1em 0px; padding: 0px; line-height: inherit; bottom: auto; box-sizing: content-box; clear: none; color: rgb(94, 94, 94); content: normal; direction: inherit; empty-cells: show; float: none; font-variant-numeric: inherit; font-stretch: inherit; font-size: 12px; font-family: verdana; left: auto; max-height: none; max-width: none; min-height: initial; min-width: initial; opacity: 1; outline-offset: 0px; overflow: visible; position: static; resize: none; right: auto; table-layout: auto; text-overflow: clip; top: auto; vertical-align: baseline; visibility: inherit; word-break: inherit; word-wrap: inherit; z-index: auto; background: none; border: none; border-collapse: separate; border-radius: 0px; height: auto; width: auto; box-shadow: none;"&gt;This year&amp;#39;s parade is scheduled for 5pm&amp;nbsp;on Saturday, November 21&lt;span style="background-color: initial;"&gt;,&amp;nbsp;2026.&amp;nbsp;&lt;/span&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+	&lt;li data-end="314" data-start="188"&gt;
+	&lt;p data-end="314" data-start="190"&gt;&lt;strong&gt;All floats must be fully constructed and decorated prior to arrival. Incomplete floats will not be admitted to the parade.&lt;/strong&gt;&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li data-end="429" data-start="315"&gt;
+	&lt;p data-end="429" data-start="317"&gt;&lt;strong&gt;All entries must carry valid insurance, listing the Barrie Chamber of Commerce as an additional insured party.&lt;/strong&gt;&lt;br /&gt;
+	&lt;br /&gt;
+	&lt;span style="background-color: initial;"&gt;&lt;a href="https://growthzonecmsprodeastus.azureedge.net/sites/1720/2024/09/2024-Barrie-Santa-Parade-Guide.pdf"&gt;&lt;strong&gt;&lt;span style="color:#008080;"&gt;Download the Participant Guide here.&lt;/span&gt;&lt;/strong&gt;&lt;/a&gt;&lt;br /&gt;
+	&lt;a href="https://growthzonecmsprodeastus.azureedge.net/sites/1720/2024/09/Santa-Claus-Parade-How-To-Build-A-Float-2024.jpg"&gt;&lt;strong&gt;Download the &amp;quot;How to Build a Float&amp;quot; guide here.&lt;/strong&gt;&lt;/a&gt;&lt;br /&gt;
+	&lt;br /&gt;
+	&lt;span style="color:#FF0000;"&gt;Please note that all participants of the Barrie Santa Claus Parade must agree to the terms and conditions of the Participant Guide. Registration for the event will imply your agreement to those terms.&lt;/span&gt;&lt;/span&gt;&lt;br /&gt;
+	&lt;br /&gt;
+	&lt;strong&gt;Float Registration Deadline: Monday, November 16th, 2026 by 2pm. No refunds will be issued beyond this date &amp;amp; time.&lt;/strong&gt;&lt;/p&gt;
+	&lt;/li&gt;
+&lt;/ul&gt;
+</Description>
+    <StartDate>2026-11-21T17:00:00</StartDate>
+    <EndDate>2026-11-21T22:00:00</EndDate>
+    <URL>http://www.barriechamber.com/santa</URL>
+    <URLMask>www.barriechamber.com/santa</URLMask>
+    <MemID>0</MemID>
+    <AdmissionDesc>&lt;p&gt;FLOAT ENTRIES are:&lt;br /&gt;
+$250 Non-Member, commercial businesses&lt;br /&gt;
+$200 Member, commercial businesses&lt;br /&gt;
+$150 Non-Member, Not For Profit / Charities&lt;br /&gt;
+$100 Member, Not For Profit / Charities&lt;/p&gt;
+
+&lt;ul&gt;
+	&lt;li&gt;&lt;strong style="color: rgb(94, 94, 94); font-family: verdana; font-size: 12px;"&gt;All floats must be completely built upon arrival at the parade. &lt;/strong&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;strong style="color: rgb(94, 94, 94); font-family: verdana; font-size: 12px;"&gt;Non-completed floats will not be admitted.&lt;/strong&gt;&lt;/li&gt;
+	&lt;li&gt;All floats must be decorated in the theme of the parade.&lt;/li&gt;
+	&lt;li&gt;The parade is intended for the enjoyment of children rather than for the promotion of any particular business.&lt;/li&gt;
+	&lt;li&gt;&lt;span style="color:#B22222;"&gt;&lt;strong&gt;The only commercial vehicles that will be permitted to participate in the parade are those actually pulling the floats; no stand-alone vans, trucks, etc.&lt;/strong&gt;&lt;/span&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;br /&gt;
+CANCELLATION POLICY: If you are unable to attend, please email &lt;a href="mailto:events@barriechamber.com?subject=Cancellation%3A%20Santa%20Parade"&gt;tricia@barriechamber.com&lt;/a&gt; to cancel before 2:00 p.m. on the Monday prior to the event.&amp;nbsp;&lt;/p&gt;
+</AdmissionDesc>
+    <HoursDesc>&lt;p&gt;&lt;strong&gt;&lt;span style="font-size: 18px;"&gt;&lt;u&gt;Floats must arrive via Minet&amp;#39;s Point Rd and Lakeshore Drive.&lt;/u&gt;&lt;/span&gt;&lt;/strong&gt;&lt;span style="font-size: 18px;"&gt;&amp;nbsp;&lt;/span&gt;&lt;br /&gt;
+&lt;strong&gt;Police will allow you to enter (closed to public traffic).&lt;br /&gt;
+Registration is at Southshore Community Centre.&lt;br /&gt;
+&lt;br /&gt;
+Parade floats arrive to the parade route between 2pm - 4pm&lt;/strong&gt;&lt;br /&gt;
+&lt;br /&gt;
+Do not attempt to arrive via Tiffin / Lakeshore - you will be turned away.&lt;br /&gt;
+&lt;br /&gt;
+The parade begins at 5pm sharp.&amp;nbsp;&lt;/p&gt;
+
+&lt;p&gt;Floats will not be admitted after 4pm, fees will not be refunded for late arrivals or no-shows.&lt;br /&gt;
+Please ensure your driver has read the &lt;strong&gt;&lt;a href="https://growthzonecmsprodeastus.azureedge.net/sites/1720/2025/07/2025-Barrie-Santa-Parade-Guide.pdf"&gt;&lt;span style="color:#0000CD;"&gt;Participant Guide, Click Here.&lt;/span&gt;&lt;/a&gt;&lt;/strong&gt;&lt;/p&gt;
+</HoursDesc>
+    <ContactEmail>tricia@barriechamber.com</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapService>NONE</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-05-22T09:34:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>2026-barrie-santa-claus-parade</Slug>
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8490</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>1</int>
+      <int>3</int>
+      <int>6</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8500</EventID>
+    <CCID>2454</CCID>
+    <Name>2026 Barrie Business Awards Gala (BBA)</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;div&gt;&lt;span style="font-size:16px;"&gt;&lt;strong&gt;Recognizing Excellence in Business and Corporate Community Service in Barrie&lt;/strong&gt;&lt;/span&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;span style="font-size:16px;"&gt;The Barrie Chamber of Commerce cordially invites you to a night of grandeur, celebration, and recognition at the annual Barrie Business Awards Gala. Join us as we shine a spotlight on the businesses and entrepreneurs who&amp;#39;ve displayed unparalleled excellence, innovation, and dedication in our thriving business community. Optional Black Tie, this is the premiere Barrie business event of the year!&lt;br /&gt;
+&lt;br /&gt;
+&lt;strong&gt;Roaring 20&amp;#39;s&amp;nbsp;&lt;/strong&gt;&lt;/span&gt;&lt;br /&gt;
+&amp;nbsp;
+&lt;p data-end="412" data-start="208" style="box-sizing: border-box; margin: 0px 0px 10px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;As we mark 100 years of the Barrie Chamber, we are not just looking back, we are celebrating the same spirit that brought business leaders together in 1926. A spirit of ambition, resilience and community.&lt;/p&gt;
+
+&lt;p data-end="470" data-start="414" style="box-sizing: border-box; margin: 0px 0px 10px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;So this year, we are going to celebrate like it is 1926.&lt;/p&gt;
+
+&lt;p data-end="711" data-start="472" style="box-sizing: border-box; margin: 0px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;An evening inspired by the energy and elegance of the Roaring Twenties, while recognizing the businesses and individuals who continue to shape Barrie&amp;rsquo;s economy and community today.&lt;/p&gt;
+&lt;br /&gt;
+&lt;span style="font-size:16px;"&gt;&lt;strong&gt;Program Highlights&lt;/strong&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;strong&gt;Awards Ceremony:&lt;/strong&gt; Witness as we honour the trailblazers and visionaries of Barrie&amp;#39;s business community. Awards will be presented across multiple categories, recognizing a range of achievements and contributions.&lt;br /&gt;
+&lt;br /&gt;
+&lt;strong&gt;Incredible Meal:&lt;/strong&gt; The team at Liberty North under Chef Mark never fails to impress.&amp;nbsp;&lt;br /&gt;
+&lt;br /&gt;
+&lt;strong&gt;Networking Opportunities:&lt;/strong&gt; This is a prime opportunity to connect with fellow business leaders, stakeholders, and innovators from across the region. Forge new alliances or strengthen existing partnerships amidst the backdrop of a celebratory evening.&lt;br /&gt;
+&lt;br /&gt;
+&lt;strong&gt;Tickets &amp;amp; Reservations&lt;/strong&gt;&lt;br /&gt;
+&lt;br /&gt;
+Reserve your seat at the most anticipated business event of the year.&amp;nbsp;Celebrate the achievements, share the success stories, and be inspired by the passion that drives Barrie&amp;#39;s business community. We look forward to commemorating the evening with you!&lt;/span&gt;&lt;/div&gt;
+</Description>
+    <StartDate>2026-10-23T17:00:00</StartDate>
+    <EndDate>2026-10-23T23:00:00</EndDate>
+    <URL>http://www.barriechamber.com/awards</URL>
+    <MemID>0</MemID>
+    <AdmissionDesc>&lt;p&gt;&lt;br /&gt;
+&lt;span style="font-size:16px;"&gt;&lt;span style="color: rgb(94, 94, 94);"&gt;&lt;strong&gt;Regular Tickets on Sale, Tickets Close Oct 16&lt;/strong&gt;&lt;br /&gt;
+$175+HST / person for members&lt;/span&gt;&lt;br style="box-sizing: border-box; color: rgb(94, 94, 94); font-family: verdana; font-size: 12px;" /&gt;
+&lt;span style="color: rgb(94, 94, 94);"&gt;$200+HST / person for non-members&lt;br /&gt;
+&lt;strong&gt;&lt;span style="font-size:14px;"&gt;*&lt;/span&gt;&lt;/strong&gt;&lt;/span&gt;&lt;/span&gt;&lt;strong&gt;&lt;span style="font-size:14px;"&gt;Please note that discount codes apply&amp;nbsp;to regular-priced tickets only and cannot be combined with Early Bird pricing.&amp;nbsp;&lt;/span&gt;&lt;/strong&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;span style="font-size:16px;"&gt;&lt;span style="color: rgb(94, 94, 94);"&gt;Tables seat 8&lt;br /&gt;
+Sponsorship opportunities available - call 705-721-5000&amp;nbsp;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;span style="font-size:16px;"&gt;To ensure we can accommodate any specific dietary needs, please inform us of your requirements by &lt;strong&gt;October 17th at 2pm&lt;/strong&gt;. After this date, we will assume you are happy to enjoy our signature meal option.&lt;/span&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;span style="font-size:16px;"&gt;We look forward to sharing this&amp;nbsp;dining experience with you!&lt;/span&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;br /&gt;
+&lt;span style="font-size:16px;"&gt;&lt;span style="color: rgb(94, 94, 94);"&gt;There will be no refunds beyond October 17th, 2025.&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;
+</AdmissionDesc>
+    <HoursDesc>&lt;p style="box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; color: rgb(94, 94, 94); font-family: verdana; font-size: 12px;"&gt;&lt;span style="font-size:14px;"&gt;&lt;span style="font-family:verdana;"&gt;&lt;strong&gt;&lt;span content="2019-11-07T22:00:00Z" itemprop="startDate" style="box-sizing: border-box;"&gt;Friday, October 23, 2026&lt;/span&gt;&lt;/strong&gt;&lt;br style="box-sizing: border-box;" /&gt;
+&lt;span class="gz-details-time" style="box-sizing: border-box;"&gt;5:00 PM - 11:00 PM EST&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;
+
+&lt;div class="gz-details-hours" style="box-sizing: border-box; color: rgb(94, 94, 94); font-family: verdana; font-size: 12px;"&gt;
+&lt;p style="box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;"&gt;&lt;span style="font-size:14px;"&gt;&lt;span style="font-family:verdana;"&gt;5:00 pm Registration &amp;amp; Cocktails&lt;br style="box-sizing: border-box;" /&gt;
+6:15 pm Greetings &amp;amp; Dinner&lt;br style="box-sizing: border-box;" /&gt;
+7:30 pm Awards Presentation&lt;/span&gt;&lt;/span&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;span style="font-size:14px;"&gt;&lt;span style="font-family:verdana;"&gt;&lt;span style="color:#000000;"&gt;&lt;strong&gt;&lt;em style="box-sizing: border-box; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;We kindly request our guests arrive no later than 6:00PM.&lt;/em&gt;&lt;/strong&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;
+
+&lt;h4 style="box-sizing: border-box; font-family: Montserrat, sans-serif; line-height: 1.1; margin-top: 10px; margin-bottom: 10px; font-size: 28px;"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Signature Menu:&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p style="box-sizing: border-box; margin: 0px 0px 10px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Appetizer:&lt;/strong&gt; Baby greens salad with Honey roasted sweet potatoes, sun dried cranberries, and roasted beets drizzled with &lt;a href="https://oliveoilco.ca/product/apricot-white-balsamic/" rel="noopener" style="box-sizing: border-box; background-color: transparent; color: rgb(0, 69, 108); text-decoration: none;" target="_blank"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Apricot white balsamic vinaigrette from Olive Oil Co&lt;/strong&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p style="box-sizing: border-box; margin: 0px 0px 10px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Entr&amp;eacute;e: &lt;/strong&gt;Roasted chicken supreme A la King served with roasted mini red potatoes tossed in &lt;a href="https://oliveoilco.ca/product/garlic-olive-oil/" rel="noopener" style="box-sizing: border-box; background-color: transparent; color: rgb(0, 69, 108); text-decoration: none;" target="_blank"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Garlic olive oil from Olive Oil Co.&lt;/strong&gt;&lt;/a&gt; and chef&amp;rsquo;s vegetables&lt;/p&gt;
+
+&lt;p style="box-sizing: border-box; margin: 0px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Dessert:&lt;/strong&gt; Individual cheesecake with &lt;a href="https://oliveoilco.ca/product/pomegranate-dark-balsamic/" rel="noopener" style="box-sizing: border-box; background-color: transparent; color: rgb(0, 69, 108); text-decoration: none;" target="_blank"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Pomegranate Dark balsamic from Olive Oil Co.&lt;/strong&gt;&lt;/a&gt; marinated berries&lt;/p&gt;
+
+&lt;h4 style="box-sizing: border-box; font-family: Montserrat, sans-serif; line-height: 1.1; margin-top: 10px; margin-bottom: 10px; font-size: 28px;"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Vegan / Vegetarian Menu:&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p style="box-sizing: border-box; margin: 0px 0px 10px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Appetizer:&lt;/strong&gt; Baby greens salad with Honey roasted sweet potatoes, sun dried cranberries, and roasted beets drizzled with &lt;a href="https://oliveoilco.ca/product/apricot-white-balsamic/" rel="noopener" style="box-sizing: border-box; background-color: transparent; color: rgb(0, 69, 108); text-decoration: none;" target="_blank"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Apricot white balsamic vinaigrette from Olive Oil Co.&lt;/strong&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p style="box-sizing: border-box; margin: 0px 0px 10px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Entr&amp;eacute;e: &lt;/strong&gt;Chickpea and vegetable stuffed zucchini boats served with roasted mini red potatoes tossed in &lt;a href="https://oliveoilco.ca/product/garlic-olive-oil/" rel="noopener" style="box-sizing: border-box; background-color: transparent; color: rgb(0, 69, 108); text-decoration: none;" target="_blank"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Garlic olive oil from Olive Oil Co.&lt;/strong&gt;&lt;/a&gt; and chef&amp;rsquo;s vegetables&lt;/p&gt;
+
+&lt;p style="box-sizing: border-box; margin: 0px; font-family: Montserrat, sans-serif; font-size: 16px;"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Dessert:&lt;/strong&gt; &lt;a href="https://oliveoilco.ca/product/pomegranate-dark-balsamic/" rel="noopener" style="box-sizing: border-box; background-color: transparent; color: rgb(0, 69, 108); text-decoration: none;" target="_blank"&gt;&lt;strong style="box-sizing: border-box; font-weight: bold;"&gt;Pomegranate Dark balsamic from Olive Oil Co.&lt;/strong&gt;&lt;/a&gt; marinated berries cup&lt;/p&gt;
+&lt;/div&gt;
+</HoursDesc>
+    <ContactEmail>tricia@barriechamber.com</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>100 Caplan Ave Unit 1</MapAddr1>
+    <MapCity>Barrie</MapCity>
+    <MapState>ON</MapState>
+    <MapPostalCode>L4N9J2</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly Featured</VisibilityFlags>
+    <CreatedDate>2026-07-20T12:43:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>2026-barrie-business-awards-gala-bba</Slug>
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8500</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>3</int>
+      <int>4</int>
+      <int>6</int>
+      <int>15</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8502</EventID>
+    <CCID>2454</CCID>
+    <Name>The Building Belonging Brunch: Youth Having A Seat at the Table</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;p&gt;Join us for a morning of great food, community, and purpose as we come together to support youth living in Barrie Housing communities.&lt;/p&gt;
+
+&lt;p&gt;Your participation will help fund the Barrie Housing Beyond Homes Foundation&amp;#39;s Youth Leadership Council, providing leadership development, community projects, mentorship, and youth-led initiatives that empower young people to become confident, compassionate leaders.&lt;/p&gt;
+
+&lt;p&gt;Together, we&amp;#39;re investing in the next generation and building stronger, more connected communities.&lt;/p&gt;
+</Description>
+    <StartDate>2026-11-20T10:00:00</StartDate>
+    <EndDate>2026-11-20T14:00:00</EndDate>
+    <MemID>76450847</MemID>
+    <LocationDesc>&lt;strong&gt;Barrie Country Club &amp;ndash; Trillium Room&lt;/strong&gt;&lt;br /&gt;
+635 St. Vincent Street N&lt;br /&gt;
+Barrie, ON&amp;nbsp;L4M 4Y1</LocationDesc>
+    <AdmissionDesc>&lt;strong&gt;Admission:&lt;/strong&gt; $75 per person. Advance registration is required.&lt;br /&gt;
+&lt;br /&gt;
+Purchase your tickets here:&lt;br /&gt;
+&lt;a href="https://www.zeffy.com/en-CA/ticketing/building-belonging-brunch-youth-having-a-seat-at-the-table"&gt;https://www.zeffy.com/en-CA/ticketing/building-belonging-brunch-youth-having-a-seat-at-the-table&lt;/a&gt;</AdmissionDesc>
+    <HoursDesc>&lt;strong&gt;Date:&lt;/strong&gt; Friday, November 20, 2026&lt;br /&gt;
+&lt;strong&gt;Time:&lt;/strong&gt; 10:00 a.m. &amp;ndash; 2:00 p.m.</HoursDesc>
+    <ContactDesc>Mary-Anne Denny-Lusk</ContactDesc>
+    <ContactEmail>fundraiser@barriehousing.com</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>635 St. Vincent Street North</MapAddr1>
+    <MapCity>Barrie</MapCity>
+    <MapState>Ontario</MapState>
+    <MapPostalCode>L4M 4Y1</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-07-30T15:23:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>the-building-belonging-brunch-youth-having-a-seat-at-the-table</Slug>
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8502</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>3</int>
+      <int>12</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8509</EventID>
+    <CCID>2454</CCID>
+    <Name>Bytes &amp; Burnout: Balancing Tech and Human Well-Being in the AI Era</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;p&gt;Join this essential Chamber event to explore the hidden legal, operational, and human costs of integrating artificial intelligence into the workplace. Four expert speakers provide actionable strategies to protect your organization from uncritical automation.&lt;/p&gt;
+
+&lt;ul&gt;
+	&lt;li&gt;
+	&lt;p&gt;&lt;strong&gt;Katherine Ritch&lt;/strong&gt; explores how AI-generated HR policies and contracts can trigger massive legal liabilities, severance risks, and privacy breaches.&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;&lt;strong&gt;Janet Morozuk&lt;/strong&gt; highlights the copyright traps and cease-and-desist risks of using AI-generated, rights-managed imagery for promotional materials.&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;&lt;strong&gt;Olayinka Madamidola&lt;/strong&gt; teaches leaders how to recognize the quiet signs of workplace conflict and use a four-step framework to navigate technological transitions safely.&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;&lt;strong&gt;Sarah-Jane VandenBerg&lt;/strong&gt; demonstrates through a live interactive exercise why generic, AI-generated recognition fails, offering tools for genuine team appreciation.&lt;/p&gt;
+	&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Protect your business, brand, and people by learning how to balance technological efficiency with compliance and empathetic leadership.&lt;/p&gt;
+</Description>
+    <StartDate>2026-10-29T16:30:00</StartDate>
+    <EndDate>2026-10-29T18:30:00</EndDate>
+    <MemID>76450978</MemID>
+    <LocationDesc>Barrie Chamber Office</LocationDesc>
+    <AdmissionDesc>Free to Chamber Members</AdmissionDesc>
+    <HoursDesc>October 29, 2026 4:30pm-6:30pm</HoursDesc>
+    <ContactDesc>Katherine Ritch 705-716-4647</ContactDesc>
+    <ContactEmail>katherine.ritch@peninsula-ca.com</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapService>NONE</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-08-28T09:22:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>bytes-burnout-balancing-tech-and-human-well-being-in-the-ai-era</Slug>
+    <EventsPageVideoURL />
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8509</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>17</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8510</EventID>
+    <CCID>2454</CCID>
+    <Name>YMCA Block Party</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;p&gt;&lt;span style="font-size:13px"&gt;The YMCA of Simcoe/Muskoka is celebrating &lt;/span&gt;&lt;strong&gt;one year to opening&lt;/strong&gt;&lt;span style="font-size:13px"&gt; of the new Barrie YMCA Centre of Community with a community-wide Block Party!&lt;/span&gt;&lt;/p&gt;
+
+&lt;p&gt;As part of &lt;strong&gt;Doors Open Barrie&lt;/strong&gt;, we&amp;rsquo;re inviting the community to come together at the future home of the new Barrie YMCA for a fun, family-friendly day. Get a closer look at the progress being made, learn more about what&amp;rsquo;s coming to the community, and celebrate this exciting milestone with us.&lt;/p&gt;
+
+&lt;p&gt;The Block Party will feature:&lt;/p&gt;
+
+&lt;ul&gt;
+	&lt;li&gt;
+	&lt;p&gt;A look at the progress of the new Barrie YMCA Centre of Community&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;Outdoor fitness classes and activities&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;Special announcements and community celebrations&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;Family-friendly games, crafts and activities&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;Nature-focused activities&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;Community partners and local organizations&lt;/p&gt;
+	&lt;/li&gt;
+	&lt;li&gt;
+	&lt;p&gt;Fun for all ages!&lt;/p&gt;
+	&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Whether you&amp;rsquo;re a longtime YMCA supporter, a future member, a nearby neighbour, or simply curious about what&amp;rsquo;s being built at 535 Bayview Drive, &lt;strong&gt;everyone is welcome!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Join us as we celebrate this exciting milestone and look ahead to the opening of a new Centre of Community that will bring people together, support health and well-being, and create opportunities for people of all ages and stages of life.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;This is an outdoor event and will take place rain or shine, weather permitting.&lt;/em&gt;&lt;/p&gt;
+</Description>
+    <StartDate>2026-09-26T10:00:00</StartDate>
+    <EndDate>2026-09-26T16:00:00</EndDate>
+    <URL>https://www.ymcaofsimcoemuskoka.ca/get-involved/blockparty/</URL>
+    <MemID>44777387</MemID>
+    <LocationDesc>535 Bayview Drive, Barrie, ON</LocationDesc>
+    <AdmissionDesc>&lt;strong&gt;Cost:&lt;/strong&gt; Free</AdmissionDesc>
+    <HoursDesc>&lt;strong&gt;Date:&lt;/strong&gt; Saturday, September 26, 2026&lt;br /&gt;
+&lt;strong&gt;Time:&lt;/strong&gt; 10:00 a.m. &amp;ndash; 4:00 p.m.</HoursDesc>
+    <ContactDesc>Email us or visit our website for more details or to get involved!</ContactDesc>
+    <ContactEmail>100reasonsy@sm.ymca.ca</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>535 Bayview Drive</MapAddr1>
+    <MapCity>Barrie</MapCity>
+    <MapState>ON</MapState>
+    <MapPostalCode>L4N 8Y2</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-08-28T14:50:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>ymca-block-party</Slug>
+    <EventsPageVideoURL />
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>NoRecurrance</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate xsi:nil="true" />
+      <EventID>8510</EventID>
+      <Frequency>FREQ_NONE</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>1</int>
+      <int>2</int>
+      <int>10</int>
+      <int>12</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+<EventDisplay>
+    <EventID>8513</EventID>
+    <CCID>2454</CCID>
+    <Name>2026 Empower Simcoe Annual General Meeting and Gift of the Heart Awards</Name>
+    <DisplayFlags />
+    <Status>APPROVED</Status>
+    <Description>&lt;div&gt;You&amp;#39;re invited to Empower Simcoe&amp;rsquo;s 73rd Annual General Meeting &amp;amp; Gift of the Heart Awards - an evening dedicated to celebrating the people who make a difference in our community with keynote speaker Barrie Mayor Alex Nuttall.&lt;/div&gt;
+
+&lt;div&gt;
+&lt;div&gt;&amp;nbsp;&lt;/div&gt;
+
+&lt;div&gt;Be inspired by the stories of our 2026 Gift of the Heart Award recipients - recognizing outstanding Volunteers, Employees, Families, Self-Advocates, and Community Partners who champion inclusion and support for people of all abilities.&lt;/div&gt;
+&lt;/div&gt;
+</Description>
+    <StartDate>2026-09-24T17:00:00</StartDate>
+    <EndDate>2026-09-24T19:00:00</EndDate>
+    <URL>https://www.empowersimcoe.ca/</URL>
+    <MemID>44776935</MemID>
+    <LocationDesc>Liberty North Banquet Hall - 100 Caplan Avenue, Barrie</LocationDesc>
+    <AdmissionDesc>Admission is free</AdmissionDesc>
+    <HoursDesc>Thursday September 24th, 2026&lt;br /&gt;
+5:00 p.m. to 7:00 p.m.</HoursDesc>
+    <ContactDesc>Register at https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=2eaX2qEfu0G_kC9KtTgx1DWjMXvRTNxHtYicLl1eDQZUQ0JQTk8xUlA2NlhXR0FFRDBDT1dGOURJTy4u </ContactDesc>
+    <ContactEmail>communications@empowersimcoe.ca</ContactEmail>
+    <IsAllDayEvent>false</IsAllDayEvent>
+    <MapAddr1>100 Caplan Avenue</MapAddr1>
+    <MapCity>Barrie</MapCity>
+    <MapState>Ontario</MapState>
+    <MapPostalCode>L4N 9J2</MapPostalCode>
+    <MapService>GOOGLE_MAPS</MapService>
+    <VisibilityFlags>ChamberInternal Public MemberOnly</VisibilityFlags>
+    <CreatedDate>2026-09-04T12:23:00</CreatedDate>
+    <Version>2</Version>
+    <Slug>2026-empower-simcoe-annual-general-meeting-and-gift-of-the-heart-awards</Slug>
+    <EventsPageVideoURL />
+    <Recurrence>
+      <CCID>2454</CCID>
+      <DateType>DayStart</DateType>
+      <DayOfWeek>0</DayOfWeek>
+      <EndDate>2026-09-25T00:00:00</EndDate>
+      <EventID>8513</EventID>
+      <Frequency>FREQ_ANNUALLY</Frequency>
+      <Iteration>1</Iteration>
+      <SeriesEventId xsi:nil="true" />
+      <SeriesOverride>false</SeriesOverride>
+    </Recurrence>
+    <Categories>
+      <int>12</int>
+      <int>22</int>
+    </Categories>
+    <MemberBillingMethod xsi:nil="true" />
+    <NonMemberBillingMethod xsi:nil="true" />
+    <RegistrationCutoff xsi:nil="true" />
+  </EventDisplay>
+</ArrayOfEventDisplay>

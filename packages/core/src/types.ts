@@ -26,6 +26,7 @@ export type Platform =
   | 'libcal'
   | 'ics'
   | 'sitefinity'
+  | 'growthzone'
   | 'tixhub'
   | 'mat-film-nights'
   | 'cfmws'
@@ -110,6 +111,9 @@ export type SourceConfig =
   /** Progress Sitefinity's Events module, read through its OData service. `detailPath` is
    * where the site mounts an event's page, joined to the item's own URL. */
   | { platform: 'sitefinity'; origin: string; detailPath: string }
+  /** GrowthZone / ChamberMaster, the platform chambers of commerce run on. `origin` is the
+   * `business.` host, whose `/api/events` carries the whole calendar. */
+  | { platform: 'growthzone'; origin: string }
   /** A TIXHUB box office, by tenant as the CDN spells it ('Orillia-OH'). */
   | { platform: 'tixhub'; tenant: string }
   /** Mariposa Arts Theatre's film series page, read as prose. */
