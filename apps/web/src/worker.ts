@@ -4,6 +4,8 @@ import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
 import { renderEventPage, renderNotFound, renderPlacePage, shareableImage } from './pages.ts'
 import { descriptionText } from './markdown.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
+import { handleAccount } from './auth/routes.ts'
+import { ADMIN_ADDRESS, MAIL_FROM, sendMail, type EmailAddress, type SendEmail } from './mail.ts'
 import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
 import { MAX_POSTER_BYTES, inspectImage, stripMetadata, type ImageKind } from './image.ts'
 
@@ -13,21 +15,6 @@ interface D1Statement {
   run(): Promise<unknown>
 }
 
-interface EmailAddress {
-  email: string
-  name?: string
-}
-
-/** The Cloudflare Email Service binding — only the part of it this worker uses. */
-interface SendEmail {
-  send(message: {
-    to: string | EmailAddress
-    from: string | EmailAddress
-    replyTo?: string | EmailAddress
-    subject: string
-    text: string
-  }): Promise<unknown>
-}
 
 /** The R2 bucket binding — only the part of it this worker uses. */
 interface PosterBucket {
@@ -51,6 +38,12 @@ export interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> }
   /** Optional so a local `wrangler dev` without it still serves the site. */
   EMAIL?: SendEmail
+  /**
+   * The password pepper (see auth/password.ts). Absent, every /account route answers 503:
+   * a sign-in that quietly hashed without it would strand each password the moment it was
+   * set.
+   */
+  PASSWORD_PEPPER?: string
   /**
    * Secret for the Turnstile widget on /suggest. Deliberately NOT optional in behaviour:
    * without it the form refuses every suggestion rather than accept them unchecked.
@@ -263,6 +256,11 @@ export default {
       }
 
       // The short, shareable form. Server-rendered so a pasted link previews properly.
+      // Everything under /account: server-rendered, no-store, canonical-host-only.
+      if (url.pathname === '/account' || url.pathname.startsWith('/account/')) {
+        return handleAccount(request, url, env)
+      }
+
       if (url.pathname.startsWith('/e/')) {
         const code = decodeURIComponent(url.pathname.slice('/e/'.length))
         const row = await lookupEvent(env, 'short_code', code)
@@ -308,10 +306,8 @@ export default {
  * The site's inbox: gets every suggestion, and is where a thank-you's reply goes. Used
  * only in mail headers — never in a response body, where it would be harvestable.
  */
-const ADMIN_ADDRESS = 'contact@outinsimcoe.ca'
 /** Stands in for the address in response messages; see `reply` in handleSuggestion. */
 const CONTACT_PLACEHOLDER = '{contact}'
-const MAIL_FROM: EmailAddress = { email: ADMIN_ADDRESS, name: SITE_NAME }
 /** Per sender, per hour. A person suggesting a whole festival programme will not hit it. */
 const SUGGESTIONS_PER_HOUR = 5
 const MAX_BODY_BYTES = 64_000
@@ -324,15 +320,6 @@ async function sha256(value: string): Promise<string> {
 }
 
 /** An email's fate, as recorded on the suggestion row. Never throws. */
-async function sendMail(env: Env, message: Parameters<SendEmail['send']>[0]): Promise<string> {
-  if (!env.EMAIL) return 'error: no EMAIL binding'
-  try {
-    await env.EMAIL.send(message)
-    return 'sent'
-  } catch (err) {
-    return `error: ${err instanceof Error ? err.message : String(err)}`.slice(0, 500)
-  }
-}
 
 /**
  * Take a suggestion from the form.
@@ -483,14 +470,14 @@ async function handleSuggestion(request: Request, env: Env): Promise<Response> {
     posterUrl: posterKey && consoleOrigin ? `${consoleOrigin}/suggestions/${id}/poster` : null,
     posterProblem: posterProblem ?? (posterKey && !consoleOrigin ? `stored as ${posterKey}, but CONSOLE_ORIGIN is not set` : null),
   })
-  const adminOutcome = await sendMail(env, {
+  const adminOutcome = await sendMail(env.EMAIL, {
     to: ADMIN_ADDRESS,
     from: MAIL_FROM,
     ...(suggestion.email ? { replyTo: suggestion.email } : {}),
     ...admin,
   })
   const userOutcome = suggestion.email
-    ? await sendMail(env, { to: suggestion.email, from: MAIL_FROM, replyTo: ADMIN_ADDRESS, ...thanksMail(suggestion) })
+    ? await sendMail(env.EMAIL, { to: suggestion.email, from: MAIL_FROM, replyTo: ADMIN_ADDRESS, ...thanksMail(suggestion) })
     : 'skipped'
 
   await env.DB.prepare('UPDATE suggestions SET admin_mail = ?, user_mail = ? WHERE id = ?')

@@ -405,3 +405,14 @@ describe('share card dimensions', () => {
     expect(html).not.toContain('content="summary"')
   })
 })
+
+describe('the public cache and the account database', () => {
+  it('serves /api/events publicly cacheable, touching only the events database', async () => {
+    // stubEnv's ACCOUNTS throws on any query, so this passing IS the proof that the
+    // public path never reaches the account database.
+    const res = await get('/api/events')
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Cache-Control')).toContain('public')
+  })
+})
+
