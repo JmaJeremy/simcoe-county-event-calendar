@@ -46,6 +46,12 @@
   "env": {
     "dev": {
       "name": "scec-web-dev",
+      // Explicitly NO routes. Environments INHERIT top-level routes unless overridden,
+      // and on 2026-09-24 this env, deployed without the override under CI=true, answered
+      // the takeover prompt itself and took outinsimcoe.ca's custom domains with it —
+      // the dev worker served the live site until production was redeployed. The empty
+      // array is what stops the inheritance; never remove it.
+      "routes": [],
       "workers_dev": true,
       "vars": {
         "CANONICAL_HOST": "scec-web-dev.thejeremy-net.workers.dev",
