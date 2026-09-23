@@ -39,6 +39,15 @@ export interface Env {
   DB: {
     prepare(query: string): D1Statement & { bind(...values: unknown[]): D1Statement }
   }
+  /**
+   * The account database, scec-accounts — a separate D1 so the ingest worker can never
+   * bind it. Everything personal lives here; everything public stays in DB, and no query
+   * ever joins the two: reads that need both do two queries and join in the worker, with
+   * IN lists chunked. See docs/user-accounts.md.
+   */
+  ACCOUNTS: {
+    prepare(query: string): D1Statement & { bind(...values: unknown[]): D1Statement }
+  }
   ASSETS: { fetch(request: Request): Promise<Response> }
   /** Optional so a local `wrangler dev` without it still serves the site. */
   EMAIL?: SendEmail

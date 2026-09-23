@@ -40,6 +40,16 @@
       "binding": "DB",
       "database_name": "scec",
       "database_id": "2a5bb740-6719-4498-9c0d-4f8eb7b601b9"
+    },
+    {
+      // Account data lives apart from the public calendar so the ingest worker, which
+      // parses hostile HTML from 40 sites, can never hold a binding that reaches a
+      // password hash. This directory's migrations own scec-accounts; apps/ingest's own
+      // scec. There are no joins across the two — see docs/user-accounts.md.
+      "binding": "ACCOUNTS",
+      "database_name": "scec-accounts",
+      "database_id": "6e341ad6-ad42-4957-9756-563490fdc33f",
+      "migrations_dir": "./migrations"
     }
   ]
 }
