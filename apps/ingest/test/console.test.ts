@@ -1020,6 +1020,41 @@ ${used.body}` },
     expect(res.headers.get('Location')).toBe('/social?done=duplicate')
   })
 
+  /*
+   * The poster never retries a failure by itself: a timeout may have posted after all. So the
+   * console is where a person, having looked at the account, says to send it again.
+   */
+  it('offer a failed post to be sent again, with the warning that makes the choice informed', async () => {
+    const failed = socialRow({ status: 'failed', error: 'facebook: HTTP 400: Confirm your identity (code 368/4854002)' })
+    const body = await (await handleConsole(get('/social'), env(withSocial([failed]).db), keys)).text()
+    expect(body).toContain('Confirm your identity')
+    expect(body).toContain(`action="/social/${FB}/retry"`)
+    expect(body).toContain('if it did post, this posts it twice')
+  })
+
+  it('send a failed post again by approving it, clearing the claim and the error', async () => {
+    const { db, writes } = withSocial([socialRow({ status: 'failed', error: 'facebook: HTTP 500' })])
+    const res = await handleConsole(post(`/social/${FB}/retry`, {}), env(db), keys)
+    expect(res.headers.get('Location')).toBe('/social?done=retry')
+    const [update] = writes("SET status = 'approved', claim = NULL, error = NULL")
+    expect(update!.sql).toContain("WHERE id = ? AND status = 'failed' AND post_date >= ?")
+    expect(update!.values.slice(1)).toEqual(['jeremy@example.com', FB, expect.any(String)])
+  })
+
+  it('say so when a retry matched nothing, rather than claiming it worked', async () => {
+    const { db } = withSocial([socialRow({ status: 'posted' })], { changes: 0 })
+    const res = await handleConsole(post(`/social/${FB}/retry`, {}), env(db), keys)
+    expect(res.headers.get('Location')).toBe('/social?done=missed')
+  })
+
+  /* Nothing but a failure may be retried; a sent post must never be offered a second send. */
+  it('offer no retry on a post that did not fail', async () => {
+    for (const status of ['posted', 'drafted', 'approved', 'skipped']) {
+      const body = await (await handleConsole(get('/social'), env(withSocial([socialRow({ status })]).db), keys)).text()
+      expect(body).not.toContain('/retry')
+    }
+  })
+
   it('approve a whole day in one go', async () => {
     const { db, writes } = withSocial([socialRow(), xRow()])
     const res = await handleConsole(post('/social/day/2099-10-02/approve', {}), env(db), keys)
