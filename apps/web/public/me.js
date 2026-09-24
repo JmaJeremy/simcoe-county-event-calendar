@@ -43,17 +43,19 @@ export async function saveView(label, query) {
 export const signInHref = () => `/account/signin?next=${encodeURIComponent(location.pathname + location.search)}`
 
 /*
- * The event page's Pin button: rendered hidden for everyone, shown here. Signed out it
- * still shows, and takes the reader to sign in and back again — the button is how most
- * readers will find out accounts exist.
+ * The event page's pin, beside the title: rendered hidden for everyone, shown here.
+ * Signed out it still shows, and takes the reader to sign in and back again — the button
+ * is how most readers will find out accounts exist.
  */
 for (const button of document.querySelectorAll('button[data-pin-page]')) {
   const id = button.dataset.pinPage
   fetchMe().then((me) => {
     let pinned = me.signedIn && me.pins.has(id)
+    // Icon-only beside the title, so the label is the button's whole name.
     const draw = () => {
-      button.textContent = pinned ? 'Pinned' : 'Pin'
       button.setAttribute('aria-pressed', String(pinned))
+      button.setAttribute('aria-label', pinned ? 'Unpin this event' : 'Pin this event')
+      button.title = pinned ? 'Unpin' : 'Pin'
     }
     draw()
     button.hidden = false

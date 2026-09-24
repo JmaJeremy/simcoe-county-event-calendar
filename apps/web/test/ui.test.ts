@@ -1079,6 +1079,29 @@ describeIfChrome('accounts on the calendar (real browser)', () => {
     }
   })
 
+  it('puts a signed-in reader’s pins at the top of their day', async () => {
+    // A day with several visible events; pin the last of them.
+    const byDay = new Map<string, typeof VISIBLE>()
+    for (const e of VISIBLE) byDay.set(e.localDate, [...(byDay.get(e.localDate) ?? []), e])
+    const [day, events] = [...byDay].find(([, list]) => list.length > 1)!
+    const last = events.at(-1)!
+    const me: FakeMe = { pins: [last.id], filters: [], posts: [] }
+    const server = await startServer(me)
+    const page = await browser.newPage()
+    try {
+      await page.goto(server.url, { waitUntil: 'networkidle0' })
+      await page.waitForSelector('button.pin-toggle[aria-pressed="true"]')
+      const firstOfDay = await page.$$eval('#list .day', (days, title) => {
+        const section = days.find((d) => d.querySelector('h2')?.textContent === title)
+        return section?.querySelector('.event button.pin-toggle')?.getAttribute('data-pin')
+      }, new Intl.DateTimeFormat('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`)))
+      expect(firstOfDay).toBe(last.id)
+    } finally {
+      await page.close()
+      await server.close()
+    }
+  })
+
   it('pins from the list when signed in, and saves the view from the subscribe sheet', async () => {
     const me: FakeMe = { pins: [VISIBLE[0]!.id], filters: [], posts: [] }
     const server = await startServer(me)

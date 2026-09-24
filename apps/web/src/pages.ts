@@ -160,6 +160,16 @@ function eventJsonLd(event: PublicEvent, canonical: string): unknown {
   return data
 }
 
+/** Material Icons' push_pin (Apache 2.0), outline and filled; also PIN_ICON in app.js. */
+const PIN_ICON = `<svg class="pin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="pin-off" d="M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4h4m3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1z"/><path class="pin-on" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></svg>`
+
+/**
+ * Inert and hidden for everyone: /me.js shows it once it knows who is reading, so the page
+ * stays byte-identical signed in or out and keeps its public cache.
+ */
+const pinButton = (eventId: string): string =>
+  `<button class="pin-toggle pin-large" type="button" data-pin-page="${escapeHtml(eventId)}" aria-pressed="false" aria-label="Pin this event" title="Pin" hidden>${PIN_ICON}</button>`
+
 export function renderEventPage(event: PublicEvent, origin: string, backHref = '/', imageSize?: { width: number; height: number }): string {
   const when = describeWhen(event)
   const place = [event.venueName, event.address].filter((v): v is string => !!v).join(', ')
@@ -189,9 +199,6 @@ export function renderEventPage(event: PublicEvent, origin: string, backHref = '
     `<button class="btn ghost" type="button" data-share aria-haspopup="dialog"
        data-share-url="${escapeHtml(canonical)}"
        data-share-text="${escapeHtml(`${event.title} · ${when}`)}">Share</button>`,
-    // Inert and hidden for everyone: /me.js shows it once it knows who is reading, so this
-    // page stays byte-identical signed in or out and keeps its public cache.
-    `<button class="btn ghost" type="button" data-pin-page="${escapeHtml(event.id)}" aria-pressed="false" hidden>Pin</button>`,
   ]
 
   const notices: string[] = []
@@ -226,7 +233,7 @@ ${renderHead(
 <main class="card" data-cat="${escapeHtml(event.category)}">
   ${crumbs.html}
   <p class="eyebrow">${escapeHtml(event.municipalityName ?? 'Simcoe County')} · ${escapeHtml(titleCase(event.category))}</p>
-  <h1>${escapeHtml(event.title)}</h1>
+  <div class="title-row"><h1>${escapeHtml(event.title)}</h1>${pinButton(event.id)}</div>
   <p class="when"><time datetime="${escapeHtml(isoAttr(event))}">${escapeHtml(when)}</time></p>
   ${place ? `<p class="where">${escapeHtml(place)}</p>` : ''}
   <p class="cost ${escapeHtml(event.cost)}">${escapeHtml(cost)}</p>

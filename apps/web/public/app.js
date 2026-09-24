@@ -318,8 +318,24 @@ const esc = (s) =>
  */
 const PAGE_SIZE = 30
 
+/**
+ * A signed-in reader's pins lead their day. Sorted BEFORE the list is cut to a page, or a
+ * pinned event further down a day that is on screen would never reach the top of it. Only
+ * among events that match the filters — a pin does not force itself into a view that
+ * excludes it — and never re-sorted on a click, so a card does not jump out from under
+ * the cursor; the next render puts it in place.
+ */
+function pinnedFirst(events, dateOf) {
+  const pins = state.me.pins
+  if (!state.me.signedIn || !pins.size) return events
+  return events
+    .map((e, i) => ({ e, i, day: dateOf(e) }))
+    .sort((a, b) => a.day.localeCompare(b.day) || pins.has(b.e.id) - pins.has(a.e.id) || a.i - b.i)
+    .map((x) => x.e)
+}
+
 function renderList() {
-  const matching = visibleEvents()
+  const matching = pinnedFirst(visibleEvents(), listDate)
   const list = $('list')
 
   if (!matching.length) {
@@ -431,24 +447,35 @@ function renderEvent(e) {
   return `<article class="event${e.status === 'cancelled' ? ' is-cancelled' : ''}" data-cat="${esc(e.category)}">
     <div class="time">${time}</div>
     <div>
-      <h3><a href="${esc(eventHref(e))}">${esc(e.title)}</a> ${tags.join(' ')}</h3>
+      <h3><a href="${esc(eventHref(e))}">${esc(e.title)}</a>${pinToggle(e)} ${tags.join(' ')}</h3>
       <div class="meta">
         <span class="jur">${esc(shortPlaceName(e.municipalitySlug))}</span>
         <span class="cat"><span class="cat-dot" aria-hidden="true"></span>${esc(categoryLabel(e.category))}</span>
         ${place ? `<span>${esc(place)}</span>` : ''}
         ${runs}
         ${alsoOn}
-        ${pinToggle(e)}
       </div>
     </div>
   </article>`
 }
 
-/** Only for a signed-in reader; the list stays as it was for everyone else. */
+/**
+ * A push pin: outline when unpinned, filled when pinned, which of the two shows is CSS's
+ * job off aria-pressed. Material Icons' push_pin (Apache 2.0). Repeated in pages.ts for the
+ * event page — change one, change both.
+ */
+const PIN_ICON = `<svg class="pin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="pin-off" d="M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4h4m3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1z"/><path class="pin-on" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></svg>`
+
+/**
+ * Only for a signed-in reader; the list stays as it was for everyone else. Icon-only, so
+ * the aria-label is its whole name — keep the `Pin|Unpin <title>` shape, which the click
+ * handler below also reads the title back out of.
+ */
 function pinToggle(e) {
   if (!state.me.signedIn) return ''
   const pinned = state.me.pins.has(e.id)
-  return `<button type="button" class="pin-toggle" data-pin="${esc(e.id)}" aria-pressed="${pinned}" aria-label="${pinned ? 'Unpin' : 'Pin'} ${esc(e.title)}">${pinned ? 'Pinned' : 'Pin'}</button>`
+  const label = `${pinned ? 'Unpin' : 'Pin'} ${e.title}`
+  return `<button type="button" class="pin-toggle" data-pin="${esc(e.id)}" aria-pressed="${pinned}" aria-label="${esc(label)}" title="${pinned ? 'Unpin' : 'Pin'}">${PIN_ICON}</button>`
 }
 
 document.addEventListener('click', async (ev) => {
@@ -463,9 +490,9 @@ document.addEventListener('click', async (ev) => {
   const title = button.getAttribute('aria-label').replace(/^(Unpin|Pin) /, '')
   for (const b of document.querySelectorAll(`button.pin-toggle[data-pin="${CSS.escape(id)}"]`)) {
     const on = state.me.pins.has(id)
-    b.textContent = on ? 'Pinned' : 'Pin'
     b.setAttribute('aria-pressed', String(on))
     b.setAttribute('aria-label', `${on ? 'Unpin' : 'Pin'} ${title}`)
+    b.title = on ? 'Unpin' : 'Pin'
   }
   button.disabled = false
 })
@@ -641,7 +668,7 @@ dayModal.addEventListener('click', (ev) => {
 
 function renderDayModal(byDay) {
   if (!state.selectedDay) return
-  const dayEvents = byDay.get(state.selectedDay) ?? []
+  const dayEvents = pinnedFirst(byDay.get(state.selectedDay) ?? [], () => state.selectedDay)
   $('day-modal-title').textContent = fmtDay.format(new Date(`${state.selectedDay}T00:00:00Z`))
   $('day-modal-body').innerHTML = dayEvents.length ? dayEvents.map(renderEvent).join('') : '<p class="cal-empty">No events on this day.</p>'
 }
