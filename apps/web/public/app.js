@@ -118,8 +118,10 @@ function writeUrl() {
  */
 function filterParams() {
   const p = new URLSearchParams()
-  if (state.filters.m.size) p.set('m', [...state.filters.m].join(','))
-  if (state.filters.cat.size) p.set('cat', [...state.filters.cat].join(','))
+  // Sorted like the server's canonical form (savedQueryFrom), so the same view is the same
+  // string whatever order its filters were clicked in.
+  if (state.filters.m.size) p.set('m', [...state.filters.m].sort().join(','))
+  if (state.filters.cat.size) p.set('cat', [...state.filters.cat].sort().join(','))
   if (state.cost !== 'default') p.set('cost', state.cost)
   if (state.showCivic) p.set('civic', '1')
   if (state.from) p.set('from', state.from)

@@ -215,15 +215,15 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     }
     if (path === '/account/google/callback') {
       if (!google) return page(accountPage({ title: 'Not available', heading: 'Google sign-in is not available', origin, body: '' }), 404)
+      const flow = await openFlow(cookieValue(request, OAUTH_COOKIE), google.stateKey, now.getTime())
       const fail = (why: string) => {
         console.warn('google sign-in refused:', why)
         return page(
-          accountPage({ title: 'Sign in', heading: 'Sign in', origin, isError: true, notice: 'Google sign-in did not complete. Please try again.', body: signInForm(undefined, true) }),
+          accountPage({ title: 'Sign in', heading: 'Sign in', origin, isError: true, notice: 'Google sign-in did not complete. Please try again.', body: signInForm(undefined, true, safeNext(flow?.next) ?? '') }),
           400,
           { 'Set-Cookie': clearFlowCookie() },
         )
       }
-      const flow = await openFlow(cookieValue(request, OAUTH_COOKIE), google.stateKey, now.getTime())
       const state = url.searchParams.get('state')
       const code = url.searchParams.get('code')
       // The cookie binds the flow to the browser that started it; the state ties this
