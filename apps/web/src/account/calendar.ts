@@ -9,23 +9,35 @@ import { randomToken } from '../auth/session.ts'
  * the public one is a separate value, is in migrations/0003_user_calendars.sql.
  */
 
+export type DigestCadence = 'none' | 'daily' | 'weekly'
+
 export interface UserCalendar {
   userId: string
   calendarId: string
   feedGeneration: number
   shareSlug: string | null
+  /** Email digest settings (0004): hour and day in America/Toronto, day 0 = Sunday. */
+  digest: DigestCadence
+  digestHour: number
+  digestDay: number
 }
 
-type CalendarRow = { user_id: string; calendar_id: string; feed_generation: number; share_slug: string | null }
+type CalendarRow = {
+  user_id: string; calendar_id: string; feed_generation: number; share_slug: string | null
+  digest?: string; digest_hour?: number; digest_day?: number
+}
 
 const toCalendar = (r: CalendarRow): UserCalendar => ({
   userId: r.user_id,
   calendarId: r.calendar_id,
   feedGeneration: r.feed_generation,
   shareSlug: r.share_slug,
+  digest: r.digest === 'daily' || r.digest === 'weekly' ? r.digest : 'none',
+  digestHour: r.digest_hour ?? 8,
+  digestDay: r.digest_day ?? 4,
 })
 
-const COLUMNS = 'user_id, calendar_id, feed_generation, share_slug'
+const COLUMNS = 'user_id, calendar_id, feed_generation, share_slug, digest, digest_hour, digest_day'
 
 /** The reader's calendar row, made on first sight. */
 export async function calendarFor(db: AccountsDb, userId: string, now: Date): Promise<UserCalendar> {
@@ -41,11 +53,18 @@ export async function calendarFor(db: AccountsDb, userId: string, now: Date): Pr
 
 const encoder = new TextEncoder()
 
-async function mac(key: string, calendarId: string, generation: number): Promise<string> {
+/**
+ * One key signs two kinds of link, told apart by the message's prefix — `feed:` for the
+ * private feed, `unsub:` for a digest's unsubscribe link — so neither can stand in for the
+ * other: a leaked feed URL cannot unsubscribe anyone, and an unsubscribe link opens no feed.
+ */
+async function hmac(key: string, message: string): Promise<string> {
   const k = await crypto.subtle.importKey('raw', encoder.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-  const bytes = new Uint8Array(await crypto.subtle.sign('HMAC', k, encoder.encode(`feed:${calendarId}:${generation}`)))
+  const bytes = new Uint8Array(await crypto.subtle.sign('HMAC', k, encoder.encode(message)))
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
+
+const mac = (key: string, calendarId: string, generation: number) => hmac(key, `feed:${calendarId}:${generation}`)
 
 /** The private feed's token, `{calendarId}.{mac}` — recomputed, never stored. */
 export async function feedToken(key: string, calendar: UserCalendar): Promise<string> {
@@ -60,6 +79,23 @@ export async function userForFeedToken(db: AccountsDb, key: string, token: strin
   if (!row) return null
   const expected = await mac(key, row.calendar_id, row.feed_generation)
   return timingSafeEqual(encoder.encode(expected), encoder.encode(match[2]!)) ? row.user_id : null
+}
+
+/**
+ * A digest's unsubscribe token, `{calendarId}.{mac}`. Not rotated with the feed: a digest
+ * already in someone's inbox must keep its unsubscribe link working.
+ */
+export async function unsubscribeToken(key: string, calendarId: string): Promise<string> {
+  return `${calendarId}.${await hmac(key, `unsub:${calendarId}`)}`
+}
+
+export async function userForUnsubscribeToken(db: AccountsDb, key: string, token: string): Promise<string | null> {
+  const match = /^([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(token)
+  if (!match) return null
+  const expected = await hmac(key, `unsub:${match[1]}`)
+  if (!timingSafeEqual(encoder.encode(expected), encoder.encode(match[2]!))) return null
+  const row = await db.prepare('SELECT user_id FROM user_calendars WHERE calendar_id = ?').bind(match[1]).first<{ user_id: string }>()
+  return row?.user_id ?? null
 }
 
 /** "Make a new link": every earlier feed URL stops matching at once. */

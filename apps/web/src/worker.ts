@@ -6,6 +6,8 @@ import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
 import { handleAccount } from './auth/routes.ts'
 import { handleMe } from './account/api.ts'
 import { handleCalendar } from './account/shared.ts'
+import { handleUnsubscribe, runDigests } from './account/digest.ts'
+import { accountPage } from './auth/pages.ts'
 import { renderFeed } from './feed.ts'
 import { ADMIN_ADDRESS, MAIL_FROM, sendMail, type EmailAddress, type SendEmail } from './mail.ts'
 import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
@@ -269,6 +271,22 @@ export default {
         })
       }
 
+      // A digest's unsubscribe link. Ahead of /account and outside it on purpose: one-click
+      // unsubscribe is a POST from the mail provider's own servers, with no Origin and no
+      // session, which the account routes' same-origin gate would refuse.
+      if (url.pathname.startsWith('/unsubscribe/')) {
+        return await handleUnsubscribe(request, url, env, (ok) =>
+          accountPage({
+            title: ok ? 'Unsubscribed' : 'Link not recognised',
+            heading: ok ? 'You are unsubscribed' : 'That link is not recognised',
+            origin,
+            body: ok
+              ? '<p class="lead">You will not get any more digests. You can turn them back on from your account at any time.</p><p class="account-links"><a href="/account#digest">Your account</a></p>'
+              : '<p class="lead">It may be from an account that no longer exists. You can change your digest from your account.</p><p class="account-links"><a href="/account#digest">Your account</a></p>',
+          }),
+        )
+      }
+
       // A reader's private feed and shared calendar, each opened by the capability in its
       // URL. /calendar.ics above is exact-match, so it never lands here.
       if (url.pathname.startsWith('/calendar/') || url.pathname.startsWith('/c/')) {
@@ -319,6 +337,17 @@ export default {
     } catch (err) {
       return new Response(`Error: ${err instanceof Error ? err.message : String(err)}`, { status: 500 })
     }
+  },
+
+  /**
+   * The hourly digest cron (wrangler.jsonc: "5 * * * *"). Here and not in the ingest worker,
+   * which must never bind the account database. Hourly because readers pick their own
+   * hour, and a fixed UTC schedule would drift across daylight saving.
+   */
+  async scheduled(_event: { cron: string; scheduledTime: number }, env: Env, ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<void> {
+    ctx.waitUntil(
+      runDigests(env, new Date()).then((run) => console.log('digests', JSON.stringify(run))),
+    )
   },
 }
 

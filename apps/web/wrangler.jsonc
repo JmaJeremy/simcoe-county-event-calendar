@@ -35,6 +35,9 @@
   // inbox, one thanking the suggester. The domain is onboarded to Email Sending, which
   // is what lets the second one go to an address outside the account.
   "send_email": [{ "name": "EMAIL" }],
+  // The email digest (src/account/digest.ts): hourly, because each reader picks their own
+  // hour in Simcoe County time, and a fixed UTC schedule would drift across daylight saving.
+  "triggers": { "crons": ["5 * * * *"] },
   // A staging copy of this worker on workers.dev, for trying account changes against real
   // events before they reach the live site: `wrangler deploy --env dev`. Bindings are not
   // inherited into an env, so everything is restated. DB deliberately points at the
@@ -52,6 +55,10 @@
       // the dev worker served the live site until production was redeployed. The empty
       // array is what stops the inheritance; never remove it.
       "routes": [],
+      // And NO cron, for the same reason: triggers are inherited too, and a dev digest run
+      // would mail real addresses in scec-accounts-dev. Prove scheduled() locally with
+      // `wrangler dev --test-scheduled` instead.
+      "triggers": { "crons": [] },
       "workers_dev": true,
       "vars": {
         "CANONICAL_HOST": "scec-web-dev.thejeremy-net.workers.dev",

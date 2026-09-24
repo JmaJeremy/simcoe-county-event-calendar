@@ -751,6 +751,11 @@ footer a { color: var(--ink-2); }
 }
 .account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin: 12px 0 8px; }
 .account-actions .inline-form { margin: 0; }
+.digest-form fieldset { border: none; margin: 12px 0 0; padding: 0; }
+.digest-form legend { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+.digest-form .radio { display: block; padding: 4px 0; font-size: 15px; }
+.digest-when { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 12px 0 0; font-size: 14px; }
+.digest-when select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
 /* The pin, beside a title: an outline until pressed, then filled in the accent. The padding
    is the hit area (32px), the negative margin keeps it from pushing the title about. */
 .pin-toggle {

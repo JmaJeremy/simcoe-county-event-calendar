@@ -77,6 +77,39 @@ export interface AccountView {
   feedUrl: string | null
   /** The shared calendar's URL, or null when sharing is off. */
   shareUrl: string | null
+  /** Email digest settings, as stored (account/calendar.ts). */
+  digest: { cadence: 'none' | 'daily' | 'weekly'; hour: number; day: number }
+}
+
+/** The hours a digest can go out, in Simcoe County time: early morning to evening. */
+export const DIGEST_HOURS = Array.from({ length: 17 }, (_, i) => i + 5)
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const hourLabel = (h: number) => formatTime(`${String(h).padStart(2, '0')}:00`)
+
+function digestSection(view: AccountView): string {
+  const d = view.digest
+  const option = (value: string | number, label: string, selected: boolean) =>
+    `<option value="${value}"${selected ? ' selected' : ''}>${escapeHtml(label)}</option>`
+  const radio = (value: string, label: string) =>
+    `<label class="radio"><input type="radio" name="digest" value="${value}"${d.cadence === value ? ' checked' : ''}> ${label}</label>`
+  const state =
+    d.cadence === 'none'
+      ? 'Digests are off.'
+      : d.cadence === 'daily'
+        ? `A digest goes out every morning at about ${hourLabel(d.hour)}, when there is something in it.`
+        : `A digest goes out every ${DAY_NAMES[d.day]} at about ${hourLabel(d.hour)}, covering the week ahead, when there is something in it.`
+  return `<section class="account-section" id="digest" aria-labelledby="digest-h"><h2 id="digest-h">Email digest</h2>
+<p class="account-empty">Your pinned events and saved views, by email. ${escapeHtml(state)} Every digest has a one-click unsubscribe link.</p>
+<form method="post" action="/account/digest" class="digest-form">
+<fieldset><legend>How often</legend>${radio('none', 'Never')}${radio('daily', 'Every day, for that day')}${radio('weekly', 'Once a week, for the week ahead')}</fieldset>
+<div class="digest-when">
+<label>At <select name="hour">${DIGEST_HOURS.map((h) => option(h, hourLabel(h), h === d.hour)).join('')}</select></label>
+<label>Weekly on <select name="day">${DAY_NAMES.map((n, i) => option(i, n, i === d.day)).join('')}</select></label>
+</div>
+<div class="account-actions"><button class="btn" type="submit">Save</button></div>
+</form>
+<form method="post" action="/account/digest/preview" class="inline-form"><button class="linkish" type="submit">Email me a preview now</button></form>
+</section>`
 }
 
 /** Calendar apps open webcal: links as "subscribe" rather than downloading a file. */
@@ -139,6 +172,7 @@ ${past.length ? `<details class="pin-past"><summary>Past (${past.length})</summa
 ${pinsHtml}
 </section>
 ${calendarSection(view)}
+${digestSection(view)}
 <section class="account-section" aria-labelledby="views-h"><h2 id="views-h">Saved views</h2>
 ${filtersHtml}
 </section>

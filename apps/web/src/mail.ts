@@ -18,6 +18,8 @@ export interface SendEmail {
     replyTo?: string | EmailAddress
     subject: string
     text: string
+    /** Allowlisted headers only (List-Unsubscribe and the like); the platform refuses the rest. */
+    headers?: Record<string, string>
   }): Promise<unknown>
 }
 
