@@ -412,6 +412,16 @@ when it breaks, so nothing here is checked by eye.
   it within a run or two. Every card the site emits is therefore wide, and `twitterCard` is
   always `summary_large_image`; the old `summary` case is gone. The event page itself always
   shows the poster, whatever travels with the link.
+- **Facebook is asked to read each event page before anyone shares it.** A share that
+  races Facebook's first fetch of a URL goes out as a bare link — Messenger did that with a
+  page whose og tags were complete. The Graph API's `scrape=true` warms the cache; the
+  **social poster** calls it for new and changed events each hour, because it already
+  holds the Page token, which can publish as the Page and so must never reach the ingest
+  worker (the same blast-radius rule as the account database). Its record is
+  `share_scrapes` (migration 0013, applied by this repo's deploy like `social_posts`),
+  keyed on event id with a hash of every column the og tags read plus the measured poster
+  size, so a change sends the page round again. Change what `renderHead`/`shareCard` put in
+  the tags, change the hash's column list in the poster's `share-warm.ts`.
 - **A govStack poster cannot be a share image.** Those hosts 403 anything that is not a
   browser, crawlers included, so `shareableImage` in the web worker keeps them out of
   `og:image` while the page still shows them to visitors.
