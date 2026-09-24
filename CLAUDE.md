@@ -557,7 +557,9 @@ when it breaks, so nothing here is checked by eye.
   lands mid-run still wins, and a failed send is not retried within its period, since a
   failure reported after delivery would make the retry a second copy. Budgets:
   `DIGESTS_PER_RUN` 100 and `DIGESTS_PER_DAY` 700, leaving 300 of the account's 1,000
-  messages a day for verification, reset and suggestion mail, which nothing counts. An
+  messages a day for verification, reset and suggestion mail, which nothing counts; the day
+  is Simcoe County's, read from the date every period key ends in, and the account page's
+  once-a-day preview (`p:`) spends from it too. An
   empty window records `skipped-empty` and sends nothing; unverified addresses are never
   mailed. The body is plain text from database values — pins first, then each saved view
   (ten events, then a "see all" link), each event once — and carries no address.

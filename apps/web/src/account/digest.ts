@@ -33,16 +33,20 @@ export const DIGESTS_PER_DAY = 700
 export const PER_VIEW = 10
 
 const SITE_TZ = 'America/Toronto'
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-/** The wall clock in Simcoe County. hourCycle 'h23', or some ICU versions call midnight 24. */
+/**
+ * The wall clock in Simcoe County. hourCycle 'h23', or some ICU versions call midnight 24.
+ * The weekday comes from the date itself, never a locale's name for it ('Thu' in one ICU
+ * build, 'Thu.' in another), which would fail silently: no weekly digest would ever match.
+ */
 export function siteClock(now: Date): { date: string; hour: number; weekday: number } {
   const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-CA', { timeZone: SITE_TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23', weekday: 'short' })
+    new Intl.DateTimeFormat('en-CA', { timeZone: SITE_TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
       .formatToParts(now)
       .map((p) => [p.type, p.value]),
   )
-  return { date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour), weekday: WEEKDAYS.indexOf(parts.weekday!) }
+  const date = `${parts.year}-${parts.month}-${parts.day}`
+  return { date, hour: Number(parts.hour), weekday: new Date(`${date}T00:00:00Z`).getUTCDay() }
 }
 
 const addDays = (iso: string, days: number): string => {
@@ -197,8 +201,11 @@ export async function runDigests(env: DigestEnv, now: Date): Promise<DigestRun> 
   const origin = `https://${env.CANONICAL_HOST}`
   const clock = siteClock(now)
 
-  const today = `${now.toISOString().slice(0, 10)}T00:00:00.000Z`
-  const spent = await env.ACCOUNTS.prepare(`SELECT COUNT(*) AS n FROM digest_sends WHERE outcome = 'sent' AND created_at >= ?`).bind(today).first<{ n: number }>()
+  // Today's spend, by the Simcoe County day every period key carries — the same day the
+  // periods themselves run on. Previews ('p:') count: they spend the same allowance.
+  const spent = await env.ACCOUNTS.prepare(`SELECT COUNT(*) AS n FROM digest_sends WHERE outcome = 'sent' AND period_key LIKE ?`)
+    .bind(`%:${clock.date}`)
+    .first<{ n: number }>()
   const budget = Math.min(DIGESTS_PER_RUN, DIGESTS_PER_DAY - (spent?.n ?? 0))
   if (budget <= 0) return { ...run, skipped: 'daily budget spent' }
 

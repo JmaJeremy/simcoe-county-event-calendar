@@ -4,7 +4,8 @@
 -- The settings ride on user_calendars, one row per reader already. The hour and day are in
 -- America/Toronto wall time, and there is no timezone column: the whole site assumes that
 -- zone (events, "today", "on now"), and a reader in another one is reading about Simcoe
--- County. digest_day is 0 = Sunday to 6 = Saturday, used only by 'weekly'.
+-- County. digest_day is 0 = Sunday to 6 = Saturday, used only by 'weekly'; it defaults to
+-- Thursday so a weekly digest arrives before the weekend it describes.
 ALTER TABLE user_calendars ADD COLUMN digest TEXT NOT NULL DEFAULT 'none';
 ALTER TABLE user_calendars ADD COLUMN digest_hour INTEGER NOT NULL DEFAULT 8;
 ALTER TABLE user_calendars ADD COLUMN digest_day INTEGER NOT NULL DEFAULT 4;
@@ -24,5 +25,5 @@ CREATE TABLE digest_sends (
   created_at  TEXT NOT NULL,
   PRIMARY KEY (user_id, period_key)
 );
--- The daily budget counts today's sends across everyone.
-CREATE INDEX digest_sends_created ON digest_sends(created_at);
+-- The daily budget counts today's sends across everyone by the date in period_key (every
+-- key ends in the Simcoe County date), so no other index is needed at this size.

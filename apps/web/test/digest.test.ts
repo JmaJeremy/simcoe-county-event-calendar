@@ -114,8 +114,10 @@ describe('who gets a digest, and when', () => {
     const fair = w.event({ title: 'Fall Fair' })
     w.user('filler', { digest: 'none' })
     for (let i = 0; i < DIGESTS_PER_DAY - 2; i++) {
-      w.accounts.exec(`INSERT INTO digest_sends (user_id, period_key, outcome, created_at) VALUES ('filler', ?, 'sent', ?)`, `x:${i}`, '2026-10-15T01:00:00.000Z')
+      w.accounts.exec(`INSERT INTO digest_sends (user_id, period_key, outcome, created_at) VALUES ('filler', ?, 'sent', ?)`, `d${i}:2026-10-15`, '2026-10-15T05:00:00.000Z')
     }
+    // Yesterday's sends, by the Simcoe County day, spend none of today's budget.
+    w.accounts.exec(`INSERT INTO digest_sends (user_id, period_key, outcome, created_at) VALUES ('filler', 'd:2026-10-14', 'sent', '2026-10-15T01:00:00.000Z')`)
     for (const id of ['a', 'b', 'c', 'd']) {
       w.user(id)
       w.pin(id, fair)
