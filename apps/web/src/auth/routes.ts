@@ -1,6 +1,7 @@
 import { MAIL_FROM, sendMail, type SendEmail } from '../mail.ts'
 import { TURNSTILE_FIELD, verifyTurnstile } from '../suggest.ts'
 import type { AccountsDb } from './db.ts'
+import { OAUTH_COOKIE, clearFlowCookie, exchangeCode, openFlow, startFlow, userForIdentity, type GoogleSettings } from './google.ts'
 import { existingAccountMail, resetMail, verificationMail } from './mail.ts'
 import {
   ACCOUNT_TURNSTILE_ACTION,
@@ -14,6 +15,7 @@ import {
 import { hashPassword, verifyPassword } from './password.ts'
 import {
   clearSessionCookie,
+  cookieValue,
   createSession,
   destroyAllSessions,
   destroySession,
@@ -35,7 +37,17 @@ export interface AuthEnv {
   TURNSTILE_SECRET_KEY?: string
   PASSWORD_PEPPER?: string
   CANONICAL_HOST?: string
+  /** All three or nothing: with any missing, the Google button is not rendered and the
+   * routes answer 404, the posture Turnstile and Access already take. */
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  OAUTH_STATE_KEY?: string
 }
+
+const googleSettings = (env: AuthEnv): GoogleSettings | null =>
+  env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.OAUTH_STATE_KEY
+    ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, stateKey: env.OAUTH_STATE_KEY }
+    : null
 
 /** Attempts allowed per rolling hour. Per IP AND per account: per-IP alone does nothing
  * against a distributed attempt on one address, per-account alone lets one host walk a
@@ -153,6 +165,7 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
 
   const path = url.pathname
   const notice = NOTICES[url.searchParams.get('notice') ?? '']
+  const google = googleSettings(env)
 
   if (request.method === 'GET') {
     if (path === '/account') {
@@ -162,11 +175,11 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     }
     if (path === '/account/signin') {
       if (await sessionUser(env.ACCOUNTS, request, now)) return redirect('/account')
-      return page(accountPage({ title: 'Sign in', heading: 'Sign in', origin, notice, body: signInForm() }))
+      return page(accountPage({ title: 'Sign in', heading: 'Sign in', origin, notice, body: signInForm(undefined, !!google) }))
     }
     if (path === '/account/signup') {
       if (await sessionUser(env.ACCOUNTS, request, now)) return redirect('/account')
-      return page(accountPage({ title: 'Create an account', heading: 'Create an account', origin, notice, body: signUpForm() }))
+      return page(accountPage({ title: 'Create an account', heading: 'Create an account', origin, notice, body: signUpForm(undefined, !!google) }))
     }
     if (path === '/account/reset') {
       return page(accountPage({ title: 'Reset your password', heading: 'Reset your password', origin, notice, body: resetRequestForm() }))
@@ -178,13 +191,44 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     if (path === '/account/check-email') {
       return page(accountPage({ title: 'Check your inbox', heading: 'Check your inbox', origin, notice: NOTICES['check-email'], body: '<p class="account-links"><a href="/account/signin">Back to sign in</a></p>' }))
     }
+    if (path === '/account/google/start') {
+      if (!google) return page(accountPage({ title: 'Not available', heading: 'Google sign-in is not available', origin, body: '<p class="account-links"><a href="/account/signin">Back to sign in</a></p>' }), 404)
+      const flow = await startFlow(origin, google, now.getTime())
+      return new Response(null, { status: 302, headers: { Location: flow.location, 'Set-Cookie': flow.cookie, 'Cache-Control': 'no-store' } })
+    }
+    if (path === '/account/google/callback') {
+      if (!google) return page(accountPage({ title: 'Not available', heading: 'Google sign-in is not available', origin, body: '' }), 404)
+      const fail = (why: string) => {
+        console.warn('google sign-in refused:', why)
+        return page(
+          accountPage({ title: 'Sign in', heading: 'Sign in', origin, isError: true, notice: 'Google sign-in did not complete. Please try again.', body: signInForm(undefined, true) }),
+          400,
+          { 'Set-Cookie': clearFlowCookie() },
+        )
+      }
+      const flow = await openFlow(cookieValue(request, OAUTH_COOKIE), google.stateKey, now.getTime())
+      const state = url.searchParams.get('state')
+      const code = url.searchParams.get('code')
+      // The cookie binds the flow to the browser that started it; the state ties this
+      // response to that flow; both must hold before the code is worth exchanging.
+      if (!flow || !state || state !== flow.state) return fail('state-mismatch-or-stale')
+      if (!code) return fail(url.searchParams.get('error') ?? 'no-code')
+      const identity = await exchangeCode(code, flow, origin, google)
+      if (!identity.ok) return fail(identity.reason)
+      const userId = await userForIdentity(env.ACCOUNTS, identity, now)
+      const token = await createSession(env.ACCOUNTS, userId, now)
+      const headers = new Headers({ Location: '/account', 'Cache-Control': 'no-store' })
+      headers.append('Set-Cookie', sessionCookie(token))
+      headers.append('Set-Cookie', clearFlowCookie())
+      return new Response(null, { status: 303, headers })
+    }
     if (path === '/account/verify') {
       // A GET that changes state, knowingly: mail scanners prefetch links, and the only
       // effect here is marking verified an address the link was delivered to — which is
       // itself the proof the token exists to establish.
       const userId = await consumeToken(env.ACCOUNTS, url.searchParams.get('token') ?? '', 'verify', now)
       if (!userId) {
-        return page(accountPage({ title: 'Link expired', heading: 'That link has expired', origin, isError: true, notice: 'Confirmation links work once, for 24 hours. Sign in with your password to get a fresh one.', body: signInForm() }), 410)
+        return page(accountPage({ title: 'Link expired', heading: 'That link has expired', origin, isError: true, notice: 'Confirmation links work once, for 24 hours. Sign in with your password to get a fresh one.', body: signInForm(undefined, !!google) }), 410)
       }
       await env.ACCOUNTS.prepare('UPDATE users SET email_verified_at = ?, updated_at = ? WHERE id = ? AND email_verified_at IS NULL').bind(now.toISOString(), now.toISOString(), userId).run()
       return redirect('/account/signin?notice=verified')
