@@ -124,7 +124,7 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
     if (socialDay && request.method === 'POST') return await approveSocialDay(env.DB, socialDay[1]!, auth.email)
 
     // Addressed by the row's uuid, never the event id: listing ids carry colons and slashes.
-    const socialRoute = path.match(/^\/social\/([^/]+)(?:\/(approve|unapprove|skip|unskip))?$/)
+    const socialRoute = path.match(/^\/social\/([^/]+)(?:\/(approve|unapprove|skip|unskip|retry))?$/)
     if (socialRoute) {
       const [, id, action] = socialRoute
       if (!UUID.test(id!)) return notFound(auth.email)
@@ -1428,7 +1428,7 @@ async function setStagedDismissed(db: D1Like, id: string, dismiss: boolean): Pro
  * ever sends a post: approving marks a row for the poster's send pass (SCEC-90) to pick up.
  */
 
-type SocialAction = 'approve' | 'unapprove' | 'skip' | 'unskip'
+type SocialAction = 'approve' | 'unapprove' | 'skip' | 'unskip' | 'retry'
 
 interface SocialRow {
   id: string
@@ -1531,6 +1531,14 @@ async function socialPage(db: D1Like, url: URL, publicOrigin: string, email: str
       actions.push(`<form method="post" action="/social/${r.id}/unapprove"><button type="submit" class="link">Undo approval</button></form>`)
       actions.push(`<form method="post" action="/social/${r.id}/skip"><button type="submit" class="link">Skip</button></form>`)
     }
+    /*
+     * A failure is where the poster stops and a person decides: it may have posted after all
+     * and lost the answer, so the warning is part of the control, not decoration.
+     */
+    if (r.status === 'failed' && r.post_date >= today) {
+      actions.push(`<form method="post" action="/social/${r.id}/retry"><button type="submit" class="link">Send again</button></form>`)
+      actions.push('<span class="muted">Check the account first: if it did post, this posts it twice.</span>')
+    }
     if (r.status === 'skipped' && r.post_date >= today) {
       actions.push(`<form method="post" action="/social/${r.id}/unskip"><button type="submit" class="link">Undo skip</button></form>`)
     }
@@ -1622,6 +1630,7 @@ function socialFlash(url: URL): string {
     unapprove: 'Approval undone; the post is waiting again.',
     skip: 'Skipped. It will not be posted.',
     unskip: 'Skip undone; the post is waiting again.',
+    retry: 'Approved again. It goes out at the next tick, within the hour.',
     edit: 'Saved. The post will go out as edited.',
     unchanged: 'Nothing had changed, so nothing was saved.',
     missed: 'That post had already moved on — sent, skipped, or its day passed — so it was left as it was.',
@@ -1678,6 +1687,19 @@ async function socialAction(db: D1Like, id: string, action: SocialAction, email:
             WHERE id = ? AND status = 'skipped' AND post_date >= ?`,
         )
         .bind(id, today),
+    /*
+     * Send a failed post again. The poster never retries by itself — a timeout is not proof
+     * nothing was posted — so this is a person saying they have looked. The claim and the
+     * error are cleared with the status, or the send pass's own writes would not match.
+     * Only a failure, and only for a day not yet past: yesterday's post is not news.
+     */
+    retry: () =>
+      db
+        .prepare(
+          `UPDATE social_posts SET status = 'approved', claim = NULL, error = NULL, decided_at = ?, decided_by = ?
+            WHERE id = ? AND status = 'failed' AND post_date >= ?`,
+        )
+        .bind(now, email, id, today),
   }[action]()
 
   try {

@@ -285,6 +285,14 @@ when it breaks, so nothing here is checked by eye.
   write that matched nothing says "already moved on" rather than claiming success, and the
   partial unique index refusing a second approval says so too. Nothing here sends anything:
   approving marks a row for the poster's send pass (SCEC-90).
+- **"Send again" is the only way a failed post is ever retried.** The poster never retries by
+  itself — a timeout is not proof nothing was posted — so `retry` (SCEC-100) is a person
+  saying they have looked at the account. It puts the row back to `approved` and clears both
+  `claim` and `error`, or the send pass's claim would not match; only from `failed`, and only
+  while the day has not passed. The warning beside the button is part of the control, not
+  decoration. On 2026-09-23 all five Facebook posts failed with Meta's code 368/4854002,
+  "Confirm your identity before you can publish as this Page", and recovering meant a
+  hand-written UPDATE against production; this is that, done safely.
 - **An edited post is compared with what the form was filled in with, and is never
   re-rendered.** The edit form posts `orig_body` beside `body` and stores nothing when they
   match — after turning the textarea's CRLF back into LF, or every untouched save would look
