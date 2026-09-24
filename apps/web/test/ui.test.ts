@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import puppeteer, { type Browser, type HTTPRequest, type Page } from 'puppeteer-core'
-import { EVENTS, EVENT_MONTHS, VISIBLE, startServer } from './server.ts'
+import { EVENTS, EVENT_MONTHS, VISIBLE, startServer, type FakeMe } from './server.ts'
 
 /**
  * Real-browser tests for the filter menus.
@@ -1047,5 +1047,91 @@ describeIfChrome('finished events (real browser)', () => {
     const rel = await page.$$eval('#list .day-head .rel', (els) => els.map((e) => e.textContent!.trim()))
     expect(rel).toEqual(['yesterday', 'today', 'tomorrow'])
     await page.click('#show-past')
+  })
+})
+
+/**
+ * The account's footprint on the calendar (SCEC-106). Signed out is the default fixture:
+ * /api/me is a 404 there, and the page must read that as signed out, not as a failure.
+ */
+describeIfChrome('accounts on the calendar (real browser)', () => {
+  let browser: Browser
+
+  beforeAll(async () => {
+    browser = await puppeteer.launch({ executablePath: CHROME!, headless: true, args: ['--no-sandbox'] })
+  }, 60_000)
+  afterAll(async () => {
+    await browser?.close()
+  })
+
+  it('treats an /api/me that fails as signed out: a sign-in link, no pin controls', async () => {
+    const server = await startServer()
+    const page = await browser.newPage()
+    try {
+      await page.goto(server.url, { waitUntil: 'networkidle0' })
+      await page.waitForSelector('#account-link:not([hidden])')
+      expect(await page.$eval('#account-link', (a) => [a.textContent, a.getAttribute('href')])).toEqual(['Sign in', '/account/signin'])
+      expect(await page.$$('button.pin-toggle')).toHaveLength(0)
+      expect(await page.$$('#list .event')).not.toHaveLength(0)
+    } finally {
+      await page.close()
+      await server.close()
+    }
+  })
+
+  it('puts a signed-in reader’s pins at the top of their day', async () => {
+    // A day with several visible events; pin the last of them.
+    const byDay = new Map<string, typeof VISIBLE>()
+    for (const e of VISIBLE) byDay.set(e.localDate, [...(byDay.get(e.localDate) ?? []), e])
+    const [day, events] = [...byDay].find(([, list]) => list.length > 1)!
+    const last = events.at(-1)!
+    const me: FakeMe = { pins: [last.id], filters: [], posts: [] }
+    const server = await startServer(me)
+    const page = await browser.newPage()
+    try {
+      await page.goto(server.url, { waitUntil: 'networkidle0' })
+      await page.waitForSelector('button.pin-toggle[aria-pressed="true"]')
+      const firstOfDay = await page.$$eval('#list .day', (days, title) => {
+        const section = days.find((d) => d.querySelector('h2')?.textContent === title)
+        return section?.querySelector('.event button.pin-toggle')?.getAttribute('data-pin')
+      }, new Intl.DateTimeFormat('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`)))
+      expect(firstOfDay).toBe(last.id)
+    } finally {
+      await page.close()
+      await server.close()
+    }
+  })
+
+  it('pins from the list when signed in, and saves the view from the subscribe sheet', async () => {
+    const me: FakeMe = { pins: [VISIBLE[0]!.id], filters: [], posts: [] }
+    const server = await startServer(me)
+    const page = await browser.newPage()
+    try {
+      const first = VISIBLE[0]!
+      await page.goto(`${server.url}/?cat=${first.category}`, { waitUntil: 'networkidle0' })
+      await page.waitForSelector('button.pin-toggle')
+      expect(await page.$eval('#account-link', (a) => a.textContent)).toBe('Your account')
+
+      const selector = `button.pin-toggle[data-pin="${first.id}"]`
+      // Pinned already, per /api/me: pressing it unpins.
+      expect(await page.$eval(selector, (b) => b.getAttribute('aria-pressed'))).toBe('true')
+      await page.click(selector)
+      await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'false', {}, selector)
+      expect(me.posts.at(-1)!.path).toBe('/api/me/pins')
+      expect(Object.fromEntries(new URLSearchParams(me.posts.at(-1)!.body))).toEqual({ event: first.id, pinned: '0' })
+
+      await page.click('#subscribe')
+      await page.waitForSelector('#save-view-form')
+      const label = await page.$eval('#save-label', (i) => (i as HTMLInputElement).value)
+      await page.click('#save-view-form button[type="submit"]')
+      await page.waitForFunction(() => document.querySelector('#save-view')?.textContent?.includes('Saved to'))
+      const saved = new URLSearchParams(me.posts.at(-1)!.body)
+      expect(saved.get('query')).toBe(`cat=${first.category}`)
+      expect(saved.get('label')).toBe(label)
+      expect(label).not.toBe('All events')
+    } finally {
+      await page.close()
+      await server.close()
+    }
   })
 })

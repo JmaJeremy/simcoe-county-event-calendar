@@ -160,6 +160,16 @@ function eventJsonLd(event: PublicEvent, canonical: string): unknown {
   return data
 }
 
+/** Material Icons' push_pin (Apache 2.0), outline and filled; also PIN_ICON in app.js. */
+const PIN_ICON = `<svg class="pin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="pin-off" d="M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4h4m3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1z"/><path class="pin-on" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></svg>`
+
+/**
+ * Inert and hidden for everyone: /me.js shows it once it knows who is reading, so the page
+ * stays byte-identical signed in or out and keeps its public cache.
+ */
+const pinButton = (eventId: string): string =>
+  `<button class="pin-toggle pin-large" type="button" data-pin-page="${escapeHtml(eventId)}" aria-pressed="false" aria-label="Pin this event" title="Pin" hidden>${PIN_ICON}</button>`
+
 export function renderEventPage(event: PublicEvent, origin: string, backHref = '/', imageSize?: { width: number; height: number }): string {
   const when = describeWhen(event)
   const place = [event.venueName, event.address].filter((v): v is string => !!v).join(', ')
@@ -214,7 +224,7 @@ ${renderHead(
     twitterCard: 'summary_large_image',
     ...(feed ? { feed } : {}),
     jsonLd: [eventJsonLd(event, canonical), crumbs.jsonLd],
-    extraHead: '<script type="module" src="/share.js"></script>',
+    extraHead: '<script type="module" src="/share.js"></script><script type="module" src="/me.js"></script>',
   },
   origin,
 )}
@@ -223,7 +233,7 @@ ${renderHead(
 <main class="card" data-cat="${escapeHtml(event.category)}">
   ${crumbs.html}
   <p class="eyebrow">${escapeHtml(event.municipalityName ?? 'Simcoe County')} · ${escapeHtml(titleCase(event.category))}</p>
-  <h1>${escapeHtml(event.title)}</h1>
+  <div class="title-row"><h1>${escapeHtml(event.title)}</h1>${pinButton(event.id)}</div>
   <p class="when"><time datetime="${escapeHtml(isoAttr(event))}">${escapeHtml(when)}</time></p>
   ${place ? `<p class="where">${escapeHtml(place)}</p>` : ''}
   <p class="cost ${escapeHtml(event.cost)}">${escapeHtml(cost)}</p>
@@ -353,7 +363,7 @@ ${renderHead(
 </body></html>`
 }
 
-function eventRow(event: PublicEvent): string {
+export function eventRow(event: PublicEvent): string {
   /*
    * Cost is flagged both ways, never left blank. Labelling only the free ones would leave
    * a reader unable to tell a ticketed concert from one nobody has priced — and the price
@@ -394,6 +404,31 @@ ${renderHead({ title: `${heading} — ${SITE_NAME}`, description: detail, canoni
   <h1>${escapeHtml(heading)}</h1>
   <p class="lead">${escapeHtml(detail)}</p>
   <div class="actions"><a class="btn" href="/">Browse every event</a></div>
+</main>
+<footer class="page-foot">${FOOTER_NOTES}</footer>
+</body></html>`
+}
+
+/**
+ * A calendar a reader chose to share (/c/{slug}): their upcoming pins, and a feed to
+ * subscribe to. Anonymous by design — no name, no address, nothing about whose it is; the
+ * person who sent the link can say that themselves. noindex, and the caller sends it
+ * no-store, because "stop sharing" has to kill the link at once, not when a cache expires.
+ */
+export function renderSharedPage(events: PublicEvent[], origin: string, slug: string, today: string): string {
+  const upcoming = events.filter((e) => (e.endsAtUtc ? localDateOf(e.endsAtUtc, 'America/Toronto') : e.localDate) >= today)
+  const feed = `${origin}/c/${slug}.ics`
+  return `<!doctype html><html lang="en-CA"><head>
+${renderHead({ title: `A shared calendar — ${SITE_NAME}`, description: 'Events someone picked out on Out in Simcoe.', canonical: `${origin}/c/${slug}`, noindex: true }, origin)}
+</head><body class="event-page place-page">
+<header class="topbar"><a href="/" class="home">${MARK}<span>&larr; All events</span></a>${WIP_TAG}</header>
+<main class="card">
+  <p class="eyebrow">Shared with you</p>
+  <h1>A shared calendar</h1>
+  <p class="lead">Events someone picked out on ${SITE_NAME}.</p>
+  ${upcoming.length ? `<ol class="events">${upcoming.map(eventRow).join('')}</ol>` : '<p class="lead">Nothing coming up on this calendar right now.</p>'}
+  <div class="actions"><a class="btn" href="${escapeHtml(feed.replace(/^https:/, 'webcal:'))}">Subscribe in your calendar</a><a class="btn ghost" href="/">Browse every event</a></div>
+  <p class="listed">Subscribing keeps it up to date as they add and remove events. Or copy the feed: <code>${escapeHtml(feed)}</code></p>
 </main>
 <footer class="page-foot">${FOOTER_NOTES}</footer>
 </body></html>`

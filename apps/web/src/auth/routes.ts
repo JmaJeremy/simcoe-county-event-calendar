@@ -1,11 +1,13 @@
 import { MAIL_FROM, sendMail, type SendEmail } from '../mail.ts'
+import { accountHome } from '../account/page.ts'
+import { listFilters, listPins, refreshSnapshot, removeFilter, resolvePins, unpin, type EventsDb } from '../account/store.ts'
+import { calendarFor, feedToken, rotateFeed, setSharing } from '../account/calendar.ts'
 import { TURNSTILE_FIELD, verifyTurnstile } from '../suggest.ts'
 import type { AccountsDb } from './db.ts'
 import { OAUTH_COOKIE, clearFlowCookie, exchangeCode, openFlow, startFlow, userForIdentity, type GoogleSettings } from './google.ts'
 import { existingAccountMail, resetMail, verificationMail } from './mail.ts'
 import {
   ACCOUNT_TURNSTILE_ACTION,
-  accountBody,
   accountPage,
   resetConfirmForm,
   resetRequestForm,
@@ -19,6 +21,7 @@ import {
   createSession,
   destroyAllSessions,
   destroySession,
+  isSameOriginWrite,
   sessionCookie,
   sessionUser,
   sha256hex,
@@ -33,6 +36,9 @@ import { consumeToken, mintToken } from './tokens.ts'
  */
 export interface AuthEnv {
   ACCOUNTS: AccountsDb
+  /** The public events database, read ONLY to show what pins point at (the account page's
+   * application-side join). Nothing under /account writes it. */
+  DB: EventsDb
   EMAIL?: SendEmail
   TURNSTILE_SECRET_KEY?: string
   PASSWORD_PEPPER?: string
@@ -42,6 +48,8 @@ export interface AuthEnv {
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   OAUTH_STATE_KEY?: string
+  /** Signs private feed URLs (account/calendar.ts); absent, the account page offers none. */
+  FEED_TOKEN_KEY?: string
 }
 
 const googleSettings = (env: AuthEnv): GoogleSettings | null =>
@@ -60,18 +68,6 @@ const MAX_BODY_BYTES = 16_384
 const MIN_PASSWORD = 8
 const MAX_PASSWORD = 200
 
-/**
- * Copied from apps/ingest/src/access.ts (isSameOriginWrite), where the console uses it
- * for the same job: SameSite=Lax stops a cross-site POST carrying the session cookie, and
- * this stops the corner cases Lax leaves (top-level form posts). Browsers set both
- * headers themselves; a page cannot forge them.
- */
-function isSameOriginWrite(request: Request, host: string): boolean {
-  const site = request.headers.get('Sec-Fetch-Site')
-  if (site && site !== 'same-origin') return false
-  return request.headers.get('Origin') === `https://${host}`
-}
-
 /** Post-redirect notices, whitelisted so the query string can never put words in our mouth. */
 const NOTICES: Record<string, string> = {
   'check-email': 'If that address can receive mail from us, a message is on its way. It may take a minute.',
@@ -79,7 +75,24 @@ const NOTICES: Record<string, string> = {
   reset: 'Your password is changed, and every signed-in device was signed out. Sign in with the new one.',
   'signed-out': 'Signed out.',
   unverified: 'Your email is not confirmed yet. We have sent the confirmation link again — it works for 24 hours.',
+  unpinned: 'Unpinned.',
+  'view-removed': 'Saved view removed.',
+  'feed-rotated': 'Your calendar has a new link, and the old one has stopped working. Update any calendar app that used it.',
+  'sharing-on': 'Your share link is ready. Anyone you send it to can see your upcoming pinned events.',
+  'sharing-off': 'Sharing is off, and the old link no longer works.',
 }
+
+/**
+ * Where to go after signing in, when a page sent the reader here (the Pin button on an
+ * event, signed out). Only a path on this site: it must start with one slash, never two or
+ * a backslash — `//evil.example` and `/\evil.example` are other hosts to a browser — and
+ * carry no whitespace or control characters. Anything else means /account.
+ */
+export function safeNext(value: string | null | undefined): string | null {
+  if (!value || value.length > 512) return null
+  return /^\/(?![\/\\])[^\s\\\x00-\x1f\x7f]*$/.test(value) ? value : null
+}
+
 
 const page = (html: string, status = 200, headers: Record<string, string> = {}): Response =>
   new Response(html, {
@@ -98,7 +111,7 @@ const redirect = (to: string, headers: Record<string, string> = {}): Response =>
 
 const emailOk = (value: string): boolean => value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
-async function readForm(request: Request): Promise<Record<string, string> | null> {
+export async function readForm(request: Request): Promise<Record<string, string> | null> {
   const length = Number(request.headers.get('Content-Length') ?? '0')
   if (length > MAX_BODY_BYTES) return null
   try {
@@ -171,11 +184,24 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     if (path === '/account') {
       const user = await sessionUser(env.ACCOUNTS, request, now)
       if (!user) return redirect('/account/signin')
-      return page(accountPage({ title: 'Your account', heading: 'Your account', origin, notice, body: accountBody(user.email, !!user.emailVerifiedAt) }))
+      const [pins, filters] = await Promise.all([listPins(env.ACCOUNTS, user.userId), listFilters(env.ACCOUNTS, user.userId)])
+      // The join the two databases cannot do: pinned ids from ACCOUNTS, events from DB.
+      // Skipped outright with nothing pinned, so a new account's page never touches DB.
+      const live = pins.length ? await resolvePins(env.DB, pins.map((p) => p.eventId)) : new Map()
+      for (const p of pins) {
+        const e = live.get(p.eventId)
+        if (e && (e.title !== p.title || e.localDate !== p.localDate || e.shortCode !== p.shortCode)) await refreshSnapshot(env.ACCOUNTS, user.userId, e)
+      }
+      const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })
+      const calendar = await calendarFor(env.ACCOUNTS, user.userId, now)
+      const feedUrl = env.FEED_TOKEN_KEY ? `${origin}/calendar/${await feedToken(env.FEED_TOKEN_KEY, calendar)}.ics` : null
+      const shareUrl = calendar.shareSlug ? `${origin}/c/${calendar.shareSlug}` : null
+      return page(accountPage({ title: 'Your account', heading: 'Your account', origin, notice, body: accountHome({ email: user.email, pins, live, filters, today, origin, feedUrl, shareUrl }) }))
     }
     if (path === '/account/signin') {
-      if (await sessionUser(env.ACCOUNTS, request, now)) return redirect('/account')
-      return page(accountPage({ title: 'Sign in', heading: 'Sign in', origin, notice, body: signInForm(undefined, !!google) }))
+      const next = safeNext(url.searchParams.get('next'))
+      if (await sessionUser(env.ACCOUNTS, request, now)) return redirect(next ?? '/account')
+      return page(accountPage({ title: 'Sign in', heading: 'Sign in', origin, notice, body: signInForm(undefined, !!google, next ?? '') }))
     }
     if (path === '/account/signup') {
       if (await sessionUser(env.ACCOUNTS, request, now)) return redirect('/account')
@@ -193,20 +219,20 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     }
     if (path === '/account/google/start') {
       if (!google) return page(accountPage({ title: 'Not available', heading: 'Google sign-in is not available', origin, body: '<p class="account-links"><a href="/account/signin">Back to sign in</a></p>' }), 404)
-      const flow = await startFlow(origin, google, now.getTime())
+      const flow = await startFlow(origin, google, now.getTime(), safeNext(url.searchParams.get('next')) ?? undefined)
       return new Response(null, { status: 302, headers: { Location: flow.location, 'Set-Cookie': flow.cookie, 'Cache-Control': 'no-store' } })
     }
     if (path === '/account/google/callback') {
       if (!google) return page(accountPage({ title: 'Not available', heading: 'Google sign-in is not available', origin, body: '' }), 404)
+      const flow = await openFlow(cookieValue(request, OAUTH_COOKIE), google.stateKey, now.getTime())
       const fail = (why: string) => {
         console.warn('google sign-in refused:', why)
         return page(
-          accountPage({ title: 'Sign in', heading: 'Sign in', origin, isError: true, notice: 'Google sign-in did not complete. Please try again.', body: signInForm(undefined, true) }),
+          accountPage({ title: 'Sign in', heading: 'Sign in', origin, isError: true, notice: 'Google sign-in did not complete. Please try again.', body: signInForm(undefined, true, safeNext(flow?.next) ?? '') }),
           400,
           { 'Set-Cookie': clearFlowCookie() },
         )
       }
-      const flow = await openFlow(cookieValue(request, OAUTH_COOKIE), google.stateKey, now.getTime())
       const state = url.searchParams.get('state')
       const code = url.searchParams.get('code')
       // The cookie binds the flow to the browser that started it; the state ties this
@@ -217,7 +243,7 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
       if (!identity.ok) return fail(identity.reason)
       const userId = await userForIdentity(env.ACCOUNTS, identity, now)
       const token = await createSession(env.ACCOUNTS, userId, now)
-      const headers = new Headers({ Location: '/account', 'Cache-Control': 'no-store' })
+      const headers = new Headers({ Location: safeNext(flow.next) ?? '/account', 'Cache-Control': 'no-store' })
       headers.append('Set-Cookie', sessionCookie(token))
       headers.append('Set-Cookie', clearFlowCookie())
       return new Response(null, { status: 303, headers })
@@ -293,9 +319,9 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
   }
 
   if (path === '/account/signin') {
-    if (!emailOk(email) || !password) return formError('Sign in', 'Email or password did not match.', signInForm(email))
+    if (!emailOk(email) || !password) return formError('Sign in', 'Email or password did not match.', signInForm(email, !!google, safeNext(form.next) ?? ''))
     if (await throttled(env.ACCOUNTS, ipHash, email, now))
-      return formError('Sign in', 'Too many tries for now. Please wait an hour, or reset your password.', signInForm(email), 429)
+      return formError('Sign in', 'Too many tries for now. Please wait an hour, or reset your password.', signInForm(email, !!google, safeNext(form.next) ?? ''), 429)
 
     const user = await userByEmail(env.ACCOUNTS, email)
     const stored = user
@@ -305,10 +331,10 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
       // Burn the same time an honest check costs, so response time never says whether an
       // account exists.
       await hashPassword(password, pepper)
-      return formError('Sign in', 'Email or password did not match.', signInForm(email))
+      return formError('Sign in', 'Email or password did not match.', signInForm(email, !!google, safeNext(form.next) ?? ''))
     }
     const result = await verifyPassword(password, pepper, stored.encoded)
-    if (!result.ok) return formError('Sign in', 'Email or password did not match.', signInForm(email))
+    if (!result.ok) return formError('Sign in', 'Email or password did not match.', signInForm(email, !!google, safeNext(form.next) ?? ''))
     if (!user.email_verified_at) {
       // The right password proves it is the owner asking; the mail still only goes to the
       // address itself.
@@ -319,7 +345,35 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
       await env.ACCOUNTS.prepare('UPDATE user_passwords SET encoded = ?, changed_at = ? WHERE user_id = ?').bind(await hashPassword(password, pepper), now.toISOString(), user.id).run()
     }
     const token = await createSession(env.ACCOUNTS, user.id, now)
-    return redirect('/account', { 'Set-Cookie': sessionCookie(token) })
+    return redirect(safeNext(form.next) ?? '/account', { 'Set-Cookie': sessionCookie(token) })
+  }
+
+  // What an account owns, removed from the account page's own forms. The fetch API
+  // (account/api.ts) calls the same store functions; there is one unpin, not two.
+  // The calendar's two capabilities: a new private feed link, and sharing on or off. Both
+  // act on a row the account page has already created.
+  if (path === '/account/calendar/rotate' || path === '/account/calendar/share') {
+    const user = await sessionUser(env.ACCOUNTS, request, now)
+    if (!user) return redirect('/account/signin')
+    await calendarFor(env.ACCOUNTS, user.userId, now)
+    if (path === '/account/calendar/rotate') {
+      await rotateFeed(env.ACCOUNTS, user.userId, now)
+      return redirect('/account?notice=feed-rotated#calendar')
+    }
+    const on = form.on === '1'
+    await setSharing(env.ACCOUNTS, user.userId, on, now)
+    return redirect(`/account?notice=${on ? 'sharing-on' : 'sharing-off'}#calendar`)
+  }
+
+  if (path === '/account/pins/remove' || path === '/account/filters/remove') {
+    const user = await sessionUser(env.ACCOUNTS, request, now)
+    if (!user) return redirect('/account/signin')
+    if (path === '/account/pins/remove') {
+      if (form.event) await unpin(env.ACCOUNTS, user.userId, form.event)
+      return redirect('/account?notice=unpinned')
+    }
+    if (form.id) await removeFilter(env.ACCOUNTS, user.userId, form.id)
+    return redirect('/account?notice=view-removed')
   }
 
   if (path === '/account/signout') {

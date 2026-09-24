@@ -386,6 +386,12 @@ a { color: inherit; }
 }
 .viewswitch button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--shadow); }
 
+/* ---- account link, beside the theme switch ---- */
+.masthead-tools { flex: none; display: flex; align-items: center; gap: 12px; margin-top: 5px; }
+.masthead-tools .themeswitch { margin-top: 0; }
+.account-link { font-size: 14px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.account-link:hover { color: var(--accent-deep); }
+
 /* ---- theme switch ---- */
 .themeswitch { flex: none; margin-top: 5px; display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
 .themeswitch button {
@@ -724,6 +730,56 @@ footer a { color: var(--ink-2); }
 .field-hint { color: var(--ink-3); font-size: 13px; }
 .form-field input[type="file"] { padding: 7px 9px; cursor: pointer; }
 .account-form { max-width: 420px; }
+/* The account page: pins and saved views. */
+.account-section { margin: 26px 0 0; }
+.account-section h2 { margin: 0 0 10px; font-size: 19px; font-weight: 800; }
+.account-section h3 { margin: 18px 0 8px; font-size: 15px; color: var(--ink-2); }
+.account-empty { color: var(--ink-2); font-size: 14.5px; }
+.pin-list { list-style: none; margin: 0; padding: 0; }
+.pin-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.pin-list li > a, .pin-list .pin-title { font-weight: 700; }
+.pin-list .pin-when { flex: 1 1 100%; order: 3; color: var(--ink-2); font-size: 13.5px; }
+.pin-list .inline-form { margin-left: auto; }
+.pin-list .withdrawn .pin-title { color: var(--ink-2); text-decoration: line-through; }
+.pin-past { margin-top: 16px; }
+.pin-past summary { cursor: pointer; font-weight: 700; color: var(--ink-2); }
+.account-signout { margin-top: 28px; }
+.copy-label { display: block; font-weight: 700; font-size: 14px; margin: 12px 0 5px; }
+.copy-field {
+  width: 100%; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 9px 11px;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+}
+.account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin: 12px 0 8px; }
+.account-actions .inline-form { margin: 0; }
+/* The pin, beside a title: an outline until pressed, then filled in the accent. The padding
+   is the hit area (32px), the negative margin keeps it from pushing the title about. */
+.pin-toggle {
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+  width: 32px; height: 32px; margin: -6px 0 -6px 2px; padding: 0;
+  background: none; border: none; border-radius: 999px; color: var(--ink-3); cursor: pointer;
+}
+.pin-toggle:hover { color: var(--accent-deep); background: var(--hl); }
+.pin-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pin-toggle .pin-icon { width: 19px; height: 19px; fill: currentColor; }
+.pin-toggle .pin-on { display: none; }
+.pin-toggle[aria-pressed="true"] { color: var(--accent); }
+.pin-toggle[aria-pressed="true"] .pin-on { display: inline; }
+.pin-toggle[aria-pressed="true"] .pin-off { display: none; }
+/* The event page's pin rides after the title's last word, wherever it wraps: the h1 is
+   inline inside a block that carries its spacing. */
+.title-row { margin: 0 0 10px; }
+.title-row h1 { display: inline; }
+.pin-toggle.pin-large { width: 40px; height: 40px; margin: -8px 0 -4px 4px; }
+.pin-toggle.pin-large .pin-icon { width: 24px; height: 24px; }
+/* The subscribe sheet's account half. */
+.save-view { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.save-view label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+.save-view-row { display: flex; gap: 8px; }
+.save-view-row input {
+  flex: 1; min-width: 0; font: inherit; padding: 8px 11px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+}
+.save-view-status { margin: 6px 0 0 !important; color: var(--stop) !important; }
 .account-links { margin-top: 16px; color: var(--ink-2); font-size: 14px; }
 .account-google { margin: 14px 0 0; }
 /* Google's button is its artwork, unaltered; only the focus ring is ours, shaped to its pill. */
@@ -882,6 +938,7 @@ footer a { color: var(--ink-2); }
   /* Reversed so the switch reads above the title instead of crowding it. */
   .masthead-top { flex-direction: column-reverse; align-items: stretch; gap: 12px; }
   .masthead-top .themeswitch { align-self: flex-end; margin-top: 0; }
+  .masthead-top .masthead-tools { align-self: flex-end; margin-top: 0; }
   .masthead { padding-top: 26px; }
   .menu { position: fixed; left: 12px; right: 12px; top: auto; min-width: 0; max-width: none; }
   .modal[open] { align-items: flex-end; }

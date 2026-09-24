@@ -6,6 +6,8 @@
  * the URL so any view can be copied to someone else or bookmarked.
  */
 
+import { fetchMe, saveView, setPinned, signInHref } from '/me.js'
+
 const state = {
   events: [],
   municipalities: new Map(),
@@ -26,6 +28,8 @@ const state = {
   /** Date range, either end optional, 'YYYY-MM-DD'. An explicit range beats "upcoming". */
   from: '',
   to: '',
+  /** The reader, from /api/me: signed out until it answers, and if it never does. */
+  me: { signedIn: false, pins: new Set(), filters: [] },
 }
 
 const $ = (id) => document.getElementById(id)
@@ -108,16 +112,26 @@ function writeUrl() {
   history.replaceState(null, '', qs ? `?${qs}` : location.pathname)
 }
 
-/** The same filters, expressed for the server-side iCal endpoint. */
-function icsUrl() {
+/**
+ * What the current view selects, without how it is displayed: the keys the iCal feed reads,
+ * and the form a view is saved to an account in (the server canonicalises it again).
+ */
+function filterParams() {
   const p = new URLSearchParams()
-  if (state.filters.m.size) p.set('m', [...state.filters.m].join(','))
-  if (state.filters.cat.size) p.set('cat', [...state.filters.cat].join(','))
+  // Sorted like the server's canonical form (savedQueryFrom), so the same view is the same
+  // string whatever order its filters were clicked in.
+  if (state.filters.m.size) p.set('m', [...state.filters.m].sort().join(','))
+  if (state.filters.cat.size) p.set('cat', [...state.filters.cat].sort().join(','))
   if (state.cost !== 'default') p.set('cost', state.cost)
   if (state.showCivic) p.set('civic', '1')
   if (state.from) p.set('from', state.from)
   if (state.to) p.set('to', state.to)
-  const qs = p.toString()
+  return p
+}
+
+/** The same filters, expressed for the server-side iCal endpoint. */
+function icsUrl() {
+  const qs = filterParams().toString()
   return `${location.origin}/calendar.ics${qs ? `?${qs}` : ''}`
 }
 
@@ -304,8 +318,24 @@ const esc = (s) =>
  */
 const PAGE_SIZE = 30
 
+/**
+ * A signed-in reader's pins lead their day. Sorted BEFORE the list is cut to a page, or a
+ * pinned event further down a day that is on screen would never reach the top of it. Only
+ * among events that match the filters — a pin does not force itself into a view that
+ * excludes it — and never re-sorted on a click, so a card does not jump out from under
+ * the cursor; the next render puts it in place.
+ */
+function pinnedFirst(events, dateOf) {
+  const pins = state.me.pins
+  if (!state.me.signedIn || !pins.size) return events
+  return events
+    .map((e, i) => ({ e, i, day: dateOf(e) }))
+    .sort((a, b) => a.day.localeCompare(b.day) || pins.has(b.e.id) - pins.has(a.e.id) || a.i - b.i)
+    .map((x) => x.e)
+}
+
 function renderList() {
-  const matching = visibleEvents()
+  const matching = pinnedFirst(visibleEvents(), listDate)
   const list = $('list')
 
   if (!matching.length) {
@@ -417,7 +447,7 @@ function renderEvent(e) {
   return `<article class="event${e.status === 'cancelled' ? ' is-cancelled' : ''}" data-cat="${esc(e.category)}">
     <div class="time">${time}</div>
     <div>
-      <h3><a href="${esc(eventHref(e))}">${esc(e.title)}</a> ${tags.join(' ')}</h3>
+      <h3><a href="${esc(eventHref(e))}">${esc(e.title)}</a>${pinToggle(e)} ${tags.join(' ')}</h3>
       <div class="meta">
         <span class="jur">${esc(shortPlaceName(e.municipalitySlug))}</span>
         <span class="cat"><span class="cat-dot" aria-hidden="true"></span>${esc(categoryLabel(e.category))}</span>
@@ -428,6 +458,44 @@ function renderEvent(e) {
     </div>
   </article>`
 }
+
+/**
+ * A push pin: outline when unpinned, filled when pinned, which of the two shows is CSS's
+ * job off aria-pressed. Material Icons' push_pin (Apache 2.0). Repeated in pages.ts for the
+ * event page — change one, change both.
+ */
+const PIN_ICON = `<svg class="pin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="pin-off" d="M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4h4m3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1z"/><path class="pin-on" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></svg>`
+
+/**
+ * Only for a signed-in reader; the list stays as it was for everyone else. Icon-only, so
+ * the aria-label is its whole name — keep the `Pin|Unpin <title>` shape, which the click
+ * handler below also reads the title back out of.
+ */
+function pinToggle(e) {
+  if (!state.me.signedIn) return ''
+  const pinned = state.me.pins.has(e.id)
+  const label = `${pinned ? 'Unpin' : 'Pin'} ${e.title}`
+  return `<button type="button" class="pin-toggle" data-pin="${esc(e.id)}" aria-pressed="${pinned}" aria-label="${esc(label)}" title="${pinned ? 'Unpin' : 'Pin'}">${PIN_ICON}</button>`
+}
+
+document.addEventListener('click', async (ev) => {
+  const button = ev.target instanceof Element ? ev.target.closest('button.pin-toggle') : null
+  if (!button) return
+  const id = button.dataset.pin
+  button.disabled = true
+  const pinned = await setPinned(id, !state.me.pins.has(id))
+  if (pinned === true) state.me.pins.add(id)
+  if (pinned === false) state.me.pins.delete(id)
+  // Every card for this event, not just the one clicked: the calendar dialog can show it too.
+  const title = button.getAttribute('aria-label').replace(/^(Unpin|Pin) /, '')
+  for (const b of document.querySelectorAll(`button.pin-toggle[data-pin="${CSS.escape(id)}"]`)) {
+    const on = state.me.pins.has(id)
+    b.setAttribute('aria-pressed', String(on))
+    b.setAttribute('aria-label', `${on ? 'Unpin' : 'Pin'} ${title}`)
+    b.title = on ? 'Unpin' : 'Pin'
+  }
+  button.disabled = false
+})
 
 /* ---------- calendar view ---------- */
 
@@ -600,7 +668,7 @@ dayModal.addEventListener('click', (ev) => {
 
 function renderDayModal(byDay) {
   if (!state.selectedDay) return
-  const dayEvents = byDay.get(state.selectedDay) ?? []
+  const dayEvents = pinnedFirst(byDay.get(state.selectedDay) ?? [], () => state.selectedDay)
   $('day-modal-title').textContent = fmtDay.format(new Date(`${state.selectedDay}T00:00:00Z`))
   $('day-modal-body').innerHTML = dayEvents.length ? dayEvents.map(renderEvent).join('') : '<p class="cal-empty">No events on this day.</p>'
 }
@@ -1014,7 +1082,58 @@ function refreshAll() {
 $('subscribe').onclick = () => {
   $('ics-url').textContent = icsUrl()
   $('open-ics').href = icsUrl()
+  renderSaveView()
   $('sheet').hidden = false
+}
+
+/** A name for the current view, as a starting point the reader can change. */
+function suggestedLabel() {
+  const parts = [
+    [...state.filters.m].map((slug) => shortPlaceName(slug)).join(', '),
+    [...state.filters.cat].map(categoryLabel).join(', '),
+  ].filter(Boolean)
+  return (parts.join(' · ') || 'All events').slice(0, 60)
+}
+
+/**
+ * The account half of the subscribe sheet. Saving keeps this view's filters on the
+ * account (the private feed they will drive is SCEC-107); signed out, it is a way in.
+ */
+function renderSaveView() {
+  const box = $('save-view')
+  if (!state.me.signedIn) {
+    box.innerHTML = `<p><a href="${esc(signInHref())}">Sign in</a> to save this view to your account.</p>`
+    box.hidden = false
+    return
+  }
+  const query = filterParams().toString()
+  const saved = state.me.filters.find((f) => f.query === query)
+  if (saved) {
+    box.innerHTML = `<p>Saved to <a href="/account">your account</a> as “${esc(saved.label)}”.</p>`
+    box.hidden = false
+    return
+  }
+  box.innerHTML = `<form class="save-view-form" id="save-view-form">
+      <label for="save-label">Save this view to your account</label>
+      <div class="save-view-row">
+        <input id="save-label" name="label" maxlength="60" required value="${esc(suggestedLabel())}">
+        <button class="btn ghost" type="submit">Save</button>
+      </div>
+      <p class="save-view-status" id="save-view-status" role="status"></p>
+    </form>`
+  box.hidden = false
+  $('save-view-form').onsubmit = async (ev) => {
+    ev.preventDefault()
+    const label = $('save-label').value.trim()
+    const result = await saveView(label, query)
+    if (result.ok) {
+      state.me.filters.push({ id: result.id, label, query: result.query })
+      box.innerHTML = `<p>Saved to <a href="/account">your account</a> as “${esc(label)}”.</p>`
+    } else {
+      $('save-view-status').textContent =
+        result.error === 'full' ? 'Your account already has as many saved views as it can hold.' : 'That did not save. Please try again.'
+    }
+  }
 }
 $('close-sheet').onclick = () => ($('sheet').hidden = true)
 $('sheet').onclick = (e) => {
@@ -1205,6 +1324,8 @@ async function boot() {
       .join(' · ')}`
   }
   refreshAll()
+  // After the calendar is on screen, and never in its way: a failure is just signed out.
+  fetchMe().then(showMe)
 
   const note = takeReturnNote()
   if (note) {
@@ -1215,6 +1336,16 @@ async function boot() {
     if (state.view === 'list') renderList()
     requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, note.y)))
   }
+}
+
+/** The account link, and pin toggles on the list, once /api/me has answered. */
+function showMe(me) {
+  state.me = me
+  const link = $('account-link')
+  link.textContent = me.signedIn ? 'Your account' : 'Sign in'
+  link.href = me.signedIn ? '/account' : '/account/signin'
+  link.hidden = false
+  if (me.signedIn && state.view === 'list') renderList()
 }
 
 boot().catch(showError)

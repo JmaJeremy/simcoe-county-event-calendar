@@ -1,10 +1,12 @@
-import { MUNICIPALITIES, buildIcal, municipalityBySlug } from '@scec/core'
+import { MUNICIPALITIES, municipalityBySlug } from '@scec/core'
 import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
 import { renderEventPage, renderNotFound, renderPlacePage, shareableImage } from './pages.ts'
-import { descriptionText } from './markdown.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
 import { handleAccount } from './auth/routes.ts'
+import { handleMe } from './account/api.ts'
+import { handleCalendar } from './account/shared.ts'
+import { renderFeed } from './feed.ts'
 import { ADMIN_ADDRESS, MAIL_FROM, sendMail, type EmailAddress, type SendEmail } from './mail.ts'
 import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
 import { MAX_POSTER_BYTES, inspectImage, stripMetadata, type ImageKind } from './image.ts'
@@ -49,6 +51,10 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   OAUTH_STATE_KEY?: string
+  /** Signs each reader's private feed URL (account/calendar.ts). Absent, private feeds are
+   * off and the account page says so. A secret: with it and a copy of scec-accounts,
+   * anyone's feed could be opened. Rotating it replaces every private feed link at once. */
+  FEED_TOKEN_KEY?: string
   /**
    * Secret for the Turnstile widget on /suggest. Deliberately NOT optional in behaviour:
    * without it the form refuses every suggestion rather than accept them unchecked.
@@ -72,6 +78,8 @@ export interface Env {
 const canonicalOrigin = (url: URL, env: Env): string =>
   env.CANONICAL_HOST ? `https://${env.CANONICAL_HOST}` : url.origin
 
+/** PUBLIC data only: edge-cached and readable from any origin. Anything about one reader
+ * goes through privateJson (account/api.ts) instead — never this. */
 const json = (data: unknown, cacheSeconds: number): Response =>
   Response.json(data, {
     headers: {
@@ -169,6 +177,11 @@ export default {
 
       if (url.pathname.startsWith('/posters/')) return await servePoster(env, url.pathname.slice('/posters/'.length))
 
+      // The signed-in reader's own state. Private, uncached, and never through json().
+      if (url.pathname === '/api/me' || url.pathname.startsWith('/api/me/')) {
+        return await handleMe(request, url, env)
+      }
+
       if (url.pathname === '/api/events') {
         const events = await queryEvents(env, url)
         return json({ count: events.length, events }, 600)
@@ -247,17 +260,19 @@ export default {
       // The feature none of the upstream calendars offer: a subscribable feed.
       if (url.pathname === '/calendar.ics') {
         const events = await queryEvents(env, url)
-        const names: Record<string, string> = {}
-        for (const e of events) if (e.municipalitySlug && e.municipalityName) names[e.municipalitySlug] = e.municipalityName
-        // Calendar apps show a description as plain text, so the markdown comes out.
-        const plain = events.map((e) => (e.description ? { ...e, description: descriptionText(e.description) } : e))
-        return new Response(buildIcal(plain, { calendarName: describeFilters(url, events), baseUrl: origin, municipalityNames: names }), {
+        return new Response(renderFeed(events, describeFilters(url, events), origin), {
           headers: {
             'Content-Type': 'text/calendar; charset=utf-8',
             'Cache-Control': 'public, max-age=300, s-maxage=1800',
             'Content-Disposition': 'inline; filename="simcoe-county-events.ics"',
           },
         })
+      }
+
+      // A reader's private feed and shared calendar, each opened by the capability in its
+      // URL. /calendar.ics above is exact-match, so it never lands here.
+      if (url.pathname.startsWith('/calendar/') || url.pathname.startsWith('/c/')) {
+        return await handleCalendar(url, env)
       }
 
       // The short, shareable form. Server-rendered so a pasted link previews properly.

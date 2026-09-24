@@ -68,14 +68,17 @@ const googleImage = (theme: 'light' | 'dark') =>
  * flow and a third party onto the page. Both themes ship; CSS shows the one that
  * matches the reader's, and `loading="lazy"` keeps the hidden one from downloading.
  */
-const googleButton = `<p class="account-google"><a href="/account/google/start">${googleImage('light')}${googleImage('dark')}</a></p>`
+const googleButton = (next = '') =>
+  `<p class="account-google"><a href="/account/google/start${next ? `?next=${encodeURIComponent(next)}` : ''}">${googleImage('light')}${googleImage('dark')}</a></p>`
 
-export const signInForm = (email = '', google = false): string => `<form method="post" action="/account/signin" class="account-form">
+/** @param next A return path already checked by safeNext in routes.ts, or ''. */
+export const signInForm = (email = '', google = false, next = ''): string => `<form method="post" action="/account/signin" class="account-form">
+${next ? `<input type="hidden" name="next" value="${escapeHtml(next)}">` : ''}
 ${emailField(email)}
 ${passwordField('Password', 'current-password')}
 <button class="btn" type="submit">Sign in</button>
 </form>
-${google ? googleButton : ''}
+${google ? googleButton(next) : ''}
 <p class="account-links"><a href="/account/signup">Create an account</a> · <a href="/account/reset">Forgot your password?</a></p>`
 
 export const signUpForm = (email = '', google = false): string => `<form method="post" action="/account/signup" class="account-form">
@@ -84,7 +87,7 @@ ${passwordField('Choose a password (at least 8 characters)', 'new-password')}
 ${turnstileWidget}
 <button class="btn" type="submit">Create account</button>
 </form>
-${google ? googleButton : ''}
+${google ? googleButton() : ''}
 <p class="account-links">Already have one? <a href="/account/signin">Sign in</a></p>`
 
 export const resetRequestForm = (email = ''): string => `<form method="post" action="/account/reset" class="account-form">
@@ -99,7 +102,3 @@ export const resetConfirmForm = (token: string): string => `<form method="post" 
 ${passwordField('New password (at least 8 characters)', 'new-password')}
 <button class="btn" type="submit">Set the new password</button>
 </form>`
-
-/** The minimal signed-in page; the real account page arrives with SCEC-106. */
-export const accountBody = (email: string, verified: boolean): string => `<p class="lead">Signed in as <strong>${escapeHtml(email)}</strong>${verified ? '' : ' (email not yet verified)'}.</p>
-<form method="post" action="/account/signout"><button class="btn" type="submit">Sign out</button></form>`

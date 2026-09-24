@@ -106,3 +106,15 @@ export async function destroySession(db: AccountsDb, tokenHash: string): Promise
 export async function destroyAllSessions(db: AccountsDb, userId: string): Promise<void> {
   await db.prepare('DELETE FROM user_sessions WHERE user_id = ?').bind(userId).run()
 }
+
+/**
+ * Copied from apps/ingest/src/access.ts (isSameOriginWrite), where the console uses it for
+ * the same job: SameSite=Lax stops a cross-site POST carrying the session cookie, and this
+ * stops the corner cases Lax leaves (top-level form posts). Browsers set both headers
+ * themselves; a page cannot forge them. Every write under /account and /api/me passes here.
+ */
+export function isSameOriginWrite(request: Request, host: string): boolean {
+  const site = request.headers.get('Sec-Fetch-Site')
+  if (site && site !== 'same-origin') return false
+  return request.headers.get('Origin') === `https://${host}`
+}
