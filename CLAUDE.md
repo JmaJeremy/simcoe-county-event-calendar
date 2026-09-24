@@ -484,6 +484,11 @@ when it breaks, so nothing here is checked by eye.
   all, because that row proved nothing and whoever registered it set its password. All
   three of `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OAUTH_STATE_KEY` or the button is
   not rendered and the routes 404. Scope is `openid email`, no profile, on purpose.
+  The button is Google's own artwork (`public/google/`, the light and dark "Sign in with
+  Google" pills from its branding pack at 1x–3x), unaltered as the guidelines require —
+  not the GIS script's rendered button, which would put Google's JavaScript on the page,
+  stop sign-in working with scripts off, and replace this flow with its ID-token POST.
+  Which pill shows follows the theme's three states, written twice like the palette.
 - **Suggestions are stored before they are mailed.** `POST /api/suggest` validates
   (`src/suggest.ts`), inserts into `suggestions`, then sends two emails through the `EMAIL`
   binding (Cloudflare Email Service), recording each outcome on the row. A mail failure

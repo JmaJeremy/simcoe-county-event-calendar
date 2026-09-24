@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { SignJWT, exportJWK, generateKeyPair } from 'jose'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import worker, { type Env } from '../src/worker.ts'
@@ -239,6 +240,13 @@ describe('the callback', () => {
 
   it('renders the button when configured', async () => {
     expect(await (await get('/account/signin')).text()).toContain('/account/google/start')
+  })
+
+  it('draws the button from Google’s artwork, every file of which ships', async () => {
+    const html = await (await get('/account/signup')).text()
+    const paths = [...html.matchAll(/\/google\/signin-[a-z@0-9]+\.png/g)].map((m) => m[0])
+    expect(new Set(paths)).toEqual(new Set(['light', 'dark'].flatMap((t) => ['', '@2x', '@3x'].map((x) => `/google/signin-${t}${x}.png`))))
+    for (const path of paths) expect(existsSync(new URL(`../public${path}`, import.meta.url)), path).toBe(true)
   })
 })
 
