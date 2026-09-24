@@ -519,6 +519,25 @@ when it breaks, so nothing here is checked by eye.
   and skipped outright when nothing is pinned. `store.ts` holds every pin and saved-view
   statement; the account page's forms and `/api/me/*` both call it, so there is one
   unpin, not two.
+- **A reader's pins can be read from two URLs, and they must never share a secret.**
+  `/calendar/{calendar_id}.{mac}.ics` is the private feed (SCEC-107); `/c/{slug}` and
+  `/c/{slug}.ics` are the shared calendar (SCEC-108). Both live in `user_calendars`
+  (`0003`), both are served by `account/shared.ts` with `private, no-store` and
+  `noindex, nofollow` — rotating a feed or stopping sharing must end access at once, which
+  an edge copy would outlive — and an unknown token or slug is a plain 404. The private
+  token is **not stored**: it is an HMAC under `FEED_TOKEN_KEY` of the calendar id and a
+  generation number, so a copy of the database opens no feed, the account page can show
+  the link again whenever asked (a hashed token could be shown once only, and calendar
+  URLs get pasted into a second device months later), and "Make a new link" bumps the
+  generation to kill every older one. That departs from docs/user-accounts.md, which
+  stored a hash. Without the key there are no private feeds and the account page says so.
+  The share slug is a separate random value, cleared when sharing stops and re-minted
+  when it starts, so a link someone meant to kill stays dead; the shared page names
+  nobody. Both feeds carry **pins only** — the doc's union with saved views would pour a
+  broad view's thousands of events into one calendar — and each saved view links its own
+  public `/calendar.ics?…` instead. Every iCal feed goes through `renderFeed` (`feed.ts`)
+  so UIDs agree across them, and every chunked read of events by id through
+  `eventRowsById`.
 - **A saved view is a canonical query string, in the list's own language.**
   `savedQueryFrom` (`query.ts`) reads with `parseFilters` and writes back only what the
   view selects — `m`, `cat`, `cost`, `civic`, `from`, `to`, the keys `/calendar.ics` reads

@@ -1,4 +1,5 @@
 import type { AccountsDb } from '../auth/db.ts'
+import { rowToEvent, type PublicEvent, type Row } from '../query.ts'
 
 /**
  * What an account owns — pins and saved views — and the one place their SQL lives. The
@@ -114,35 +115,56 @@ export interface PinnedEvent {
 /**
  * The application-side join: pinned ids in ACCOUNTS, events in DB. The IN list is chunked
  * under D1's parameter ceiling, so a reader with two hundred pins is not the first to find
- * it. Inactive rows are fetched too and reported as absent, because "closed by dedup" and
- * "gone" mean the same thing to a reader: the listing was withdrawn.
+ * it. Every chunked read of events by id goes through here — the account page and both
+ * feeds — so there is one chunker. Inactive rows come back too; callers decide what an
+ * inactive row means (for a pin: withdrawn).
  */
-export async function resolvePins(db: EventsDb, eventIds: string[]): Promise<Map<string, PinnedEvent>> {
-  const found = new Map<string, PinnedEvent>()
+export async function eventRowsById(db: EventsDb, eventIds: string[]): Promise<Row[]> {
+  const rows: Row[] = []
   for (let i = 0; i < eventIds.length; i += D1_MAX_PARAMS) {
     const chunk = eventIds.slice(i, i + D1_MAX_PARAMS)
     const { results } = await db
       .prepare(
-        `SELECT e.id, e.short_code, e.title, e.local_date, e.local_time, e.all_day, e.time_precision, e.ends_at_utc, e.status, e.active,
-                m.name AS municipality_name
+        `SELECT e.*, m.name AS municipality_name
            FROM events e LEFT JOIN municipalities m ON m.slug = e.municipality_slug
           WHERE e.id IN (${chunk.map(() => '?').join(',')})`,
       )
       .bind(...chunk)
-      .all<{
-        id: string; short_code: string; title: string; local_date: string; local_time: string; all_day: number
-        time_precision: string; ends_at_utc: string | null; status: string; active: number; municipality_name: string | null
-      }>()
-    for (const r of results) {
-      if (r.active !== 1) continue
-      found.set(r.id, {
-        id: r.id, shortCode: r.short_code, title: r.title, localDate: r.local_date, localTime: r.local_time,
-        allDay: r.all_day === 1, timePrecision: r.time_precision, endsAtUtc: r.ends_at_utc, status: r.status,
-        municipalityName: r.municipality_name,
-      })
-    }
+      .all<Row>()
+    rows.push(...results)
+  }
+  return rows
+}
+
+/** What each pin points at now, keyed by event id; absent means withdrawn. */
+export async function resolvePins(db: EventsDb, eventIds: string[]): Promise<Map<string, PinnedEvent>> {
+  const found = new Map<string, PinnedEvent>()
+  for (const r of await eventRowsById(db, eventIds)) {
+    // "Closed by dedup" and "gone" mean the same thing to a reader: the listing was withdrawn.
+    if (r.active !== 1) continue
+    found.set(r.id, {
+      id: r.id, shortCode: r.short_code, title: r.title, localDate: r.local_date, localTime: r.local_time,
+      allDay: r.all_day === 1, timePrecision: r.time_precision, endsAtUtc: r.ends_at_utc, status: r.status,
+      municipalityName: r.municipality_name,
+    })
   }
   return found
+}
+
+/**
+ * A reader's pinned events that are still live, as full events for a feed or the shared
+ * page. One row per event id by construction — the pins table's key is (user, event) and
+ * the join returns each id once — which matters: two VEVENTs with one UID in a feed are
+ * resolved differently, and badly, by every calendar app.
+ */
+export async function livePinnedEvents(events: EventsDb, accounts: AccountsDb, userId: string): Promise<PublicEvent[]> {
+  const pins = await listPins(accounts, userId)
+  if (!pins.length) return []
+  const rows = await eventRowsById(events, pins.map((p) => p.eventId))
+  return rows
+    .filter((r) => r.active === 1)
+    .map(rowToEvent)
+    .sort((a, b) => a.startsAtUtc.localeCompare(b.startsAtUtc))
 }
 
 /** The event a pin request names, if it is live — a pin must start out pointing at something. */

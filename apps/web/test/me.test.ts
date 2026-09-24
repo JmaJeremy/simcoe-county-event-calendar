@@ -27,6 +27,8 @@ interface EventRow {
 const event = (id: string, over: Partial<EventRow> = {}): EventRow => ({
   id, short_code: `c${id}`, title: `Event ${id}`, local_date: '2026-10-10', local_time: '19:00', all_day: 0,
   time_precision: 'exact', ends_at_utc: null, status: 'scheduled', active: 1, municipality_name: 'Barrie', ...over,
+  // The rest of an events row, for the feeds, which build whole events from it.
+  ...({ starts_at_utc: `${over.local_date ?? '2026-10-10'}T23:00:00.000Z`, timezone: 'America/Toronto', municipality_slug: 'barrie', category: 'music', cost: 'free', url: 'https://example.invalid', listing_ids: '[]', source_slugs: '[]', representative_id: id } as object),
 })
 
 async function harness(events: EventRow[] = []) {
@@ -38,6 +40,7 @@ async function harness(events: EventRow[] = []) {
   let pins: Array<{ user_id: string; event_id: string; title: string; local_date: string; short_code: string; pinned_at: string }> = []
   let filters: Array<{ id: string; user_id: string; label: string; query: string; created_at: string }> = []
   const binds: number[] = []
+  const calendars: Array<{ user_id: string; calendar_id: string; feed_generation: number; share_slug: string | null }> = []
 
   const accounts = (sql: string, v: unknown[] = []): any => ({
     bind: (...b: unknown[]) => accounts(sql, b),
@@ -55,6 +58,12 @@ async function harness(events: EventRow[] = []) {
         return f ? { id: f.id } : null
       }
       if (sql.includes('COUNT(*) AS n FROM calendar_filters')) return { n: filters.filter((f) => f.user_id === v[0]).length }
+      if (sql.includes('FROM user_calendars WHERE user_id = ?')) return calendars.find((c) => c.user_id === v[0]) ?? null
+      if (sql.includes('FROM user_calendars WHERE calendar_id = ?')) return calendars.find((c) => c.calendar_id === v[0]) ?? null
+      if (sql.includes('SELECT user_id FROM user_calendars WHERE share_slug = ?')) {
+        const c = calendars.find((c) => c.share_slug !== null && c.share_slug === v[0])
+        return c ? { user_id: c.user_id } : null
+      }
       throw new Error(`ACCOUNTS: unhandled first(): ${sql}`)
     },
     all: async () => {
@@ -90,6 +99,19 @@ async function harness(events: EventRow[] = []) {
         return {}
       }
       if (sql.includes('UPDATE user_sessions SET last_seen_at')) return {}
+      if (sql.includes('INSERT INTO user_calendars')) {
+        if (!calendars.some((c) => c.user_id === v[0])) calendars.push({ user_id: v[0] as string, calendar_id: v[1] as string, feed_generation: 1, share_slug: null })
+        return {}
+      }
+      if (sql.includes('UPDATE user_calendars SET feed_generation = feed_generation + 1')) {
+        const c = calendars.find((c) => c.user_id === v[1])!
+        c.feed_generation += 1
+        return {}
+      }
+      if (sql.includes('UPDATE user_calendars SET share_slug = ?')) {
+        calendars.find((c) => c.user_id === v[2])!.share_slug = v[0] as string | null
+        return {}
+      }
       throw new Error(`ACCOUNTS: unhandled run(): ${sql}`)
     },
   })
@@ -121,6 +143,7 @@ async function harness(events: EventRow[] = []) {
     ASSETS: { fetch: async () => new Response('asset') },
     CANONICAL_HOST: HOST,
     PASSWORD_PEPPER: 'pepper',
+    FEED_TOKEN_KEY: 'feed-key',
   } as unknown as Env
 
   const cookie = `__Host-session=${TOKEN}`
@@ -138,7 +161,7 @@ async function harness(events: EventRow[] = []) {
       }),
       env,
     )
-  return { env, get, post, binds, pins: () => pins, filters: () => filters, setFilters: (f: typeof filters) => (filters = f), setPins: (p: typeof pins) => (pins = p) }
+  return { env, get, post, binds, calendars, pins: () => pins, filters: () => filters, setFilters: (f: typeof filters) => (filters = f), setPins: (p: typeof pins) => (pins = p) }
 }
 
 describe('/api/me', () => {
@@ -296,5 +319,103 @@ describe('coming back after signing in', () => {
   it('sends a signed-in reader straight on', async () => {
     const h = await harness()
     expect((await h.get('/account/signin?next=%2Fe%2Fabc')).headers.get('Location')).toBe('/e/abc')
+  })
+})
+
+describe('your calendar: the private feed and the share link', () => {
+  const feedUrlFrom = (html: string) => /id="feed-url" type="text" readonly value="([^"]+)"/.exec(html)?.[1]
+  const shareUrlFrom = (html: string) => /id="share-url" type="text" readonly value="([^"]+)"/.exec(html)?.[1]
+  const pinned = (h: Awaited<ReturnType<typeof harness>>, ...ids: string[]) =>
+    h.setPins(ids.map((id) => ({ user_id: 'u1', event_id: id, title: `Event ${id}`, local_date: '2026-10-10', short_code: `c${id}`, pinned_at: '' })))
+
+  it('shows the same private feed link on every visit, and serves the live pins through it', async () => {
+    const h = await harness([event('e1', { title: 'Fall Fair' }), event('gone', { active: 0 })])
+    pinned(h, 'e1', 'gone')
+    const first = feedUrlFrom(await (await h.get('/account')).text())!
+    expect(first).toMatch(/^https:\/\/outinsimcoe\.ca\/calendar\/[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\.ics$/)
+    expect(feedUrlFrom(await (await h.get('/account')).text())).toBe(first)
+
+    const res = await h.get(new URL(first).pathname, false)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Type')).toContain('text/calendar')
+    expect(res.headers.get('Cache-Control')).toBe('private, no-store')
+    expect(res.headers.get('X-Robots-Tag')).toBe('noindex, nofollow')
+    const body = await res.text()
+    expect(body.match(/BEGIN:VEVENT/g)).toHaveLength(1)
+    expect(body).toContain('SUMMARY:Fall Fair')
+    // The same UID the public feed gives the event, so a reader subscribed to both sees one.
+    expect(body).toContain('UID:e1@outinsimcoe.ca')
+  })
+
+  it('opens nothing for a forged or stale token, and a new link retires the old one', async () => {
+    const h = await harness([event('e1')])
+    pinned(h, 'e1')
+    const old = new URL(feedUrlFrom(await (await h.get('/account')).text())!).pathname
+    const forged = old.replace(/\.([A-Za-z0-9_-])/, (_, c) => `.${c === 'A' ? 'B' : 'A'}`)
+    expect((await h.get(forged, false)).status).toBe(404)
+    expect((await h.get('/calendar/nonsense.ics', false)).status).toBe(404)
+
+    const rotated = await h.post('/account/calendar/rotate', {})
+    expect(rotated.headers.get('Location')).toBe('/account?notice=feed-rotated#calendar')
+    expect((await h.get(old, false)).status).toBe(404)
+    const fresh = new URL(feedUrlFrom(await (await h.get('/account')).text())!).pathname
+    expect(fresh).not.toBe(old)
+    expect((await h.get(fresh, false)).status).toBe(200)
+  })
+
+  it('offers no private feed without FEED_TOKEN_KEY, and serves none', async () => {
+    const h = await harness([event('e1')])
+    pinned(h, 'e1')
+    ;(h.env as { FEED_TOKEN_KEY?: string }).FEED_TOKEN_KEY = undefined
+    const html = await (await h.get('/account')).text()
+    expect(feedUrlFrom(html)).toBeUndefined()
+    expect(html).toContain('Calendar feeds are not available right now.')
+  })
+
+  it('shares the upcoming pins at a separate link, anonymously, and stops at once', async () => {
+    const h = await harness([event('e1', { title: 'Fall Fair' }), event('old', { title: 'Summer Show', local_date: '2026-08-01' })])
+    pinned(h, 'e1', 'old')
+    expect(shareUrlFrom(await (await h.get('/account')).text())).toBeUndefined()
+
+    await h.post('/account/calendar/share', { on: '1' })
+    const html = await (await h.get('/account')).text()
+    const share = shareUrlFrom(html)!
+    const feed = feedUrlFrom(html)!
+    expect(share).toMatch(/^https:\/\/outinsimcoe\.ca\/c\/[A-Za-z0-9_-]{16}$/)
+    // The public link must carry nothing of the private one.
+    const calendarId = new URL(feed).pathname.split('/')[2]!.split('.')[0]!
+    expect(share).not.toContain(calendarId)
+
+    const page = await h.get(new URL(share).pathname, false)
+    expect(page.headers.get('Cache-Control')).toBe('private, no-store')
+    expect(page.headers.get('X-Robots-Tag')).toBe('noindex, nofollow')
+    const shown = await page.text()
+    expect(shown).toContain('Fall Fair')
+    expect(shown).not.toContain('Summer Show')
+    expect(shown).not.toContain('reader@example.org')
+    expect(shown).not.toMatch(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}/)
+    expect((await h.get(`${new URL(share).pathname}.ics`, false)).headers.get('Content-Type')).toContain('text/calendar')
+
+    await h.post('/account/calendar/share', { on: '0' })
+    expect((await h.get(new URL(share).pathname, false)).status).toBe(404)
+    expect((await h.get(`${new URL(share).pathname}.ics`, false)).status).toBe(404)
+    await h.post('/account/calendar/share', { on: '1' })
+    const again = shareUrlFrom(await (await h.get('/account')).text())!
+    expect(again).not.toBe(share)
+    expect((await h.get(new URL(share).pathname, false)).status).toBe(404)
+  })
+
+  it('refuses a cross-site request to change either link', async () => {
+    const h = await harness()
+    await h.get('/account')
+    expect((await h.post('/account/calendar/share', { on: '1' }, { sameOrigin: false })).status).toBe(403)
+    expect((await h.post('/account/calendar/rotate', {}, { sameOrigin: false })).status).toBe(403)
+    expect(h.calendars[0]).toMatchObject({ feed_generation: 1, share_slug: null })
+  })
+
+  it('gives each saved view its public feed', async () => {
+    const h = await harness()
+    h.setFilters([{ id: 'f1', user_id: 'u1', label: 'Music', query: 'cat=music', created_at: '' }])
+    expect(await (await h.get('/account')).text()).toContain('href="webcal://outinsimcoe.ca/calendar.ics?cat=music"')
   })
 })

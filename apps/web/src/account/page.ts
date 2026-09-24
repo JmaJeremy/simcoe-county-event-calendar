@@ -59,9 +59,10 @@ export function describeSaved(query: string): string {
   return parts.filter(Boolean).join(' · ')
 }
 
-const savedRow = (f: SavedFilter) => `<li>
+/** A saved view is already a public feed: /calendar.ics reads the same query string. */
+const savedRow = (f: SavedFilter, origin: string) => `<li>
   <a href="/${f.query ? `?${escapeHtml(f.query)}` : ''}">${escapeHtml(f.label)}</a>
-  <span class="pin-when">${escapeHtml(describeSaved(f.query))}</span>
+  <span class="pin-when">${escapeHtml(describeSaved(f.query))} · <a href="${escapeHtml(webcal(`${origin}/calendar.ics${f.query ? `?${f.query}` : ''}`))}">Subscribe</a></span>
   <form method="post" action="/account/filters/remove" class="inline-form"><input type="hidden" name="id" value="${escapeHtml(f.id)}"><button class="linkish" type="submit" aria-label="Remove ${escapeHtml(f.label)}">Remove</button></form>
 </li>`
 
@@ -71,6 +72,42 @@ export interface AccountView {
   live: Map<string, PinnedEvent>
   filters: SavedFilter[]
   today: string
+  origin: string
+  /** The private feed's URL, or null when FEED_TOKEN_KEY is not configured. */
+  feedUrl: string | null
+  /** The shared calendar's URL, or null when sharing is off. */
+  shareUrl: string | null
+}
+
+/** Calendar apps open webcal: links as "subscribe" rather than downloading a file. */
+const webcal = (url: string): string => url.replace(/^https?:/, 'webcal:')
+
+/** A link to copy: a read-only field, which selects cleanly on every device with no script. */
+const copyField = (id: string, label: string, value: string) =>
+  `<label class="copy-label" for="${id}">${label}</label><input class="copy-field" id="${id}" type="text" readonly value="${escapeHtml(value)}">`
+
+function calendarSection(view: AccountView): string {
+  const feed = view.feedUrl
+    ? `<h3>Subscribe to your pins</h3>
+<p class="account-empty">Add your pinned events to Google Calendar, Apple Calendar or Outlook. The calendar updates on its own as you pin and unpin.</p>
+${copyField('feed-url', 'Your private feed', view.feedUrl)}
+<div class="account-actions"><a class="btn" href="${escapeHtml(webcal(view.feedUrl))}">Subscribe in your calendar</a>
+<form method="post" action="/account/calendar/rotate" class="inline-form"><button class="btn ghost" type="submit">Make a new link</button></form></div>
+<p class="field-hint">Keep this link to yourself: anyone who has it can see your pinned events. If it gets out, make a new one and the old link stops working.</p>`
+    : '<h3>Subscribe to your pins</h3><p class="account-empty">Calendar feeds are not available right now.</p>'
+  const share = view.shareUrl
+    ? `<h3>Share your pins</h3>
+${copyField('share-url', 'Your share link', view.shareUrl)}
+<div class="account-actions"><a class="btn ghost" href="${escapeHtml(view.shareUrl)}">Open it</a>
+<form method="post" action="/account/calendar/share" class="inline-form"><input type="hidden" name="on" value="0"><button class="btn ghost" type="submit">Stop sharing</button></form></div>
+<p class="field-hint">Anyone with this link sees your upcoming pinned events, and can subscribe to them. It never shows your name or email address, and search engines are told to ignore it. Stopping kills the link; sharing again makes a new one.</p>`
+    : `<h3>Share your pins</h3>
+<p class="account-empty">Make a link that shows your upcoming pinned events to anyone you send it to. It never shows your name or email address.</p>
+<form method="post" action="/account/calendar/share"><input type="hidden" name="on" value="1"><button class="btn ghost" type="submit">Create a share link</button></form>`
+  return `<section class="account-section" id="calendar" aria-labelledby="calendar-h"><h2 id="calendar-h">Your calendar</h2>
+${feed}
+${share}
+</section>`
 }
 
 export function accountHome(view: AccountView): string {
@@ -88,19 +125,20 @@ export function accountHome(view: AccountView): string {
   upcoming.sort((a, b) => a.localDate.localeCompare(b.localDate) || a.localTime.localeCompare(b.localTime))
 
   const pinsHtml = view.pins.length === 0
-    ? '<p class="account-empty">Nothing pinned yet. Use the Pin button on any event, in the list or on its own page, and it will be kept here.</p>'
+    ? '<p class="account-empty">Nothing pinned yet. Tap the pin beside any event’s title, in the list or on its own page, and it will be kept here.</p>'
     : `${upcoming.length ? `<ul class="pin-list">${upcoming.map(livePin).join('')}</ul>` : '<p class="account-empty">Nothing coming up.</p>'}
 ${withdrawn.length ? `<h3>No longer listed</h3><ul class="pin-list">${withdrawn.map(withdrawnPin).join('')}</ul>` : ''}
 ${past.length ? `<details class="pin-past"><summary>Past (${past.length})</summary><ul class="pin-list">${past.join('')}</ul></details>` : ''}`
 
   const filtersHtml = view.filters.length === 0
     ? '<p class="account-empty">No saved views yet. Filter the calendar the way you like it, open Subscribe, and save the view there.</p>'
-    : `<ul class="pin-list">${view.filters.map(savedRow).join('')}</ul>`
+    : `<ul class="pin-list">${view.filters.map((f) => savedRow(f, view.origin)).join('')}</ul>`
 
   return `<p class="lead">Signed in as <strong>${escapeHtml(view.email)}</strong>.</p>
 <section class="account-section" aria-labelledby="pins-h"><h2 id="pins-h">Pinned events</h2>
 ${pinsHtml}
 </section>
+${calendarSection(view)}
 <section class="account-section" aria-labelledby="views-h"><h2 id="views-h">Saved views</h2>
 ${filtersHtml}
 </section>

@@ -744,6 +744,13 @@ footer a { color: var(--ink-2); }
 .pin-past { margin-top: 16px; }
 .pin-past summary { cursor: pointer; font-weight: 700; color: var(--ink-2); }
 .account-signout { margin-top: 28px; }
+.copy-label { display: block; font-weight: 700; font-size: 14px; margin: 12px 0 5px; }
+.copy-field {
+  width: 100%; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 9px 11px;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+}
+.account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin: 12px 0 8px; }
+.account-actions .inline-form { margin: 0; }
 /* The pin, beside a title: an outline until pressed, then filled in the accent. The padding
    is the hit area (32px), the negative margin keeps it from pushing the title about. */
 .pin-toggle {

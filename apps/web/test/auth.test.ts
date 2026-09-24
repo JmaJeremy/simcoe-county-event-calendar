@@ -23,6 +23,7 @@ interface Tables {
 }
 
 function accountsFake(t: Tables) {
+  const calendars = new Map<string, unknown>()
   const statement = (sql: string, v: unknown[] = []): any => ({
     bind: (...bound: unknown[]) => statement(sql, bound),
     all: async () => ({ results: [] }),
@@ -45,6 +46,10 @@ function accountsFake(t: Tables) {
         const row = t.tokens.find((k) => k.token_hash === v[0])
         return row ? { user_id: row.user_id } : null
       }
+      // The account page makes each reader's calendar row on first sight (account/calendar.ts).
+      if (sql.includes('FROM user_calendars WHERE user_id')) {
+        return calendars.get(v[0] as string) ?? null
+      }
       if (sql.includes('COUNT(*) AS n FROM auth_attempts WHERE ip_hash')) {
         return { n: t.attempts.filter((a) => a.ip_hash === v[0] && a.created_at > (v[1] as string)).length }
       }
@@ -54,6 +59,10 @@ function accountsFake(t: Tables) {
       throw new Error(`accountsFake: unhandled first(): ${sql}`)
     },
     run: async () => {
+      if (sql.includes('INSERT INTO user_calendars')) {
+        if (!calendars.has(v[0] as string)) calendars.set(v[0] as string, { user_id: v[0], calendar_id: v[1], feed_generation: 1, share_slug: null })
+        return {}
+      }
       if (sql.includes('INSERT INTO users')) {
         t.users.push({ id: v[0] as string, email: v[1] as string, email_verified_at: null, display_name: null, created_at: v[2] as string, updated_at: v[3] as string })
         return {}

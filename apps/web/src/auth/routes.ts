@@ -1,6 +1,7 @@
 import { MAIL_FROM, sendMail, type SendEmail } from '../mail.ts'
 import { accountHome } from '../account/page.ts'
 import { listFilters, listPins, refreshSnapshot, removeFilter, resolvePins, unpin, type EventsDb } from '../account/store.ts'
+import { calendarFor, feedToken, rotateFeed, setSharing } from '../account/calendar.ts'
 import { TURNSTILE_FIELD, verifyTurnstile } from '../suggest.ts'
 import type { AccountsDb } from './db.ts'
 import { OAUTH_COOKIE, clearFlowCookie, exchangeCode, openFlow, startFlow, userForIdentity, type GoogleSettings } from './google.ts'
@@ -47,6 +48,8 @@ export interface AuthEnv {
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   OAUTH_STATE_KEY?: string
+  /** Signs private feed URLs (account/calendar.ts); absent, the account page offers none. */
+  FEED_TOKEN_KEY?: string
 }
 
 const googleSettings = (env: AuthEnv): GoogleSettings | null =>
@@ -74,6 +77,9 @@ const NOTICES: Record<string, string> = {
   unverified: 'Your email is not confirmed yet. We have sent the confirmation link again — it works for 24 hours.',
   unpinned: 'Unpinned.',
   'view-removed': 'Saved view removed.',
+  'feed-rotated': 'Your calendar has a new link, and the old one has stopped working. Update any calendar app that used it.',
+  'sharing-on': 'Your share link is ready. Anyone you send it to can see your upcoming pinned events.',
+  'sharing-off': 'Sharing is off, and the old link no longer works.',
 }
 
 /**
@@ -187,7 +193,10 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
         if (e && (e.title !== p.title || e.localDate !== p.localDate || e.shortCode !== p.shortCode)) await refreshSnapshot(env.ACCOUNTS, user.userId, e)
       }
       const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })
-      return page(accountPage({ title: 'Your account', heading: 'Your account', origin, notice, body: accountHome({ email: user.email, pins, live, filters, today }) }))
+      const calendar = await calendarFor(env.ACCOUNTS, user.userId, now)
+      const feedUrl = env.FEED_TOKEN_KEY ? `${origin}/calendar/${await feedToken(env.FEED_TOKEN_KEY, calendar)}.ics` : null
+      const shareUrl = calendar.shareSlug ? `${origin}/c/${calendar.shareSlug}` : null
+      return page(accountPage({ title: 'Your account', heading: 'Your account', origin, notice, body: accountHome({ email: user.email, pins, live, filters, today, origin, feedUrl, shareUrl }) }))
     }
     if (path === '/account/signin') {
       const next = safeNext(url.searchParams.get('next'))
@@ -341,6 +350,21 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
 
   // What an account owns, removed from the account page's own forms. The fetch API
   // (account/api.ts) calls the same store functions; there is one unpin, not two.
+  // The calendar's two capabilities: a new private feed link, and sharing on or off. Both
+  // act on a row the account page has already created.
+  if (path === '/account/calendar/rotate' || path === '/account/calendar/share') {
+    const user = await sessionUser(env.ACCOUNTS, request, now)
+    if (!user) return redirect('/account/signin')
+    await calendarFor(env.ACCOUNTS, user.userId, now)
+    if (path === '/account/calendar/rotate') {
+      await rotateFeed(env.ACCOUNTS, user.userId, now)
+      return redirect('/account?notice=feed-rotated#calendar')
+    }
+    const on = form.on === '1'
+    await setSharing(env.ACCOUNTS, user.userId, on, now)
+    return redirect(`/account?notice=${on ? 'sharing-on' : 'sharing-off'}#calendar`)
+  }
+
   if (path === '/account/pins/remove' || path === '/account/filters/remove') {
     const user = await sessionUser(env.ACCOUNTS, request, now)
     if (!user) return redirect('/account/signin')
