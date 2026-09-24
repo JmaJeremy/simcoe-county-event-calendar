@@ -2,6 +2,8 @@ import { MAIL_FROM, sendMail, type SendEmail } from '../mail.ts'
 import { accountHome } from '../account/page.ts'
 import { listFilters, listPins, refreshSnapshot, removeFilter, resolvePins, unpin, type EventsDb } from '../account/store.ts'
 import { calendarFor, feedToken, rotateFeed, setSharing } from '../account/calendar.ts'
+import { sendDigest, siteClock } from '../account/digest.ts'
+import { DIGEST_HOURS } from '../account/page.ts'
 import { TURNSTILE_FIELD, verifyTurnstile } from '../suggest.ts'
 import type { AccountsDb } from './db.ts'
 import { OAUTH_COOKIE, clearFlowCookie, exchangeCode, openFlow, startFlow, userForIdentity, type GoogleSettings } from './google.ts'
@@ -80,6 +82,11 @@ const NOTICES: Record<string, string> = {
   'feed-rotated': 'Your calendar has a new link, and the old one has stopped working. Update any calendar app that used it.',
   'sharing-on': 'Your share link is ready. Anyone you send it to can see your upcoming pinned events.',
   'sharing-off': 'Sharing is off, and the old link no longer works.',
+  'digest-saved': 'Your digest settings are saved.',
+  'preview-sent': 'A preview is on its way to your inbox.',
+  'preview-empty': 'Nothing to send: none of your pins or saved views have anything in the window. Pin something or save a view, then try again tomorrow.',
+  'preview-used': 'You have already had a preview today. Try again tomorrow.',
+  'preview-failed': 'The preview could not be sent. Please try again later.',
 }
 
 /**
@@ -196,7 +203,8 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
       const calendar = await calendarFor(env.ACCOUNTS, user.userId, now)
       const feedUrl = env.FEED_TOKEN_KEY ? `${origin}/calendar/${await feedToken(env.FEED_TOKEN_KEY, calendar)}.ics` : null
       const shareUrl = calendar.shareSlug ? `${origin}/c/${calendar.shareSlug}` : null
-      return page(accountPage({ title: 'Your account', heading: 'Your account', origin, notice, body: accountHome({ email: user.email, pins, live, filters, today, origin, feedUrl, shareUrl }) }))
+      const digest = { cadence: calendar.digest, hour: calendar.digestHour, day: calendar.digestDay }
+      return page(accountPage({ title: 'Your account', heading: 'Your account', origin, notice, body: accountHome({ email: user.email, pins, live, filters, today, origin, feedUrl, shareUrl, digest }) }))
     }
     if (path === '/account/signin') {
       const next = safeNext(url.searchParams.get('next'))
@@ -363,6 +371,43 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     const on = form.on === '1'
     await setSharing(env.ACCOUNTS, user.userId, on, now)
     return redirect(`/account?notice=${on ? 'sharing-on' : 'sharing-off'}#calendar`)
+  }
+
+  // The digest's settings, and a preview the reader asked for — once a day, since it spends
+  // the same daily mail allowance as everything else.
+  if (path === '/account/digest' || path === '/account/digest/preview') {
+    const user = await sessionUser(env.ACCOUNTS, request, now)
+    if (!user) return redirect('/account/signin')
+    const calendar = await calendarFor(env.ACCOUNTS, user.userId, now)
+    if (path === '/account/digest') {
+      const cadence = form.digest === 'daily' || form.digest === 'weekly' ? form.digest : 'none'
+      const hour = Number(form.hour)
+      const day = Number(form.day)
+      await env.ACCOUNTS.prepare('UPDATE user_calendars SET digest = ?, digest_hour = ?, digest_day = ?, updated_at = ? WHERE user_id = ?')
+        .bind(
+          cadence,
+          DIGEST_HOURS.includes(hour) ? hour : calendar.digestHour,
+          Number.isInteger(day) && day >= 0 && day <= 6 ? day : calendar.digestDay,
+          now.toISOString(),
+          user.userId,
+        )
+        .run()
+      return redirect('/account?notice=digest-saved#digest')
+    }
+    if (!env.EMAIL || !env.FEED_TOKEN_KEY) return redirect('/account?notice=preview-failed#digest')
+    const clock = siteClock(now)
+    const result = await sendDigest(
+      { ...env, EMAIL: env.EMAIL, FEED_TOKEN_KEY: env.FEED_TOKEN_KEY },
+      { userId: user.userId, calendarId: calendar.calendarId, email: user.email },
+      calendar.digest === 'weekly' ? 'weekly' : 'daily',
+      `p:${clock.date}`,
+      clock.date,
+      now,
+      origin,
+      false,
+    )
+    const notice = { sent: 'preview-sent', 'skipped-empty': 'preview-empty', already: 'preview-used', error: 'preview-failed' }[result]
+    return redirect(`/account?notice=${notice}#digest`)
   }
 
   if (path === '/account/pins/remove' || path === '/account/filters/remove') {

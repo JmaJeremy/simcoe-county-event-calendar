@@ -180,7 +180,7 @@ const SELECT = `
  * Build a parameterised query. Values are always bound, never interpolated — these
  * filters come straight from a URL a stranger controls.
  */
-export function buildQuery(filters: EventFilters): { sql: string; bindings: unknown[] } {
+export function buildQuery(filters: EventFilters, limit = 4000): { sql: string; bindings: unknown[] } {
   const where: string[] = ['e.active = 1']
   const bindings: unknown[] = []
 
@@ -224,6 +224,6 @@ export function buildQuery(filters: EventFilters): { sql: string; bindings: unkn
 
   const sql = `${SELECT} WHERE ${where.join(' AND ')}
     ORDER BY e.starts_at_utc ASC
-    LIMIT 4000`
+    LIMIT ${Math.max(1, Math.floor(limit))}`
   return { sql, bindings }
 }

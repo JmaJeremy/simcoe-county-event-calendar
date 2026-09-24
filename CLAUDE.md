@@ -546,6 +546,34 @@ when it breaks, so nothing here is checked by eye.
   public `/calendar.ics?…` instead. Every iCal feed goes through `renderFeed` (`feed.ts`)
   so UIDs agree across them, and every chunked read of events by id through
   `eventRowsById`.
+- **Digests are sent by the WEB worker's hourly cron, and unsubscribing is ours alone.**
+  `account/digest.ts`, `"5 * * * *"` in `apps/web/wrangler.jsonc` — never the ingest worker,
+  which must not bind the account database. Readers pick daily or weekly, an hour and a day,
+  all in America/Toronto (`0004`; there is no timezone column, as there is none anywhere).
+  A reader is due once their hour **has come** today (`digest_hour <= now`), not only
+  during it, so a run over budget or a failed cron is caught up an hour later. Each send is
+  **claimed** in `digest_sends` (user, period) before it goes, by an INSERT that only
+  succeeds while the setting is still on: a re-run cannot send twice, an unsubscribe that
+  lands mid-run still wins, and a failed send is not retried within its period, since a
+  failure reported after delivery would make the retry a second copy. Budgets:
+  `DIGESTS_PER_RUN` 100 and `DIGESTS_PER_DAY` 700, leaving 300 of the account's 1,000
+  messages a day for verification, reset and suggestion mail, which nothing counts. An
+  empty window records `skipped-empty` and sends nothing; unverified addresses are never
+  mailed. The body is plain text from database values — pins first, then each saved view
+  (ten events, then a "see all" link), each event once — and carries no address.
+  `/unsubscribe/{token}` (an HMAC under `FEED_TOKEN_KEY` with an `unsub:` prefix, so it
+  and a feed token cannot stand in for each other) sits **ahead of and outside** `/account`:
+  RFC 8058 one-click is a POST from the mail provider's own servers with no Origin and no
+  session, which the account routes' same-origin gate would refuse. GET and POST both only
+  ever turn the digest off. The Cloudflare account-wide suppression list the design
+  proposed is **deliberately not used** (decided 2026-09-24): it blocks every mail to the
+  address, password resets included, and would have put a Cloudflare API token inside the
+  worker. Without `FEED_TOKEN_KEY` no unsubscribe link can be signed, so nothing is sent.
+  Dev has `"triggers": { "crons": [] }` — triggers are inherited like routes, and a dev run
+  would mail real addresses — so prove `scheduled()` locally with `wrangler dev
+  --test-scheduled` and `curl localhost:8788/__scheduled`. Tests run the sender against
+  real SQLite (`test/d1-sqlite.ts`, `node:sqlite` with both databases' real migrations),
+  because its SQL is the part worth testing.
 - **A saved view is a canonical query string, in the list's own language.**
   `savedQueryFrom` (`query.ts`) reads with `parseFilters` and writes back only what the
   view selects — `m`, `cat`, `cost`, `civic`, `from`, `to`, the keys `/calendar.ics` reads
