@@ -751,6 +751,19 @@ footer a { color: var(--ink-2); }
 }
 .account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin: 12px 0 8px; }
 .account-actions .inline-form { margin: 0; }
+/* A form's outcome, in its own section; it fades in so the change registers as a response. */
+.section-notice {
+  margin: 0 0 12px; padding: 10px 13px; border-radius: 10px; font-weight: 700; font-size: 14.5px;
+  animation: notice-in .35s ease-out;
+}
+.section-notice.ok { background: var(--free-bg); color: var(--free); }
+.section-notice.info { background: var(--warn-bg); color: var(--warn); }
+.section-notice.error { background: var(--stop-bg); color: var(--stop); }
+.section-notice .tick { font-weight: 800; }
+@keyframes notice-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .section-notice { animation: none; } }
+/* The anchor a save redirects to: a little room above the heading. */
+.account-section { scroll-margin-top: 16px; }
 .digest-form fieldset { border: none; margin: 12px 0 0; padding: 0; }
 .digest-form legend { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
 .digest-form .radio { display: block; padding: 4px 0; font-size: 15px; }

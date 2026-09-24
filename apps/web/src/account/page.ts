@@ -79,6 +79,21 @@ export interface AccountView {
   shareUrl: string | null
   /** Email digest settings, as stored (account/calendar.ts). */
   digest: { cadence: 'none' | 'daily' | 'weekly'; hour: number; day: number }
+  /** The outcome of the form just submitted, shown in that form's own section. */
+  notice?: SectionNotice
+}
+
+export interface SectionNotice {
+  section: 'pins' | 'views' | 'calendar' | 'digest'
+  kind: 'ok' | 'info' | 'error'
+  text: string
+}
+
+/** Directly under the section's heading: where the redirect's anchor puts the reader's eyes. */
+const noticeFor = (view: AccountView, section: SectionNotice['section']): string => {
+  const n = view.notice
+  if (!n || n.section !== section) return ''
+  return `<p class="section-notice ${n.kind}" role="${n.kind === 'error' ? 'alert' : 'status'}">${n.kind === 'ok' ? '<span class="tick" aria-hidden="true">&#10003;</span> ' : ''}${escapeHtml(n.text)}</p>`
 }
 
 /** The hours a digest can go out, in Simcoe County time: early morning to evening. */
@@ -99,6 +114,7 @@ function digestSection(view: AccountView): string {
         ? `A digest goes out every morning at about ${hourLabel(d.hour)}, when there is something in it.`
         : `A digest goes out every ${DAY_NAMES[d.day]} at about ${hourLabel(d.hour)}, covering the week ahead, when there is something in it.`
   return `<section class="account-section" id="digest" aria-labelledby="digest-h"><h2 id="digest-h">Email digest</h2>
+${noticeFor(view, 'digest')}
 <p class="account-empty">Your pinned events and saved views, by email. ${escapeHtml(state)} Every digest has a one-click unsubscribe link.</p>
 <form method="post" action="/account/digest" class="digest-form">
 <fieldset><legend>How often</legend>${radio('none', 'Never')}${radio('daily', 'Every day, for that day')}${radio('weekly', 'Once a week, for the week ahead')}</fieldset>
@@ -138,6 +154,7 @@ ${copyField('share-url', 'Your share link', view.shareUrl)}
 <p class="account-empty">Make a link that shows your upcoming pinned events to anyone you send it to. It never shows your name or email address.</p>
 <form method="post" action="/account/calendar/share"><input type="hidden" name="on" value="1"><button class="btn ghost" type="submit">Create a share link</button></form>`
   return `<section class="account-section" id="calendar" aria-labelledby="calendar-h"><h2 id="calendar-h">Your calendar</h2>
+${noticeFor(view, 'calendar')}
 ${feed}
 ${share}
 </section>`
@@ -168,12 +185,14 @@ ${past.length ? `<details class="pin-past"><summary>Past (${past.length})</summa
     : `<ul class="pin-list">${view.filters.map((f) => savedRow(f, view.origin)).join('')}</ul>`
 
   return `<p class="lead">Signed in as <strong>${escapeHtml(view.email)}</strong>.</p>
-<section class="account-section" aria-labelledby="pins-h"><h2 id="pins-h">Pinned events</h2>
+<section class="account-section" id="pins" aria-labelledby="pins-h"><h2 id="pins-h">Pinned events</h2>
+${noticeFor(view, 'pins')}
 ${pinsHtml}
 </section>
 ${calendarSection(view)}
 ${digestSection(view)}
-<section class="account-section" aria-labelledby="views-h"><h2 id="views-h">Saved views</h2>
+<section class="account-section" id="views" aria-labelledby="views-h"><h2 id="views-h">Saved views</h2>
+${noticeFor(view, 'views')}
 ${filtersHtml}
 </section>
 <form method="post" action="/account/signout" class="account-signout"><button class="btn ghost" type="submit">Sign out</button></form>`

@@ -290,7 +290,7 @@ describe('the account page', () => {
       { id: 'mine', user_id: 'u1', label: 'Mine', query: 'cat=arts', created_at: '' },
       { id: 'theirs', user_id: 'u2', label: 'Theirs', query: 'cat=arts', created_at: '' },
     ])
-    expect((await h.post('/account/pins/remove', { event: 'e1' })).headers.get('Location')).toBe('/account?notice=unpinned')
+    expect((await h.post('/account/pins/remove', { event: 'e1' })).headers.get('Location')).toBe('/account?notice=unpinned#pins')
     await h.post('/account/filters/remove', { id: 'theirs' })
     await h.post('/account/filters/remove', { id: 'mine' })
     expect(h.pins()).toEqual([])
