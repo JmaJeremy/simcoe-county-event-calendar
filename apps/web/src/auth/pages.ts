@@ -58,8 +58,17 @@ const passwordField = (label: string, autocomplete: 'current-password' | 'new-pa
   `<div class="form-field"><label for="password">${label}</label>
 <input type="password" id="password" name="password" required minlength="8" maxlength="200" autocomplete="${autocomplete}"></div>`
 
-/** A plain link, not a POST: the start route only mints a signed cookie and redirects. */
-const googleButton = `<p class="account-google"><a class="btn ghost" href="/account/google/start">Continue with Google</a></p>`
+const googleImage = (theme: 'light' | 'dark') =>
+  `<img class="google-${theme}" src="/google/signin-${theme}.png" srcset="/google/signin-${theme}@2x.png 2x, /google/signin-${theme}@3x.png 3x" width="180" height="40" alt="Sign in with Google" loading="lazy">`
+
+/**
+ * A plain link, not a POST: the start route only mints a signed cookie and redirects.
+ * The button is Google's own artwork from its branding pack (public/google/), served
+ * from here rather than drawn by Google's script, which would bring its own sign-in
+ * flow and a third party onto the page. Both themes ship; CSS shows the one that
+ * matches the reader's, and `loading="lazy"` keeps the hidden one from downloading.
+ */
+const googleButton = `<p class="account-google"><a href="/account/google/start">${googleImage('light')}${googleImage('dark')}</a></p>`
 
 export const signInForm = (email = '', google = false): string => `<form method="post" action="/account/signin" class="account-form">
 ${emailField(email)}
