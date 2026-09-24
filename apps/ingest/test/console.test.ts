@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair, type JWTVerifyGetKey } from 'jose'
 import { shortCode } from '@scec/core'
 import { handleConsole, type ConsoleEnv } from '../src/console.ts'
@@ -144,6 +144,21 @@ function fakeDb(
   const writes = (fragment: string) => executed.filter((e) => e.sql.includes(fragment))
   return { db, executed, writes }
 }
+
+/*
+ * Saving an event measures its poster at once (measurePoster), so every test here gets a
+ * fetch that answers with a 1200x630 PNG header and records what was asked. Without it a
+ * test's poster URL would go out to the real network, which npm test promises never to do.
+ */
+let posterFetches: Array<{ url: string; range: string | null }> = []
+beforeEach(() => {
+  posterFetches = []
+  vi.stubGlobal('fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    posterFetches.push({ url: String(input), range: new Headers(init?.headers).get('Range') })
+    return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 4, 176, 0, 0, 2, 118]), { status: 206 })
+  })
+})
+afterEach(() => vi.unstubAllGlobals())
 
 const env = (db: ConsoleEnv['DB'], extra: Partial<ConsoleEnv> = {}): ConsoleEnv => ({
   DB: db,
@@ -413,7 +428,7 @@ describe('suggestions', () => {
   })
 
   it('become an event when the form is saved, and are marked done with the listing they became', async () => {
-    const { db, writes } = fakeDb([], [], [suggestionRow()])
+    const { db, writes, executed } = fakeDb([], [], [suggestionRow()])
     const outbox = mailer()
     const res = await handleConsole(
       post('/events', { from: SUGGESTION_ID, title: 'Pumpkin walk', date: '2099-10-25', start_time: '18:30', image_url: `https://site.example.ca/posters/${POSTER_KEY}` }),
@@ -436,6 +451,12 @@ describe('suggestions', () => {
     expect(outbox.sent[0].replyTo).toBe('contact@outinsimcoe.ca')
     expect(outbox.sent[0].text).toContain(`Pumpkin walk\nhttps://site.example.ca/e/${shortCode(`manual:${uuid}`)}`)
     expect(writes('SET accepted_mail')[0]!.values).toEqual(['sent', SUGGESTION_ID])
+    // And its poster is measured now, not two hours from now, so the first share of the
+    // event can carry it — after the write, which it can therefore never hold up.
+    expect(posterFetches).toEqual([{ url: `https://site.example.ca/posters/${POSTER_KEY}`, range: 'bytes=0-65535' }])
+    const [size] = writes('INSERT OR REPLACE INTO image_sizes')
+    expect(size!.values.slice(0, 3)).toEqual([`https://site.example.ca/posters/${POSTER_KEY}`, 1200, 630])
+    expect(executed.indexOf(size!)).toBeGreaterThan(executed.indexOf(marked!))
   })
 
   it('stay attached to a form sent back with problems, and stay waiting', async () => {

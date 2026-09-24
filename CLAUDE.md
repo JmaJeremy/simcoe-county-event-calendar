@@ -387,7 +387,14 @@ when it breaks, so nothing here is checked by eye.
   carried 694 distinct images when this was written, and Barrie library's 598 listings use
   46 between them. A row with NULL width means "read, and it did not say" (an SVG, a 404, a
   JPEG whose frame header sat past the range) — it exists so the pass does not retry that
-  URL every two hours. The event page reads the size when it renders, so nothing waits on
+  URL every two hours. **A console save measures its poster at once** (`measurePoster`,
+  called after the write in `writeListing` and `storeOverrides`): a hand-entered event is
+  usually about to be shared, and a share scraped in the up-to-two-hours before the run
+  reached it took the site's own card and kept it until the Sharing Debugger re-scraped.
+  Scraped events need no hook — every run measures right after dedup. It re-reads a poster
+  recorded as unreadable (a person just chose it) but never one already measured, and
+  never throws, so a slow host delays the reply, never the save. Console tests stub
+  `fetch`, or a poster URL in a fixture would reach the real network. The event page reads the size when it renders, so nothing waits on
   the pass and a failure costs a share card, never a run. `imageSize` in core never guesses:
   Facebook lays the card out from these numbers, so silence beats a wrong width. The
   one-time catch-up for posters already on the site is

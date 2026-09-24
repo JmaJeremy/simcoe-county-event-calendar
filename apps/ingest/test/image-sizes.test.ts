@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { measureImageSizes } from '../src/image-sizes.ts'
+import { measureImageSizes, measurePoster } from '../src/image-sizes.ts'
 import type { D1Like, D1Statement } from '../src/repository.ts'
 
 /** A 1200x630 PNG header — the first 24 bytes are all the size lives in. */
@@ -75,5 +75,52 @@ describe('measureImageSizes', () => {
     })
     expect(stats).toEqual({ measured: 0, unreadable: 2, remaining: 1 })
     expect(written).toHaveLength(2)
+  })
+})
+
+describe('measurePoster, for a poster a console save just put on an event', () => {
+  const db = (known: { width: number | null } | null, opts: { throws?: boolean } = {}) => {
+    const written: unknown[][] = []
+    const stmt = (sql: string, values: unknown[] = []): any => ({
+      bind: (...v: unknown[]) => stmt(sql, v),
+      first: async () => {
+        if (opts.throws) throw new Error('D1 is down')
+        return sql.includes('FROM image_sizes') ? known : null
+      },
+      run: async () => {
+        written.push(values)
+        return {}
+      },
+    })
+    return { db: { prepare: (sql: string) => stmt(sql), batch: async () => [] } as unknown as D1Like, written }
+  }
+  const png = async () => new Response(PNG, { status: 206 })
+
+  it('reads the size and records it', async () => {
+    const d = db(null)
+    await measurePoster(d.db, 'https://example.org/p.png', { now: 'now', fetchImpl: png as never })
+    expect(d.written).toEqual([['https://example.org/p.png', 1200, 630, 'now']])
+  })
+
+  it('leaves a measured poster alone, but tries one recorded as unreadable again', async () => {
+    let asked = 0
+    const counting = (async () => (asked++, new Response(PNG, { status: 206 }))) as never
+    await measurePoster(db({ width: 1200 }).db, 'https://example.org/p.png', { fetchImpl: counting })
+    expect(asked).toBe(0)
+    await measurePoster(db({ width: null }).db, 'https://example.org/p.png', { fetchImpl: counting })
+    expect(asked).toBe(1)
+  })
+
+  it('skips what can never be a share image, and never throws', async () => {
+    let asked = 0
+    const counting = (async () => (asked++, new Response(PNG, { status: 206 }))) as never
+    await measurePoster(db(null).db, null, { fetchImpl: counting })
+    // A govStack calendar host 403s crawlers, so its posters are never share images.
+    await measurePoster(db(null).db, 'https://calendar.midland.ca/images/x.jpg', { fetchImpl: counting })
+    expect(asked).toBe(0)
+    await expect(measurePoster(db(null, { throws: true }).db, 'https://example.org/p.png', { fetchImpl: counting })).resolves.toBeUndefined()
+    const refused = db(null)
+    await measurePoster(refused.db, 'https://example.org/p.png', { now: 'now', fetchImpl: (async () => new Response('no', { status: 403 })) as never })
+    expect(refused.written).toEqual([['https://example.org/p.png', null, null, 'now']])
   })
 })
