@@ -235,6 +235,17 @@ describe('the account page’s digest controls', () => {
     expect(html).toContain('<input type="radio" name="digest" value="none" checked>')
   })
 
+  it('confirms a save inside the digest section, where the redirect lands — not at the top', async () => {
+    const w = world()
+    const go = await signedIn(w)
+    const to = (await go('/account/digest', { digest: 'daily', hour: '7', day: '4' })).headers.get('Location')!
+    const html = await (await go(to.replace(/#.*/, ''))).text()
+    const section = html.slice(html.indexOf('id="digest"'), html.indexOf('</section>', html.indexOf('id="digest"')))
+    expect(section).toMatch(/<p class="section-notice ok" role="status"><span class="tick"[^>]*>&#10003;<\/span> Saved\./)
+    expect(section.indexOf('section-notice')).toBeLessThan(section.indexOf('<form'))
+    expect(html.match(/Saved\. Your digest settings are updated\./g)).toHaveLength(1)
+  })
+
   it('sends a preview once a day, even with digests off', async () => {
     const w = world()
     const go = await signedIn(w)

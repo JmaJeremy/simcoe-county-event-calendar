@@ -3,7 +3,7 @@ import { accountHome } from '../account/page.ts'
 import { listFilters, listPins, refreshSnapshot, removeFilter, resolvePins, unpin, type EventsDb } from '../account/store.ts'
 import { calendarFor, feedToken, rotateFeed, setSharing } from '../account/calendar.ts'
 import { sendDigest, siteClock } from '../account/digest.ts'
-import { DIGEST_HOURS } from '../account/page.ts'
+import { DIGEST_HOURS, type SectionNotice } from '../account/page.ts'
 import { TURNSTILE_FIELD, verifyTurnstile } from '../suggest.ts'
 import type { AccountsDb } from './db.ts'
 import { OAUTH_COOKIE, clearFlowCookie, exchangeCode, openFlow, startFlow, userForIdentity, type GoogleSettings } from './google.ts'
@@ -77,16 +77,24 @@ const NOTICES: Record<string, string> = {
   reset: 'Your password is changed, and every signed-in device was signed out. Sign in with the new one.',
   'signed-out': 'Signed out.',
   unverified: 'Your email is not confirmed yet. We have sent the confirmation link again — it works for 24 hours.',
-  unpinned: 'Unpinned.',
-  'view-removed': 'Saved view removed.',
-  'feed-rotated': 'Your calendar has a new link, and the old one has stopped working. Update any calendar app that used it.',
-  'sharing-on': 'Your share link is ready. Anyone you send it to can see your upcoming pinned events.',
-  'sharing-off': 'Sharing is off, and the old link no longer works.',
-  'digest-saved': 'Your digest settings are saved.',
-  'preview-sent': 'A preview is on its way to your inbox.',
-  'preview-empty': 'Nothing to send: none of your pins or saved views have anything in the window. Pin something or save a view, then try again tomorrow.',
-  'preview-used': 'You have already had a preview today. Try again tomorrow.',
-  'preview-failed': 'The preview could not be sent. Please try again later.',
+}
+
+/**
+ * The account page's own notices, each shown INSIDE the section its form belongs to. The
+ * redirect after a save lands on that section's anchor, so a notice at the top of the page
+ * would be scrolled out of sight — the reader pressed Save and saw nothing happen.
+ */
+const SECTION_NOTICES: Record<string, SectionNotice> = {
+  unpinned: { section: 'pins', kind: 'ok', text: 'Unpinned.' },
+  'view-removed': { section: 'views', kind: 'ok', text: 'Saved view removed.' },
+  'feed-rotated': { section: 'calendar', kind: 'ok', text: 'Your calendar has a new link, and the old one has stopped working. Update any calendar app that used it.' },
+  'sharing-on': { section: 'calendar', kind: 'ok', text: 'Your share link is ready. Anyone you send it to can see your upcoming pinned events.' },
+  'sharing-off': { section: 'calendar', kind: 'ok', text: 'Sharing is off, and the old link no longer works.' },
+  'digest-saved': { section: 'digest', kind: 'ok', text: 'Saved. Your digest settings are updated.' },
+  'preview-sent': { section: 'digest', kind: 'ok', text: 'A preview is on its way to your inbox.' },
+  'preview-empty': { section: 'digest', kind: 'info', text: 'Nothing to send: none of your pins or saved views have anything in the window. Pin something or save a view, then try again tomorrow.' },
+  'preview-used': { section: 'digest', kind: 'info', text: 'You have already had a preview today. Try again tomorrow.' },
+  'preview-failed': { section: 'digest', kind: 'error', text: 'The preview could not be sent. Please try again later.' },
 }
 
 /**
@@ -185,6 +193,7 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
 
   const path = url.pathname
   const notice = NOTICES[url.searchParams.get('notice') ?? '']
+  const sectionNotice = SECTION_NOTICES[url.searchParams.get('notice') ?? '']
   const google = googleSettings(env)
 
   if (request.method === 'GET') {
@@ -204,7 +213,7 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
       const feedUrl = env.FEED_TOKEN_KEY ? `${origin}/calendar/${await feedToken(env.FEED_TOKEN_KEY, calendar)}.ics` : null
       const shareUrl = calendar.shareSlug ? `${origin}/c/${calendar.shareSlug}` : null
       const digest = { cadence: calendar.digest, hour: calendar.digestHour, day: calendar.digestDay }
-      return page(accountPage({ title: 'Your account', heading: 'Your account', origin, notice, body: accountHome({ email: user.email, pins, live, filters, today, origin, feedUrl, shareUrl, digest }) }))
+      return page(accountPage({ title: 'Your account', heading: 'Your account', origin, notice, body: accountHome({ email: user.email, pins, live, filters, today, origin, feedUrl, shareUrl, digest, notice: sectionNotice }) }))
     }
     if (path === '/account/signin') {
       const next = safeNext(url.searchParams.get('next'))
@@ -415,10 +424,10 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     if (!user) return redirect('/account/signin')
     if (path === '/account/pins/remove') {
       if (form.event) await unpin(env.ACCOUNTS, user.userId, form.event)
-      return redirect('/account?notice=unpinned')
+      return redirect('/account?notice=unpinned#pins')
     }
     if (form.id) await removeFilter(env.ACCOUNTS, user.userId, form.id)
-    return redirect('/account?notice=view-removed')
+    return redirect('/account?notice=view-removed#views')
   }
 
   if (path === '/account/signout') {
