@@ -13,6 +13,7 @@ import {
 } from '@scec/core'
 import type { JWTVerifyGetKey } from 'jose'
 import { isSameOriginWrite, verifyAccess } from './access.ts'
+import { measurePoster } from './image-sizes.ts'
 import { ADMIN_ADDRESS, MAIL_FROM, acceptedMail } from './suggestion-mail.ts'
 import {
   AUTO_CATEGORY,
@@ -312,6 +313,8 @@ async function writeListing(
   // listing with its event is a handful.
   if (statements.length > 80) throw new Error('A console write outgrew one batch, so it would no longer be atomic')
   await runBatched(db, statements)
+  // After the write, so a slow poster host can delay the reply but never the event.
+  await measurePoster(db, listing.imageUrl)
 }
 
 /* -------------------------------------------------------------------------- reads */
@@ -890,6 +893,8 @@ async function storeOverrides(db: D1Like, row: EventRow, overrides: EventOverrid
       : db.prepare('DELETE FROM event_overrides WHERE event_id = ?').bind(row.id),
     ...upsertEventStatements(db, [event], now),
   ])
+  // An override can change the poster; the event's poster, whichever wins, is measured now.
+  await measurePoster(db, event.imageUrl)
 }
 
 /* -------------------------------------------------------------------- suggestions */

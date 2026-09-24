@@ -101,3 +101,30 @@ export async function measureImageSizes(db: D1Like, options: ImageSizeOptions = 
   )
   return stats
 }
+
+/**
+ * Measure ONE poster now, for a save that has just put it on an event — the console's add,
+ * edit and override paths. The run's queue would reach it within two hours, but an event
+ * added by hand is usually about to be shared, and a share scraped before its poster is
+ * measured takes the site's own card and keeps it until the Sharing Debugger re-scrapes.
+ * (Scraped events need no such hook: every ingest run measures right after dedup.)
+ *
+ * A poster already measured is left alone, since the row is keyed on the URL and a URL's
+ * pixels do not change; one recorded as unreadable is tried again, because a person just
+ * chose it. Never throws: a slow or refusing host costs the share card, never the save.
+ */
+export async function measurePoster(db: D1Like, url: string | null | undefined, options: { now?: string; fetchImpl?: typeof fetch } = {}): Promise<void> {
+  if (!url || !shareablePoster(url)) return
+  const { now = new Date().toISOString(), fetchImpl = fetch } = options
+  try {
+    const known = await db.prepare('SELECT width FROM image_sizes WHERE url = ?').bind(url).first<{ width: number | null }>()
+    if (known?.width) return
+    const size = await measure(url, fetchImpl).catch(() => null)
+    await db
+      .prepare('INSERT OR REPLACE INTO image_sizes (url, width, height, checked_at) VALUES (?, ?, ?, ?)')
+      .bind(url, size?.width ?? null, size?.height ?? null, now)
+      .run()
+  } catch (err) {
+    console.warn('measurePoster failed', err instanceof Error ? err.message : String(err))
+  }
+}
