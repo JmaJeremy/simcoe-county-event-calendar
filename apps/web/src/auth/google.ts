@@ -47,23 +47,38 @@ interface FlowState {
   nonce: string
   verifier: string
   expires: number
+  /** Where to land after signing in (routes.ts checks it with safeNext both ways). */
+  next?: string
 }
 
-/** `state.nonce.verifier.expires.signature`, every part base64url or a number. */
+/**
+ * `state.nonce.verifier.expires[.next].signature`, every part base64url or a number. The
+ * return path is optional, so a cookie minted before it existed still opens.
+ */
 export async function sealFlow(flow: FlowState, stateKey: string): Promise<string> {
-  const body = `${flow.state}.${flow.nonce}.${flow.verifier}.${flow.expires}`
+  const fields = [flow.state, flow.nonce, flow.verifier, String(flow.expires)]
+  if (flow.next) fields.push(b64url(encoder.encode(flow.next)))
+  const body = fields.join('.')
   return `${body}.${await hmac(stateKey, body)}`
 }
 
 export async function openFlow(sealed: string | null, stateKey: string, now: number): Promise<FlowState | null> {
   if (!sealed) return null
   const parts = sealed.split('.')
-  if (parts.length !== 5) return null
-  const body = parts.slice(0, 4).join('.')
-  if ((await hmac(stateKey, body)) !== parts[4]) return null
+  if (parts.length !== 5 && parts.length !== 6) return null
+  const signature = parts.pop()!
+  if ((await hmac(stateKey, parts.join('.'))) !== signature) return null
   const expires = Number(parts[3])
   if (!Number.isFinite(expires) || expires < now) return null
-  return { state: parts[0]!, nonce: parts[1]!, verifier: parts[2]!, expires }
+  const flow: FlowState = { state: parts[0]!, nonce: parts[1]!, verifier: parts[2]!, expires }
+  if (parts[4]) {
+    try {
+      flow.next = new TextDecoder().decode(Uint8Array.from(atob(parts[4].replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)))
+    } catch {
+      return null
+    }
+  }
+  return flow
 }
 
 export const flowCookie = (sealed: string): string =>
@@ -73,8 +88,8 @@ export const clearFlowCookie = (): string => `${OAUTH_COOKIE}=; Max-Age=0; Path=
 /** The redirect Google answers to; one path, the host varying with the environment. */
 export const callbackUrl = (origin: string): string => `${origin}/account/google/callback`
 
-export async function startFlow(origin: string, settings: GoogleSettings, now: number): Promise<{ location: string; cookie: string }> {
-  const flow: FlowState = { state: randomToken(), nonce: randomToken(), verifier: randomToken(), expires: now + FLOW_TTL_MS }
+export async function startFlow(origin: string, settings: GoogleSettings, now: number, next?: string): Promise<{ location: string; cookie: string }> {
+  const flow: FlowState = { state: randomToken(), nonce: randomToken(), verifier: randomToken(), expires: now + FLOW_TTL_MS, ...(next ? { next } : {}) }
   const challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(flow.verifier))))
   const params = new URLSearchParams({
     client_id: settings.clientId,

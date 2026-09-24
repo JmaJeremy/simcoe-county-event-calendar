@@ -386,6 +386,12 @@ a { color: inherit; }
 }
 .viewswitch button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--shadow); }
 
+/* ---- account link, beside the theme switch ---- */
+.masthead-tools { flex: none; display: flex; align-items: center; gap: 12px; margin-top: 5px; }
+.masthead-tools .themeswitch { margin-top: 0; }
+.account-link { font-size: 14px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.account-link:hover { color: var(--accent-deep); }
+
 /* ---- theme switch ---- */
 .themeswitch { flex: none; margin-top: 5px; display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
 .themeswitch button {
@@ -724,6 +730,36 @@ footer a { color: var(--ink-2); }
 .field-hint { color: var(--ink-3); font-size: 13px; }
 .form-field input[type="file"] { padding: 7px 9px; cursor: pointer; }
 .account-form { max-width: 420px; }
+/* The account page: pins and saved views. */
+.account-section { margin: 26px 0 0; }
+.account-section h2 { margin: 0 0 10px; font-size: 19px; font-weight: 800; }
+.account-section h3 { margin: 18px 0 8px; font-size: 15px; color: var(--ink-2); }
+.account-empty { color: var(--ink-2); font-size: 14.5px; }
+.pin-list { list-style: none; margin: 0; padding: 0; }
+.pin-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.pin-list li > a, .pin-list .pin-title { font-weight: 700; }
+.pin-list .pin-when { flex: 1 1 100%; order: 3; color: var(--ink-2); font-size: 13.5px; }
+.pin-list .inline-form { margin-left: auto; }
+.pin-list .withdrawn .pin-title { color: var(--ink-2); text-decoration: line-through; }
+.pin-past { margin-top: 16px; }
+.pin-past summary { cursor: pointer; font-weight: 700; color: var(--ink-2); }
+.account-signout { margin-top: 28px; }
+/* The list's pin control: quiet until pressed, so a signed-in list reads like the other. */
+.pin-toggle {
+  margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+  padding: 2px 10px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--ink-2); cursor: pointer;
+}
+.pin-toggle:hover { border-color: var(--accent); color: var(--accent-deep); }
+.pin-toggle[aria-pressed="true"] { background: var(--hl); border-color: var(--accent); color: var(--accent-deep); }
+/* The subscribe sheet's account half. */
+.save-view { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.save-view label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+.save-view-row { display: flex; gap: 8px; }
+.save-view-row input {
+  flex: 1; min-width: 0; font: inherit; padding: 8px 11px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+}
+.save-view-status { margin: 6px 0 0 !important; color: var(--stop) !important; }
 .account-links { margin-top: 16px; color: var(--ink-2); font-size: 14px; }
 .account-google { margin: 14px 0 0; }
 /* Google's button is its artwork, unaltered; only the focus ring is ours, shaped to its pill. */

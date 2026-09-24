@@ -189,6 +189,9 @@ export function renderEventPage(event: PublicEvent, origin: string, backHref = '
     `<button class="btn ghost" type="button" data-share aria-haspopup="dialog"
        data-share-url="${escapeHtml(canonical)}"
        data-share-text="${escapeHtml(`${event.title} · ${when}`)}">Share</button>`,
+    // Inert and hidden for everyone: /me.js shows it once it knows who is reading, so this
+    // page stays byte-identical signed in or out and keeps its public cache.
+    `<button class="btn ghost" type="button" data-pin-page="${escapeHtml(event.id)}" aria-pressed="false" hidden>Pin</button>`,
   ]
 
   const notices: string[] = []
@@ -214,7 +217,7 @@ ${renderHead(
     twitterCard: 'summary_large_image',
     ...(feed ? { feed } : {}),
     jsonLd: [eventJsonLd(event, canonical), crumbs.jsonLd],
-    extraHead: '<script type="module" src="/share.js"></script>',
+    extraHead: '<script type="module" src="/share.js"></script><script type="module" src="/me.js"></script>',
   },
   origin,
 )}

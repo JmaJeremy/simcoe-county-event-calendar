@@ -118,10 +118,40 @@ export const VISIBLE = EVENTS.filter((e) => e.cost !== 'paid' && e.category !== 
 /** Months the stub actually placed events in, earliest first. */
 export const EVENT_MONTHS = [...new Set(EVENTS.map((e) => e.localDate.slice(0, 7)))].sort()
 
-/** Serves the real public/ directory with the API stubbed, so the UI runs unmodified. */
-export async function startServer(): Promise<{ url: string; close(): Promise<void> }> {
+/** A signed-in reader for the fixture server; its writes are recorded, not checked. */
+export interface FakeMe {
+  pins: string[]
+  filters: Array<{ id: string; label: string; query: string }>
+  posts: Array<{ path: string; body: string }>
+}
+
+/**
+ * Serves the real public/ directory with the API stubbed, so the UI runs unmodified.
+ * Without `me`, /api/me is a 404 like any unknown path — which the front end must survive
+ * as "signed out".
+ */
+export async function startServer(me?: FakeMe): Promise<{ url: string; close(): Promise<void> }> {
   const server: Server = createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
+
+    if (me && url.pathname.startsWith('/api/me')) {
+      if (req.method === 'POST') {
+        let body = ''
+        for await (const chunk of req) body += chunk
+        me.posts.push({ path: url.pathname, body })
+        const fields = new URLSearchParams(body)
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        if (url.pathname === '/api/me/pins') {
+          const id = fields.get('event')!
+          const pinned = fields.get('pinned') !== '0'
+          me.pins = pinned ? [...me.pins, id] : me.pins.filter((p) => p !== id)
+          return res.end(JSON.stringify({ pinned }))
+        }
+        return res.end(JSON.stringify({ saved: true, id: 'f-new', query: fields.get('query') }))
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ signedIn: true, pins: me.pins, filters: me.filters }))
+    }
 
     if (url.pathname.startsWith('/api/events')) {
       res.writeHead(200, { 'Content-Type': 'application/json' })

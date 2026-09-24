@@ -6,6 +6,8 @@
  * the URL so any view can be copied to someone else or bookmarked.
  */
 
+import { fetchMe, saveView, setPinned, signInHref } from '/me.js'
+
 const state = {
   events: [],
   municipalities: new Map(),
@@ -26,6 +28,8 @@ const state = {
   /** Date range, either end optional, 'YYYY-MM-DD'. An explicit range beats "upcoming". */
   from: '',
   to: '',
+  /** The reader, from /api/me: signed out until it answers, and if it never does. */
+  me: { signedIn: false, pins: new Set(), filters: [] },
 }
 
 const $ = (id) => document.getElementById(id)
@@ -108,8 +112,11 @@ function writeUrl() {
   history.replaceState(null, '', qs ? `?${qs}` : location.pathname)
 }
 
-/** The same filters, expressed for the server-side iCal endpoint. */
-function icsUrl() {
+/**
+ * What the current view selects, without how it is displayed: the keys the iCal feed reads,
+ * and the form a view is saved to an account in (the server canonicalises it again).
+ */
+function filterParams() {
   const p = new URLSearchParams()
   if (state.filters.m.size) p.set('m', [...state.filters.m].join(','))
   if (state.filters.cat.size) p.set('cat', [...state.filters.cat].join(','))
@@ -117,7 +124,12 @@ function icsUrl() {
   if (state.showCivic) p.set('civic', '1')
   if (state.from) p.set('from', state.from)
   if (state.to) p.set('to', state.to)
-  const qs = p.toString()
+  return p
+}
+
+/** The same filters, expressed for the server-side iCal endpoint. */
+function icsUrl() {
+  const qs = filterParams().toString()
   return `${location.origin}/calendar.ics${qs ? `?${qs}` : ''}`
 }
 
@@ -424,10 +436,37 @@ function renderEvent(e) {
         ${place ? `<span>${esc(place)}</span>` : ''}
         ${runs}
         ${alsoOn}
+        ${pinToggle(e)}
       </div>
     </div>
   </article>`
 }
+
+/** Only for a signed-in reader; the list stays as it was for everyone else. */
+function pinToggle(e) {
+  if (!state.me.signedIn) return ''
+  const pinned = state.me.pins.has(e.id)
+  return `<button type="button" class="pin-toggle" data-pin="${esc(e.id)}" aria-pressed="${pinned}" aria-label="${pinned ? 'Unpin' : 'Pin'} ${esc(e.title)}">${pinned ? 'Pinned' : 'Pin'}</button>`
+}
+
+document.addEventListener('click', async (ev) => {
+  const button = ev.target instanceof Element ? ev.target.closest('button.pin-toggle') : null
+  if (!button) return
+  const id = button.dataset.pin
+  button.disabled = true
+  const pinned = await setPinned(id, !state.me.pins.has(id))
+  if (pinned === true) state.me.pins.add(id)
+  if (pinned === false) state.me.pins.delete(id)
+  // Every card for this event, not just the one clicked: the calendar dialog can show it too.
+  const title = button.getAttribute('aria-label').replace(/^(Unpin|Pin) /, '')
+  for (const b of document.querySelectorAll(`button.pin-toggle[data-pin="${CSS.escape(id)}"]`)) {
+    const on = state.me.pins.has(id)
+    b.textContent = on ? 'Pinned' : 'Pin'
+    b.setAttribute('aria-pressed', String(on))
+    b.setAttribute('aria-label', `${on ? 'Unpin' : 'Pin'} ${title}`)
+  }
+  button.disabled = false
+})
 
 /* ---------- calendar view ---------- */
 
@@ -1014,7 +1053,58 @@ function refreshAll() {
 $('subscribe').onclick = () => {
   $('ics-url').textContent = icsUrl()
   $('open-ics').href = icsUrl()
+  renderSaveView()
   $('sheet').hidden = false
+}
+
+/** A name for the current view, as a starting point the reader can change. */
+function suggestedLabel() {
+  const parts = [
+    [...state.filters.m].map((slug) => shortPlaceName(slug)).join(', '),
+    [...state.filters.cat].map(categoryLabel).join(', '),
+  ].filter(Boolean)
+  return (parts.join(' · ') || 'All events').slice(0, 60)
+}
+
+/**
+ * The account half of the subscribe sheet. Saving keeps this view's filters on the
+ * account (the private feed they will drive is SCEC-107); signed out, it is a way in.
+ */
+function renderSaveView() {
+  const box = $('save-view')
+  if (!state.me.signedIn) {
+    box.innerHTML = `<p><a href="${esc(signInHref())}">Sign in</a> to save this view to your account.</p>`
+    box.hidden = false
+    return
+  }
+  const query = filterParams().toString()
+  const saved = state.me.filters.find((f) => f.query === query)
+  if (saved) {
+    box.innerHTML = `<p>Saved to <a href="/account">your account</a> as “${esc(saved.label)}”.</p>`
+    box.hidden = false
+    return
+  }
+  box.innerHTML = `<form class="save-view-form" id="save-view-form">
+      <label for="save-label">Save this view to your account</label>
+      <div class="save-view-row">
+        <input id="save-label" name="label" maxlength="60" required value="${esc(suggestedLabel())}">
+        <button class="btn ghost" type="submit">Save</button>
+      </div>
+      <p class="save-view-status" id="save-view-status" role="status"></p>
+    </form>`
+  box.hidden = false
+  $('save-view-form').onsubmit = async (ev) => {
+    ev.preventDefault()
+    const label = $('save-label').value.trim()
+    const result = await saveView(label, query)
+    if (result.ok) {
+      state.me.filters.push({ id: result.id, label, query: result.query })
+      box.innerHTML = `<p>Saved to <a href="/account">your account</a> as “${esc(label)}”.</p>`
+    } else {
+      $('save-view-status').textContent =
+        result.error === 'full' ? 'Your account already has as many saved views as it can hold.' : 'That did not save. Please try again.'
+    }
+  }
 }
 $('close-sheet').onclick = () => ($('sheet').hidden = true)
 $('sheet').onclick = (e) => {
@@ -1205,6 +1295,8 @@ async function boot() {
       .join(' · ')}`
   }
   refreshAll()
+  // After the calendar is on screen, and never in its way: a failure is just signed out.
+  fetchMe().then(showMe)
 
   const note = takeReturnNote()
   if (note) {
@@ -1215,6 +1307,16 @@ async function boot() {
     if (state.view === 'list') renderList()
     requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, note.y)))
   }
+}
+
+/** The account link, and pin toggles on the list, once /api/me has answered. */
+function showMe(me) {
+  state.me = me
+  const link = $('account-link')
+  link.textContent = me.signedIn ? 'Your account' : 'Sign in'
+  link.href = me.signedIn ? '/account' : '/account/signin'
+  link.hidden = false
+  if (me.signedIn && state.view === 'list') renderList()
 }
 
 boot().catch(showError)

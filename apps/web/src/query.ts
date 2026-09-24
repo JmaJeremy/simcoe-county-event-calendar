@@ -1,4 +1,4 @@
-import type { Event } from '@scec/core'
+import { MUNICIPALITIES, type Category, type Event } from '@scec/core'
 
 /**
  * The `m` value standing for "no municipality resolved" — mostly news-site listings that
@@ -70,6 +70,42 @@ export function listUrlFrom(url: URL): string {
   if (month && /^\d{4}-\d{2}$/.test(month)) out.set('month', month)
   const query = out.toString()
   return query ? `/?${query}` : '/'
+}
+
+/** Every category the site has, for validating a query string that is about to be kept. */
+export const CATEGORIES = [
+  'arts', 'music', 'family', 'outdoors', 'markets', 'sports', 'community', 'education', 'civic-meeting', 'other',
+] as const satisfies readonly Category[]
+
+const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
+
+/**
+ * The canonical form of a view someone saves to their account: what it SELECTS, in the
+ * keys `/calendar.ics` reads, and nothing about how it was displayed (view, month, past).
+ * Read with parseFilters, so a saved view is the site's own filter language and not a
+ * second schema beside it. Unlike listUrlFrom, the values are checked against what exists —
+ * this string is kept, and shown back on the account page, so an unknown slug is dropped
+ * rather than stored. Returns '' for the default view.
+ *
+ * from/to are kept as the absolute dates they are. A saved "this weekend" is next
+ * weekend's empty list; the account page shows the range so that is no surprise.
+ */
+export function savedQueryFrom(params: URLSearchParams): string {
+  const filters = parseFilters(new URL(`https://x/?${params}`))
+  const places = new Set<string>([...MUNICIPALITIES.map((m) => m.slug), UNPLACED])
+  const known = new Set<string>(CATEGORIES)
+  const out = new URLSearchParams()
+  const m = [...new Set(filters.municipalities.filter((s) => places.has(s)))].sort()
+  const cat = [...new Set(filters.categories.filter((c) => known.has(c)))].sort()
+  if (m.length) out.set('m', m.join(','))
+  if (cat.length) out.set('cat', cat.join(','))
+  if (filters.cost !== 'default') out.set('cost', filters.cost)
+  if (filters.includeCivic && !cat.includes('civic-meeting')) out.set('civic', '1')
+  for (const end of ['from', 'to'] as const) {
+    const date = filters[end]
+    if (date && ISO_DATE.test(date)) out.set(end, date)
+  }
+  return out.toString()
 }
 
 export interface Row {

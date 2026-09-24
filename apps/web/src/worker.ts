@@ -5,6 +5,7 @@ import { renderEventPage, renderNotFound, renderPlacePage, shareableImage } from
 import { descriptionText } from './markdown.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
 import { handleAccount } from './auth/routes.ts'
+import { handleMe } from './account/api.ts'
 import { ADMIN_ADDRESS, MAIL_FROM, sendMail, type EmailAddress, type SendEmail } from './mail.ts'
 import { TURNSTILE_FIELD, adminMail, thanksMail, validateSuggestion, verifyTurnstile, type Suggestion } from './suggest.ts'
 import { MAX_POSTER_BYTES, inspectImage, stripMetadata, type ImageKind } from './image.ts'
@@ -72,6 +73,8 @@ export interface Env {
 const canonicalOrigin = (url: URL, env: Env): string =>
   env.CANONICAL_HOST ? `https://${env.CANONICAL_HOST}` : url.origin
 
+/** PUBLIC data only: edge-cached and readable from any origin. Anything about one reader
+ * goes through privateJson (account/api.ts) instead — never this. */
 const json = (data: unknown, cacheSeconds: number): Response =>
   Response.json(data, {
     headers: {
@@ -168,6 +171,11 @@ export default {
       }
 
       if (url.pathname.startsWith('/posters/')) return await servePoster(env, url.pathname.slice('/posters/'.length))
+
+      // The signed-in reader's own state. Private, uncached, and never through json().
+      if (url.pathname === '/api/me' || url.pathname.startsWith('/api/me/')) {
+        return await handleMe(request, url, env)
+      }
 
       if (url.pathname === '/api/events') {
         const events = await queryEvents(env, url)

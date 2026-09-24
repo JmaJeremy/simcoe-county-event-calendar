@@ -115,6 +115,11 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
   one — `scec-web-dev...` had to be added before the widget would render there (done
   2026-09-24, via `PUT /accounts/{id}/challenges/widgets/{sitekey}`); a future environment
   needs the same, or the sign-up form loads with no check and refuses everything.
+  **Dev's migrations are applied by hand**: deploy.yml migrates production only, and
+  `wrangler deploy --env dev` migrates nothing, so a new `apps/web/migrations/` file must be
+  applied to dev before the dev deploy that needs it — `npx wrangler d1 migrations apply
+  scec-accounts-dev --remote --config apps/web/wrangler.jsonc --env dev` — or the first
+  request touching the new table is a 500.
 - Site: https://outinsimcoe.ca (Worker `scec-web`; `scec-web.thejeremy-net.workers.dev`
   still answers as a fallback). `outinsimcoe.ca` and `www.outinsimcoe.ca` are custom
   domains on the worker; `CANONICAL_HOST` in `wrangler.jsonc` names the apex, which makes
@@ -460,8 +465,8 @@ when it breaks, so nothing here is checked by eye.
   30 days, die at 180 regardless, and CSRF is SameSite=Lax plus the same-origin write
   check copied from `access.ts`. **Without `PASSWORD_PEPPER` every account route answers
   503**: a sign-in that quietly hashed without it would strand each password the moment it
-  was set. The pepper is HMAC'd over the password before PBKDF2 (600k iterations, 67ms
-  measured locally — re-measure deployed) and lives in no database, which is what makes
+  was set. The pepper is HMAC'd over the password before PBKDF2 (100k iterations — workerd
+  refuses more, and throws rather than clamping — about 120–180ms measured deployed) and lives in no database, which is what makes
   Worker-budget iteration counts survivable; rotating it invalidates every password at a
   stroke. Turnstile guards sign-up and reset with action `account` — and deliberately NOT
   sign-in, which must work with JavaScript off; the `auth_attempts` limiter (per IP AND
@@ -489,6 +494,39 @@ when it breaks, so nothing here is checked by eye.
   not the GIS script's rendered button, which would put Google's JavaScript on the page,
   stop sign-in working with scripts off, and replace this flow with its ID-token POST.
   Which pill shows follows the theme's three states, written twice like the palette.
+- **Anything about one reader goes through `privateJson()`, never `json()`.** `json()` in
+  `worker.ts` sets `public, s-maxage` and `Access-Control-Allow-Origin: *` — right for the
+  event list, and a leak for a per-user response, which it would put in a shared cache
+  behind a header inviting any origin to read it. `privateJson()` (`account/api.ts`) is
+  `private, no-store` with no CORS header, and `me.test.ts` asserts both helpers' headers
+  side by side. `/api/me` answers only which events are pinned and which views are saved
+  — never the address — and says `signedIn: false` on any host but the canonical one,
+  where no session cookie can exist. Pages never vary with sign-in: `/e/{code}` renders a
+  hidden, inert Pin button for everyone and `public/me.js` switches it on, so the page
+  stays byte-identical and publicly cacheable. Signed out, the button still shows and
+  leads to sign-in with `?next=` — a local path only, checked by `safeNext` in
+  `auth/routes.ts` on the way in and again on the way out, carried through Google's
+  sealed flow cookie as an optional sixth field. app.js asks `/api/me` only after the
+  calendar has rendered, and any failure reads as signed out; the UI fixture server 404s
+  it by default precisely so that path is the one every UI test runs.
+- **A pin is a snapshot as well as a pointer.** `calendar_pins.event_id` names an event
+  in the other database, which dedup closes and re-mints on govStack, Drupal rows and
+  SPACES whenever an organiser moves a date. So a pin keeps the title, date and short code
+  it was made with, refreshed whenever the account page finds them changed, and a pin
+  whose event is missing or inactive is listed under "No longer listed" by that snapshot
+  — never dropped, never a blank row. The account page's join is `resolvePins`
+  (`account/store.ts`): two queries, `IN` lists chunked at D1's 100-parameter ceiling,
+  and skipped outright when nothing is pinned. `store.ts` holds every pin and saved-view
+  statement; the account page's forms and `/api/me/*` both call it, so there is one
+  unpin, not two.
+- **A saved view is a canonical query string, in the list's own language.**
+  `savedQueryFrom` (`query.ts`) reads with `parseFilters` and writes back only what the
+  view selects — `m`, `cat`, `cost`, `civic`, `from`, `to`, the keys `/calendar.ics` reads
+  — dropping how it was shown (`view`, `month`, `past`) and any slug or category that does
+  not exist. Sorted, so the same view saved twice is the same string and the unique index
+  makes it one row. `from`/`to` stay absolute dates: a saved "this weekend" is empty a
+  week later, which is why the account page spells each view out (`describeSaved`).
+  Caps: 500 pins, 25 views, 60-character labels.
 - **Suggestions are stored before they are mailed.** `POST /api/suggest` validates
   (`src/suggest.ts`), inserts into `suggestions`, then sends two emails through the `EMAIL`
   binding (Cloudflare Email Service), recording each outcome on the row. A mail failure
