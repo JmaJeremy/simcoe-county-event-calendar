@@ -110,6 +110,8 @@ function fakeDb(
     if (sql.includes('FROM suggestions s') && sql.includes('WHERE s.id = ?')) return suggestions.filter((s) => s.id === values[0])
     if (sql.includes('FROM suggestions s') && sql.includes('ORDER BY s.created_at')) return suggestions
     if (sql.includes('COUNT(*) AS n FROM suggestions')) return [{ n: suggestions.filter((s) => !s.handled_at).length }]
+    // The next draft to review: waiting, and not the one just dealt with.
+    if (sql.startsWith('SELECT id FROM staged_events')) return staged.filter((s) => !s.handled_at && s.id !== values[1]).slice(0, 1)
     if (sql.includes('FROM staged_events s') && sql.includes('WHERE s.id = ?')) return staged.filter((s) => s.id === values[0])
     if (sql.includes('FROM staged_events s')) return staged
     if (sql.includes('COUNT(*) AS n FROM staged_events')) return [{ n: staged.filter((s) => !s.handled_at).length }]
@@ -913,6 +915,64 @@ describe('the news drafts inbox', () => {
     expect(reopened.status).toBe(303)
     // Only a dismissal or a duplicate can be undone: un-approving would orphan a live event.
     expect(writes('handled_at = NULL')[0]!.sql).toContain("handled_as IN ('dismissed', 'duplicate')")
+  })
+
+  /**
+   * Reviewing the queue is a run through a list. Both ways of finishing a draft — saving it
+   * as an event, or dismissing it — go straight on to the next one while there is one.
+   */
+  describe('going on to the next draft', () => {
+    const OTHER_ID = 'd5f3b2c1-0e9d-4a8f-9b7c-6d5e4f3a2b10'
+    const other = () => stagedRow({ id: OTHER_ID, title: 'Fall Fair', local_date: '2099-09-27' })
+
+    it('opens the next waiting draft after a dismissal', async () => {
+      const { db } = fakeDb([], [], [], [stagedRow(), other()])
+      const response = await handleConsole(post(`/staged/${STAGED_ID}/dismiss`, {}), env(db), keys)
+      expect(response.headers.get('Location')).toBe(`/staged/${OTHER_ID}?dismissed=${STAGED_ID}`)
+    })
+
+    it('opens the next waiting draft after saving one as an event', async () => {
+      const { db } = fakeDb([], [], [], [stagedRow(), other()])
+      const response = await handleConsole(
+        post('/events', { staged: STAGED_ID, title: 'Battle of Britain Commemoration', municipality: 'barrie', date: '2099-09-20' }),
+        env(db),
+        keys,
+      )
+      expect(response.headers.get('Location')).toBe(`/staged/${OTHER_ID}?approved=${STAGED_ID}`)
+    })
+
+    it('goes back where it always did once nothing is left', async () => {
+      const dismissing = fakeDb([], [], [], [stagedRow()])
+      const dismissed = await handleConsole(post(`/staged/${STAGED_ID}/dismiss`, {}), env(dismissing.db), keys)
+      expect(dismissed.headers.get('Location')).toBe(`/staged?dismissed=${STAGED_ID}`)
+
+      const saving = fakeDb([], [], [], [stagedRow()])
+      const saved = await handleConsole(
+        post('/events', { staged: STAGED_ID, title: 'Battle of Britain Commemoration', municipality: 'barrie', date: '2099-09-20' }),
+        env(saving.db),
+        keys,
+      )
+      expect(saved.headers.get('Location')).toMatch(/^\/\?saved=.*&staged=1$/)
+    })
+
+    it('says on the next draft what happened to the last one, with a way back', async () => {
+      const done = stagedRow({ handled_at: '2099-09-01T00:00:00.000Z', handled_as: 'dismissed' })
+      const { db } = fakeDb([], [], [], [done, other()])
+      const body = await (await handleConsole(get(`/staged/${OTHER_ID}?dismissed=${STAGED_ID}`), env(db), keys)).text()
+      expect(body).toContain('Dismissed “Battle of Britain Commemoration”.')
+      expect(body).toContain(`<a href="/staged/${STAGED_ID}">Undo</a>`)
+      expect(body).toContain('the last one waiting')
+    })
+
+    it('says it was saved, and ignores a parameter that is not a draft id', async () => {
+      const approved = stagedRow({ handled_at: '2099-09-01T00:00:00.000Z', handled_as: 'event' })
+      const { db } = fakeDb([], [], [], [approved, other(), stagedRow({ id: 'e6a4c3d2-1f0e-4b9a-8c7d-7e6f5a4b3c21' })])
+      const body = await (await handleConsole(get(`/staged/${OTHER_ID}?approved=${STAGED_ID}`), env(db), keys)).text()
+      expect(body).toContain('Saved “Battle of Britain Commemoration”.')
+      expect(body).toContain('2 waiting, this one included')
+      const plain = await (await handleConsole(get(`/staged/${OTHER_ID}?approved=nope`), env(db), keys)).text()
+      expect(plain).not.toContain('class="flash"')
+    })
   })
 
   it('refuses a cross-site dismissal, as it does every other write', async () => {
