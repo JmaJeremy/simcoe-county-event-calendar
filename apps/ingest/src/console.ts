@@ -157,7 +157,7 @@ export async function handleConsole(request: Request, env: ConsoleEnv, keys?: JW
     if (stagedRoute) {
       const [, id, action] = stagedRoute
       if (!UUID.test(id!)) return notFound(auth.email)
-      if (!action && request.method === 'GET') return await stagedDetailPage(env.DB, id!, publicOrigin, auth.email)
+      if (!action && request.method === 'GET') return await stagedDetailPage(env.DB, id!, url, publicOrigin, auth.email)
       if ((action === 'dismiss' || action === 'reopen') && request.method === 'POST') {
         return await setStagedDismissed(env.DB, id!, action === 'dismiss')
       }
@@ -221,7 +221,13 @@ async function createEvent(env: ConsoleEnv, request: Request, publicOrigin: stri
     )
   }
   await writeListing(db, listing, { eventId: null, eventCreatedAt: null, active: true }, approve)
-  if (staged) return redirect(`/?saved=${encodeURIComponent(listing.externalId)}&staged=1`)
+  if (staged) {
+    // Straight on to the next draft while there is one: reviewing the news queue is a run
+    // through a list, and a trip back to the front page between each one is pure friction.
+    const next = await nextStaged(db, staged.id)
+    if (next) return redirect(`/staged/${next}?approved=${staged.id}`)
+    return redirect(`/?saved=${encodeURIComponent(listing.externalId)}&staged=1`)
+  }
   if (!suggestion) return redirect(`/?saved=${encodeURIComponent(listing.externalId)}`)
   // After the write, so the link in the email already works. A new solo event takes its
   // listing's id, and with it the short code.
@@ -1343,9 +1349,53 @@ async function stagedPage(db: D1Like, url: URL, publicOrigin: string, email: str
   )
 }
 
-async function stagedDetailPage(db: D1Like, id: string, publicOrigin: string, email: string): Promise<Response> {
+/**
+ * The draft to review after this one: the first still waiting, in the inbox's own order
+ * (soonest date first), or null when the queue is empty. `after` is excluded outright rather
+ * than trusted to have been marked handled already — it is the one just dealt with, and
+ * landing back on it would look exactly like the action had not worked.
+ */
+async function nextStaged(db: D1Like, after: string): Promise<string | null> {
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })
+  const row = await db
+    .prepare(
+      `SELECT id FROM staged_events
+        WHERE handled_at IS NULL AND COALESCE(end_date, local_date) >= ? AND id != ?
+        ORDER BY local_date, created_at DESC
+        LIMIT 1`,
+    )
+    .bind(today, after)
+    .first<{ id: string }>()
+  return row?.id ?? null
+}
+
+/** What just happened to the previous draft, shown at the top of the next one. */
+async function stagedFlash(db: D1Like, url: URL, publicOrigin: string): Promise<string> {
+  const approvedId = url.searchParams.get('approved')
+  const dismissedId = url.searchParams.get('dismissed')
+  const id = approvedId ?? dismissedId
+  if (!id || !UUID.test(id)) return ''
+  const previous = await loadStaged(db, id)
+  if (!previous) return ''
+  const waiting = await db
+    .prepare('SELECT COUNT(*) AS n FROM staged_events WHERE handled_at IS NULL AND COALESCE(end_date, local_date) >= ?')
+    .bind(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }))
+    .first<{ n: number }>()
+  const left = waiting?.n ?? 0
+  const next = ` Here is the next one${left > 1 ? ` — ${left} waiting, this one included` : ', the last one waiting'}.`
+  if (approvedId) {
+    const link = previous.event_code
+      ? ` <a href="${escapeHtml(`${publicOrigin}/e/${previous.event_code}`)}" target="_blank" rel="noopener">See it on the site</a>.`
+      : ''
+    return `<p class="flash">Saved “${escapeHtml(previous.title)}”.${link}${next}</p>`
+  }
+  return `<p class="flash">Dismissed “${escapeHtml(previous.title)}”. <a href="/staged/${previous.id}">Undo</a>.${next}</p>`
+}
+
+async function stagedDetailPage(db: D1Like, id: string, url: URL, publicOrigin: string, email: string): Promise<Response> {
   const s = await loadStaged(db, id)
   if (!s) return notFound(email)
+  const flash = await stagedFlash(db, url, publicOrigin)
 
   const evidence = evidenceOf(s)
   const quotes = Object.entries(evidence)
@@ -1394,7 +1444,7 @@ async function stagedDetailPage(db: D1Like, id: string, publicOrigin: string, em
   }
 
   return page(
-    shell(s.title, `<div class="actions">${actions}</div>${article}${details}<p><a href="/staged">All news drafts</a></p>`, email),
+    shell(s.title, `${flash}<div class="actions">${actions}</div>${article}${details}<p><a href="/staged">All news drafts</a></p>`, email),
   )
 }
 
@@ -1414,7 +1464,9 @@ async function setStagedDismissed(db: D1Like, id: string, dismiss: boolean): Pro
           .prepare("UPDATE staged_events SET handled_at = NULL, handled_as = NULL WHERE id = ? AND handled_as IN ('dismissed', 'duplicate')")
           .bind(id),
   ])
-  return redirect(dismiss ? `/staged?dismissed=${id}` : `/staged/${id}`)
+  if (!dismiss) return redirect(`/staged/${id}`)
+  const next = await nextStaged(db, id)
+  return redirect(next ? `/staged/${next}?dismissed=${id}` : `/staged?dismissed=${id}`)
 }
 
 /* ------------------------------------------------------------------------- social posts */
