@@ -1282,6 +1282,10 @@ function stagedNote(
   if (!s.handled_at) return ''
   if (s.handled_as === 'dismissed') return '<span class="flag off">Dismissed</span>'
   if (s.handled_as === 'duplicate') return '<span class="flag">Already on the calendar</span>'
+  // Written by the news scraper once the event's last day is over with the draft still
+  // unreviewed. Named here because anything this function does not recognise falls through
+  // to "Added as an event", which is the one thing an expired draft is not.
+  if (s.handled_as === 'expired') return '<span class="flag off">Expired — its date passed before it was reviewed</span>'
   const tag = s.event_code
     ? `<a class="flag ok" href="${escapeHtml(`${publicOrigin}/e/${s.event_code}`)}" target="_blank" rel="noopener">Added as an event ↗</a>`
     : '<span class="flag ok">Added as an event</span>'

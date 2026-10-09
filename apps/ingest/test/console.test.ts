@@ -975,6 +975,22 @@ describe('the news drafts inbox', () => {
     })
   })
 
+  /**
+   * The scraper retires a draft nobody reviewed before its date. Any status the console did
+   * not know used to read as "Added as an event" — the opposite of what happened.
+   */
+  it('shows an expired draft as expired, with nothing to create, dismiss or undo', async () => {
+    const expired = stagedRow({ local_date: '2020-09-20', handled_at: '2020-09-21T04:53:00.000Z', handled_as: 'expired' })
+    const { db } = fakeDb([], [], [], [expired])
+    const body = await (await handleConsole(get(`/staged/${STAGED_ID}`), env(db), keys)).text()
+    expect(body).toContain('Expired — its date passed before it was reviewed')
+    expect(body).not.toContain('Added as an event')
+    expect(body).not.toContain(`/new?staged=${STAGED_ID}`)
+    expect(body).not.toContain(`/staged/${STAGED_ID}/reopen`)
+    const inbox = await (await handleConsole(get('/staged'), env(db), keys)).text()
+    expect(inbox).toContain('Expired')
+  })
+
   it('refuses a cross-site dismissal, as it does every other write', async () => {
     const { db, executed } = fakeDb([], [], [], [stagedRow()])
     const request = new Request(`https://${HOST}/staged/${STAGED_ID}/dismiss`, {
