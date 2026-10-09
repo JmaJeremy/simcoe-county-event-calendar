@@ -30,21 +30,47 @@ export const cleanSearch = (raw: string | null | undefined): string =>
   (raw ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_SEARCH_LENGTH).trim()
 
 /**
- * A search as the terms that must ALL appear: words, and "quoted phrases" kept whole.
- * Matching is by substring, with ASCII letters compared without case — exactly what
- * SQLite's LIKE does, so the list in the browser and the feed from SQL agree. This rule
- * exists twice: here (buildQuery) and as searchTerms/matchesSearch in public/app.js, which
- * is what actually filters the public page. Change one, change the other — a saved view
- * that shows 12 events on the page and 9 in its feed is the bug that follows.
+ * How text is compared in a search: without case, without accents, and with the curly
+ * quotes a phone types read as straight ones — "cafe" finds "Café", and "children's" finds
+ * "children’s" whichever apostrophe either side used. Applied to the search AND to the
+ * event's words, so it is only ever like against like.
+ */
+export const foldSearch = (text: string): string =>
+  text
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+
+/**
+ * A search as the folded terms that must ALL appear: words, and "quoted phrases" kept
+ * whole. Matching is by substring. This rule exists twice: here, and as foldSearch /
+ * searchTerms / matchesSearch in public/app.js, which is what actually filters the public
+ * page. Change one, change the other — a saved view that shows 12 events on the page and
+ * 9 in its feed is the bug that follows.
  */
 export function searchTerms(q: string | undefined): string[] {
   const terms: string[] = []
-  for (const match of cleanSearch(q).matchAll(/"([^"]+)"|(\S+)/g)) {
+  for (const match of foldSearch(cleanSearch(q)).matchAll(/"([^"]+)"|(\S+)/g)) {
     const term = (match[1] ?? match[2]!).replace(/"/g, '').trim()
     if (term && !terms.includes(term)) terms.push(term)
     if (terms.length === MAX_SEARCH_TERMS) break
   }
   return terms
+}
+
+/**
+ * Whether an event's own words carry every term. The fields are joined by a newline, which
+ * no term can contain, so a phrase never matches across two of them; app.js's searchText
+ * joins the same fields in the same order.
+ */
+export function matchesSearch(event: PublicEvent, terms: string[]): boolean {
+  if (!terms.length) return true
+  const text = foldSearch(
+    [event.title, event.description, event.venueName, event.address, event.organizer, event.municipalityName].map((v) => v ?? '').join('\n'),
+  )
+  return terms.every((term) => text.includes(term))
 }
 
 /** Filters are read from the query string so every view is a shareable permalink. */
@@ -207,13 +233,11 @@ const SELECT = `
     FROM events e
     LEFT JOIN municipalities m ON m.slug = e.municipality_slug`
 
-/** What a search reads, in this order; app.js's searchText joins the same fields the same way. */
-const SEARCH_HAYSTACK = ['e.title', 'e.description', 'e.venue_name', 'e.address', 'e.organizer', 'm.name']
-  .map((column) => `COALESCE(${column}, '')`)
-  .join(' || char(10) || ')
-
 /**
- * Build a parameterised query. Values are always bound, never interpolated — these
+ * Build a parameterised query. `filters.q` is NOT in it: SQLite cannot compare text without
+ * accents, so the search is applied afterwards, in JavaScript, by `selectEvents` — which is
+ * what every reader of events should call. Calling this directly ignores a search.
+ * Values are always bound, never interpolated — these
  * filters come straight from a URL a stranger controls.
  */
 export function buildQuery(filters: EventFilters, limit = 4000): { sql: string; bindings: unknown[] } {
@@ -257,16 +281,30 @@ export function buildQuery(filters: EventFilters, limit = 4000): { sql: string; 
     where.push('e.local_date <= ?')
     bindings.push(filters.to)
   }
-  // Every term, somewhere in the event's own words. The fields are joined by a newline,
-  // which no term can contain, so a phrase never matches across two of them. LIKE's
-  // wildcards are escaped rather than stripped: someone will search for "100%".
-  for (const term of searchTerms(filters.q)) {
-    where.push(`(${SEARCH_HAYSTACK}) LIKE ? ESCAPE '\\'`)
-    bindings.push(`%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`)
-  }
-
   const sql = `${SELECT} WHERE ${where.join(' AND ')}
     ORDER BY e.starts_at_utc ASC
     LIMIT ${Math.max(1, Math.floor(limit))}`
   return { sql, bindings }
+}
+
+/** The most events any one read returns. */
+export const MAX_EVENTS = 4000
+
+/** The part of a D1 binding selectEvents needs. */
+export interface EventSource {
+  prepare(query: string): { bind(...values: unknown[]): { all<T>(): Promise<{ results: T[] }> } }
+}
+
+/**
+ * The events a set of filters selects, search included — the one way to read events by
+ * filter. Everything SQL can decide is decided there; the search runs over what comes
+ * back. So with a search the SQL takes no small limit (it would cut before the search had
+ * chosen), and `limit` is applied to the matches instead.
+ */
+export async function selectEvents(db: EventSource, filters: EventFilters, limit = MAX_EVENTS): Promise<PublicEvent[]> {
+  const terms = searchTerms(filters.q)
+  const { sql, bindings } = buildQuery(filters, terms.length ? MAX_EVENTS : limit)
+  const { results } = await db.prepare(sql).bind(...bindings).all<Row>()
+  const events = results.map(rowToEvent)
+  return terms.length ? events.filter((e) => matchesSearch(e, terms)).slice(0, limit) : events
 }

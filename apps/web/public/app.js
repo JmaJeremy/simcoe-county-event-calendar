@@ -159,22 +159,28 @@ function matchesCost(e) {
  * change one, change the other, or a view shows one set of events here and another there.
  *
  * Words and "quoted phrases" must ALL appear, as substrings, in the title, description,
- * venue, address, organizer or town. Only ASCII letters are compared without case, because
- * that is all SQLite's LIKE folds; folding more here would make the page disagree with
- * the feed. The fields are joined by a newline, which no term can contain, so a phrase
- * cannot match across two of them.
+ * venue, address, organizer or town — compared without case, without accents, and with a
+ * phone's curly quotes read as straight ones (foldSearch), so "cafe" finds "Café". The
+ * fields are joined by a newline, which no term can contain, so a phrase cannot match
+ * across two of them.
  */
 const MAX_SEARCH_LENGTH = 80
 const MAX_SEARCH_TERMS = 5
 
 const cleanSearch = (raw) => (raw ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_SEARCH_LENGTH).trim()
 
-const foldAscii = (s) => s.replace(/[A-Z]/g, (c) => c.toLowerCase())
+const foldSearch = (text) =>
+  text
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
 
 function searchTerms(q) {
   const terms = []
-  for (const match of cleanSearch(q).matchAll(/"([^"]+)"|(\S+)/g)) {
-    const term = foldAscii((match[1] ?? match[2]).replace(/"/g, '').trim())
+  for (const match of foldSearch(cleanSearch(q)).matchAll(/"([^"]+)"|(\S+)/g)) {
+    const term = (match[1] ?? match[2]).replace(/"/g, '').trim()
     if (term && !terms.includes(term)) terms.push(term)
     if (terms.length === MAX_SEARCH_TERMS) break
   }
@@ -186,7 +192,7 @@ const searchTexts = new WeakMap()
 function searchText(e) {
   let text = searchTexts.get(e)
   if (text === undefined) {
-    text = foldAscii([e.title, e.description, e.venueName, e.address, e.organizer, e.municipalityName].map((v) => v ?? '').join('\n'))
+    text = foldSearch([e.title, e.description, e.venueName, e.address, e.organizer, e.municipalityName].map((v) => v ?? '').join('\n'))
     searchTexts.set(e, text)
   }
   return text

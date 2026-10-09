@@ -174,10 +174,12 @@ describe('what a digest says', () => {
     w.event({ title: 'Tennis social' })
     w.event({ title: '100% Local Market' })
     w.event({ title: '1000 Islands slideshow' })
+    w.event({ title: 'Soirée Café Chantant' })
     w.user('reader')
     w.view('reader', 'Pickleball', 'q=pickleball')
     w.view('reader', 'Orillia pickleball', 'q=pickleball+orillia')
     w.view('reader', 'Percent', 'q=100%25')
+    w.view('reader', 'Coffee', 'q=cafe+soiree')
     await runDigests(w.env, NOW)
     const text = w.mails[0]!.text
     const section = (heading: string) => text.slice(text.indexOf(heading)).split('\n\n\n')[0]!
@@ -189,6 +191,8 @@ describe('what a digest says', () => {
     expect(text).not.toContain('ORILLIA PICKLEBALL')
     expect(section('PERCENT (')).toContain('100% Local Market')
     expect(text).not.toContain('1000 Islands')
+    // Typed without accents, found with them.
+    expect(section('COFFEE (')).toContain('Soirée Café Chantant')
   })
 
   it('carries a one-click unsubscribe the mail provider can POST to, and a link that does the same', async () => {
