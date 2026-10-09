@@ -19,6 +19,13 @@ export interface EventFilters {
   to?: string
   /** Free-text search, already cleaned by cleanSearch; '' or absent means none. */
   q?: string
+  /**
+   * How the home page loads the calendar in two halves, split at one date: `since` is
+   * everything still running on or after it, `before` is everything over by then. They
+   * are transport, not part of a view — never saved, never echoed into a link.
+   */
+  since?: string
+  before?: string
 }
 
 /** A search is capped: it rides in URLs, saved views and SQL, and nobody types more. */
@@ -73,6 +80,9 @@ export function matchesSearch(event: PublicEvent, terms: string[]): boolean {
   return terms.every((term) => text.includes(term))
 }
 
+const isoDate = (value: string | null): string | undefined =>
+  value && /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value) ? value : undefined
+
 /** Filters are read from the query string so every view is a shareable permalink. */
 export function parseFilters(url: URL): EventFilters {
   const list = (key: string): string[] => {
@@ -91,6 +101,8 @@ export function parseFilters(url: URL): EventFilters {
     from: url.searchParams.get('from') ?? undefined,
     to: url.searchParams.get('to') ?? undefined,
     q: cleanSearch(url.searchParams.get('q')) || undefined,
+    since: isoDate(url.searchParams.get('since')),
+    before: isoDate(url.searchParams.get('before')),
   }
 }
 
@@ -281,14 +293,33 @@ export function buildQuery(filters: EventFilters, limit = 4000): { sql: string; 
     where.push('e.local_date <= ?')
     bindings.push(filters.to)
   }
+  // The two halves of the calendar, exact complements at one date so nothing falls between
+  // them. "Still running" is by start date OR end time: a festival that opened in September
+  // and closes at Hallowe'en has an old local_date and is very much not over. The UTC
+  // midnight is a few hours generous to Simcoe County's; the page makes the fine cut.
+  if (filters.since) {
+    where.push('(e.local_date >= ? OR e.ends_at_utc >= ?)')
+    bindings.push(filters.since, `${filters.since}T00:00:00.000Z`)
+  }
+  if (filters.before) {
+    where.push('(e.local_date < ? AND (e.ends_at_utc IS NULL OR e.ends_at_utc < ?))')
+    bindings.push(filters.before, `${filters.before}T00:00:00.000Z`)
+  }
+
   const sql = `${SELECT} WHERE ${where.join(' AND ')}
     ORDER BY e.starts_at_utc ASC
     LIMIT ${Math.max(1, Math.floor(limit))}`
   return { sql, bindings }
 }
 
-/** The most events any one read returns. */
-export const MAX_EVENTS = 4000
+/**
+ * The most events any one read returns. The home page read the whole calendar through a
+ * cap of 4,000 until the calendar grew to 6,225: the page then held the oldest 4,000 —
+ * 1,814 of them already over — and nothing after 19 November, with no sign anything was
+ * missing. So the cap is well clear of the data, and a read that hits it SAYS so
+ * (`truncated`), which is the part that matters when this number is next outgrown.
+ */
+export const MAX_EVENTS = 10_000
 
 /** The part of a D1 binding selectEvents needs. */
 export interface EventSource {
@@ -299,12 +330,20 @@ export interface EventSource {
  * The events a set of filters selects, search included — the one way to read events by
  * filter. Everything SQL can decide is decided there; the search runs over what comes
  * back. So with a search the SQL takes no small limit (it would cut before the search had
- * chosen), and `limit` is applied to the matches instead.
+ * chosen), and `limit` is applied to the matches instead. `truncated` is true when either
+ * cut dropped something.
  */
-export async function selectEvents(db: EventSource, filters: EventFilters, limit = MAX_EVENTS): Promise<PublicEvent[]> {
+export async function selectEventPage(db: EventSource, filters: EventFilters, limit = MAX_EVENTS): Promise<{ events: PublicEvent[]; truncated: boolean }> {
   const terms = searchTerms(filters.q)
-  const { sql, bindings } = buildQuery(filters, terms.length ? MAX_EVENTS : limit)
+  const sqlLimit = terms.length ? MAX_EVENTS : limit
+  // One more than wanted: the only way to know a cut happened.
+  const { sql, bindings } = buildQuery(filters, sqlLimit + 1)
   const { results } = await db.prepare(sql).bind(...bindings).all<Row>()
-  const events = results.map(rowToEvent)
-  return terms.length ? events.filter((e) => matchesSearch(e, terms)).slice(0, limit) : events
+  const cut = results.length > sqlLimit
+  const events = results.slice(0, sqlLimit).map(rowToEvent)
+  const matches = terms.length ? events.filter((e) => matchesSearch(e, terms)) : events
+  return { events: matches.slice(0, limit), truncated: cut || matches.length > limit }
 }
+
+export const selectEvents = async (db: EventSource, filters: EventFilters, limit = MAX_EVENTS): Promise<PublicEvent[]> =>
+  (await selectEventPage(db, filters, limit)).events

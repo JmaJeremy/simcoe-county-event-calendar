@@ -1240,3 +1240,110 @@ describeIfChrome('search (real browser)', () => {
     }
   })
 })
+
+/**
+ * Loading the calendar in two halves. The fixture server splits its events the way the real
+ * one does, and each test counts the requests, because the bug this replaces was invisible
+ * on screen: the page simply held the wrong events.
+ */
+describeIfChrome('loading the calendar (real browser)', () => {
+  let browser: Browser
+  let server: Awaited<ReturnType<typeof startServer>>
+  const day = (offset: number) => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() + offset)
+    return d.toISOString().slice(0, 10)
+  }
+  /** A page whose /api/events answers from three events: one over, one running, one ahead. */
+  async function open(path: string, opts: { failPast?: boolean; truncated?: boolean } = {}) {
+    const page = await browser.newPage()
+    const asked: string[] = []
+    const base = VISIBLE[0]!
+    const events = [
+      { ...base, id: 'over', shortCode: 'over', title: 'Finished Fair', localDate: day(-10), startsAtUtc: `${day(-10)}T13:00:00.000Z`, endsAtUtc: null },
+      { ...base, id: 'running', shortCode: 'running', title: 'Long Festival', localDate: day(-20), startsAtUtc: `${day(-20)}T13:00:00.000Z`, endsAtUtc: `${day(5)}T21:00:00.000Z` },
+      { ...base, id: 'ahead', shortCode: 'ahead', title: 'Next Week Concert', localDate: day(7), startsAtUtc: `${day(7)}T23:00:00.000Z`, endsAtUtc: null },
+    ]
+    await page.setRequestInterception(true)
+    page.on('request', (req: HTTPRequest) => {
+      const url = new URL(req.url())
+      if (url.pathname !== '/api/events') return void req.continue()
+      asked.push(url.searchParams.has('since') ? 'since' : url.searchParams.has('before') ? 'before' : 'all')
+      if (url.searchParams.has('before')) {
+        if (opts.failPast) return void req.respond({ status: 500, body: 'no' })
+        return void req.respond({ contentType: 'application/json', body: JSON.stringify({ count: 1, truncated: false, events: [events[0]] }) })
+      }
+      void req.respond({ contentType: 'application/json', body: JSON.stringify({ count: 2, truncated: !!opts.truncated, events: events.slice(1) }) })
+    })
+    await page.goto(`${server.url}${path}`, { waitUntil: 'networkidle0' })
+    const titles = () => page.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent))
+    return { page, asked, titles }
+  }
+
+  beforeAll(async () => {
+    server = await startServer()
+    browser = await puppeteer.launch({ executablePath: CHROME!, headless: true, args: ['--no-sandbox'] })
+  }, 60_000)
+  afterAll(async () => {
+    await browser?.close()
+    await server?.close()
+  })
+
+  it('loads only what is still ahead, including a festival that began weeks ago', async () => {
+    const { page, asked, titles } = await open('/')
+    try {
+      expect(asked).toEqual(['since'])
+      expect(await titles()).toEqual(['Long Festival', 'Next Week Concert'])
+    } finally {
+      await page.close()
+    }
+  })
+
+  it('fetches the past once, the first time a view reaches into it', async () => {
+    const { page, asked, titles } = await open('/')
+    try {
+      await page.click('#show-past')
+      await page.waitForFunction(() => document.querySelectorAll('#list .event').length === 3)
+      // The fair, ten days gone, leads; the festival is filed under today, where it is running.
+      expect(await titles()).toEqual(['Finished Fair', 'Long Festival', 'Next Week Concert'])
+      await page.click('#show-past')
+      await page.click('#show-past')
+      await page.waitForFunction(() => document.querySelectorAll('#list .event').length === 3)
+      expect(asked).toEqual(['since', 'before'])
+    } finally {
+      await page.close()
+    }
+  })
+
+  it('fetches both halves at once when the link itself asks for the past', async () => {
+    for (const path of ['/?past=1', `/?from=${day(-30)}&to=${day(-1)}`, '/?view=calendar']) {
+      const { page, asked } = await open(path)
+      try {
+        expect([...asked].sort(), path).toEqual(['before', 'since'])
+      } finally {
+        await page.close()
+      }
+    }
+  })
+
+  it('still shows the upcoming calendar when the past cannot be loaded, and says so once', async () => {
+    const { page, asked, titles } = await open('/?past=1', { failPast: true })
+    try {
+      expect(await titles()).toEqual(['Long Festival', 'Next Week Concert'])
+      expect(await page.$eval('#stats', (e) => e.textContent)).toContain('earlier events could not be loaded')
+      // getJson retries a network error, never an HTTP one; either way it must not loop.
+      expect(asked.filter((a) => a === 'before').length).toBeLessThanOrEqual(2)
+    } finally {
+      await page.close()
+    }
+  })
+
+  it('says when the server cut the calendar short', async () => {
+    const { page } = await open('/', { truncated: true })
+    try {
+      expect(await page.$eval('#stats', (e) => e.textContent)).toContain('some events could not be loaded')
+    } finally {
+      await page.close()
+    }
+  })
+})
