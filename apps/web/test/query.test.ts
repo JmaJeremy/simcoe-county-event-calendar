@@ -156,9 +156,10 @@ describe('search', () => {
     const db = { prepare: (sql: string) => ((limit = /LIMIT (\d+)/.exec(sql)![1]!), { bind: () => ({ all: async () => ({ results: rows as never[] }) }) }) }
     // The limit is applied to the matches, not to what the search reads.
     expect((await selectEvents(db, filtersFor('?q=cafe'), 2)).map((e) => e.title)).toEqual(['Café Concert', 'Cafe Crawl'])
-    expect(limit).toBe(String(MAX_EVENTS))
+    // One more than the cap each time: the extra row is how a cut is noticed.
+    expect(limit).toBe(String(MAX_EVENTS + 1))
     await selectEvents(db, filtersFor(''), 2)
-    expect(limit).toBe('2')
+    expect(limit).toBe('3')
   })
 
   it('adds nothing for an empty search, and caps a long one', () => {
