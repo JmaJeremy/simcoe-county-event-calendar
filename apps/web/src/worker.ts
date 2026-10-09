@@ -1,5 +1,5 @@
 import { MUNICIPALITIES, municipalityBySlug } from '@scec/core'
-import { UNPLACED, cleanSearch, listUrlFrom, selectEvents, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
+import { UNPLACED, cleanSearch, listUrlFrom, selectEventPage, selectEvents, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
 import { renderEventPage, renderNotFound, renderPlacePage, shareableImage } from './pages.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
@@ -180,8 +180,10 @@ export default {
       }
 
       if (url.pathname === '/api/events') {
-        const events = await queryEvents(env, url)
-        return json({ count: events.length, events }, 600)
+        const { events, truncated } = await selectEventPage(env.DB, parseFilters(url))
+        // Never silently: a page that holds part of the calendar must be able to say so.
+        if (truncated) console.warn('/api/events truncated', url.search)
+        return json({ count: events.length, truncated, events }, 600)
       }
 
       if (url.pathname === '/api/municipalities') {

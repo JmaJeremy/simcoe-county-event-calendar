@@ -30,6 +30,8 @@ const state = {
   to: '',
   /** Free-text search, cleaned by cleanSearch. '' is none. */
   q: '',
+  /** True when the server cut a response short; the stats line then says so. */
+  truncated: false,
   /** The reader, from /api/me: signed out until it answers, and if it never does. */
   me: { signedIn: false, pins: new Set(), filters: [] },
 }
@@ -756,7 +758,12 @@ function updateStats(rendered, matching) {
   const total = state.events.length
   const places = new Set(state.events.map((e) => e.municipalitySlug).filter(Boolean)).size
   const lead = matching > rendered ? `${matching} event${matching === 1 ? '' : 's'} match` : `${matching} event${matching === 1 ? '' : 's'} shown`
-  $('stats').textContent = `${lead} · ${total} tracked across ${places} municipalities`
+  const notes = [
+    pastState === 'loading' ? 'loading earlier events…' : '',
+    pastState === 'failed' ? 'earlier events could not be loaded' : '',
+    state.truncated ? 'some events could not be loaded' : '',
+  ].filter(Boolean)
+  $('stats').textContent = `${lead} · ${total} tracked across ${places} municipalities${notes.length ? ` · ${notes.join(' · ')}` : ''}`
 }
 
 /*
@@ -1146,6 +1153,9 @@ function rebuildMenus() {
 function refresh() {
   state.limit = PAGE_SIZE
   activeTerms = searchTerms(state.q)
+  // Not awaited: the view renders with what it has, and again when the past arrives.
+  // Only the first view to need it starts the load, so one re-render follows, not several.
+  if (needsPast() && pastState === 'none') loadPast().then((arrived) => arrived && refreshAll())
   writeUrl()
   applyView()
   syncMenus()
@@ -1355,6 +1365,66 @@ function takeReturnNote() {
   }
 }
 
+/*
+ * ---------- loading the calendar ----------
+ *
+ * In two halves, split at yesterday. The upcoming half — everything still running — is all
+ * most readers ever need, and is what boot loads. The past half is fetched once, the first
+ * time a view actually reaches into the past: the "Past events" box, a date range that
+ * starts before today, or the calendar on this month or an earlier one (whose first weeks
+ * are already over).
+ *
+ * It used to be one request for everything, oldest first, and the server caps a response.
+ * When the calendar outgrew the cap the page kept every finished event since August and
+ * silently lost everything after mid-November. Loading what is ahead first means the past
+ * can never again crowd out the future, and `truncated` means a cap can never again be
+ * hit without the page saying so.
+ */
+const EVENTS_API = '/api/events?cost=all&civic=1'
+/** Yesterday, not today: a day of slack for a reader whose clock or zone differs from ours. */
+const SPLIT_DATE = addDays(todayISO(), -1)
+
+/** 'none' → 'loading' → 'loaded', or 'failed' — said in the stats line, retried on reload. */
+let pastState = 'none'
+let pastRequest = null
+
+function needsPast() {
+  if (state.showPast) return true
+  // A range with no start runs back to the beginning.
+  if ((state.from || state.to) && (!state.from || state.from < todayISO())) return true
+  return state.view === 'calendar' && state.month <= thisMonth()
+}
+
+/** Merge a response into what is held: by id, since the two halves may overlap at the seam. */
+function addEvents(data) {
+  if (data.truncated) state.truncated = true
+  const known = new Set(state.events.map((e) => e.id))
+  state.events = [...state.events, ...data.events.filter((e) => !known.has(e.id))].sort((a, b) =>
+    a.startsAtUtc.localeCompare(b.startsAtUtc),
+  )
+}
+
+/** Fetch the past half once. Resolves true when new events arrived and a re-render is due. */
+function loadPast() {
+  if (pastState === 'loaded') return Promise.resolve(false)
+  if (pastRequest) return pastRequest
+  pastState = 'loading'
+  pastRequest = getJson(`${EVENTS_API}&before=${SPLIT_DATE}`)
+    .then((data) => {
+      addEvents(data)
+      pastState = 'loaded'
+      return true
+    })
+    .catch(() => {
+      // The upcoming calendar still works; say the rest is missing rather than fail the
+      // page. Not retried by itself: a render that retried a failing request would loop.
+      pastState = 'failed'
+      pastRequest = Promise.resolve(false)
+      return true
+    })
+  return pastRequest
+}
+
 /* ---------- boot ---------- */
 
 async function getJson(path, { retries = 1 } = {}) {
@@ -1399,12 +1469,13 @@ async function boot() {
   $('show-past').checked = state.showPast
   $('q').value = state.q
 
-  // Everything, including paid and civic, arrives once; the toggles filter in the browser.
-  const data = await getJson('/api/events?cost=all&civic=1')
+  // Paid and civic included, so those toggles filter in the browser. The upcoming half
+  // always; the past half with it only when this view opens on the past (see loadPast).
+  const [data] = await Promise.all([getJson(`${EVENTS_API}&since=${SPLIT_DATE}`), needsPast() ? loadPast() : null])
   const municipalities = await getJson('/api/municipalities').catch(() => [])
   const sources = await getJson('/api/sources').catch(() => [])
 
-  state.events = data.events
+  addEvents(data)
   for (const m of municipalities) state.municipalities.set(m.slug, m)
 
   if (sources.length) {

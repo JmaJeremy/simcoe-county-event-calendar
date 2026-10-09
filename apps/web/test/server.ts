@@ -154,8 +154,14 @@ export async function startServer(me?: FakeMe): Promise<{ url: string; close(): 
     }
 
     if (url.pathname.startsWith('/api/events')) {
+      // The page loads the calendar in two halves; the fixture splits it the way the
+      // server does (query.ts), so the tests run the real loading path.
+      const since = url.searchParams.get('since')
+      const before = url.searchParams.get('before')
+      const running = (e: (typeof EVENTS)[number], date: string) => e.localDate >= date || (e.endsAtUtc !== null && e.endsAtUtc >= `${date}T00:00:00.000Z`)
+      const events = EVENTS.filter((e) => (!since || running(e, since)) && (!before || !running(e, before)))
       res.writeHead(200, { 'Content-Type': 'application/json' })
-      return res.end(JSON.stringify({ count: EVENTS.length, events: EVENTS }))
+      return res.end(JSON.stringify({ count: events.length, truncated: false, events }))
     }
     if (url.pathname.startsWith('/api/municipalities')) {
       res.writeHead(200, { 'Content-Type': 'application/json' })
