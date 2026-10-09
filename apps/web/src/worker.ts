@@ -1,5 +1,5 @@
 import { MUNICIPALITIES, municipalityBySlug } from '@scec/core'
-import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
+import { UNPLACED, buildQuery, cleanSearch, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
 import { renderEventPage, renderNotFound, renderPlacePage, shareableImage } from './pages.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
@@ -584,6 +584,8 @@ function describeFilters(url: URL, events: PublicEvent[]): string {
   const cat = url.searchParams.get('cat')
   if (cat) parts.push(cat.split(',').map(titleCase).join(', '))
   if (url.searchParams.get('cost') === 'free') parts.push('free')
+  const q = cleanSearch(url.searchParams.get('q'))
+  if (q) parts.push(`“${q}”`)
   return parts.join(' — ')
 }
 

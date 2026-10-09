@@ -17,6 +17,34 @@ export interface EventFilters {
   includeCivic: boolean
   from?: string
   to?: string
+  /** Free-text search, already cleaned by cleanSearch; '' or absent means none. */
+  q?: string
+}
+
+/** A search is capped: it rides in URLs, saved views and SQL, and nobody types more. */
+export const MAX_SEARCH_LENGTH = 80
+export const MAX_SEARCH_TERMS = 5
+
+/** What a reader typed, as it is kept: one line, single spaces, bounded. */
+export const cleanSearch = (raw: string | null | undefined): string =>
+  (raw ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_SEARCH_LENGTH).trim()
+
+/**
+ * A search as the terms that must ALL appear: words, and "quoted phrases" kept whole.
+ * Matching is by substring, with ASCII letters compared without case — exactly what
+ * SQLite's LIKE does, so the list in the browser and the feed from SQL agree. This rule
+ * exists twice: here (buildQuery) and as searchTerms/matchesSearch in public/app.js, which
+ * is what actually filters the public page. Change one, change the other — a saved view
+ * that shows 12 events on the page and 9 in its feed is the bug that follows.
+ */
+export function searchTerms(q: string | undefined): string[] {
+  const terms: string[] = []
+  for (const match of cleanSearch(q).matchAll(/"([^"]+)"|(\S+)/g)) {
+    const term = (match[1] ?? match[2]!).replace(/"/g, '').trim()
+    if (term && !terms.includes(term)) terms.push(term)
+    if (terms.length === MAX_SEARCH_TERMS) break
+  }
+  return terms
 }
 
 /** Filters are read from the query string so every view is a shareable permalink. */
@@ -36,6 +64,7 @@ export function parseFilters(url: URL): EventFilters {
     includeCivic: url.searchParams.get('civic') === '1' || list('cat').includes('civic-meeting'),
     from: url.searchParams.get('from') ?? undefined,
     to: url.searchParams.get('to') ?? undefined,
+    q: cleanSearch(url.searchParams.get('q')) || undefined,
   }
 }
 
@@ -64,6 +93,7 @@ export function listUrlFrom(url: URL): string {
     const date = url.searchParams.get(end)
     if (date && /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date)) out.set(end, date)
   }
+  if (filters.q) out.set('q', filters.q)
   // The view and month are the front end's own state; parseFilters knows nothing of them.
   if (url.searchParams.get('view') === 'calendar') out.set('view', 'calendar')
   const month = url.searchParams.get('month')
@@ -105,6 +135,7 @@ export function savedQueryFrom(params: URLSearchParams): string {
     const date = filters[end]
     if (date && ISO_DATE.test(date)) out.set(end, date)
   }
+  if (filters.q) out.set('q', filters.q)
   return out.toString()
 }
 
@@ -176,6 +207,11 @@ const SELECT = `
     FROM events e
     LEFT JOIN municipalities m ON m.slug = e.municipality_slug`
 
+/** What a search reads, in this order; app.js's searchText joins the same fields the same way. */
+const SEARCH_HAYSTACK = ['e.title', 'e.description', 'e.venue_name', 'e.address', 'e.organizer', 'm.name']
+  .map((column) => `COALESCE(${column}, '')`)
+  .join(' || char(10) || ')
+
 /**
  * Build a parameterised query. Values are always bound, never interpolated — these
  * filters come straight from a URL a stranger controls.
@@ -220,6 +256,13 @@ export function buildQuery(filters: EventFilters, limit = 4000): { sql: string; 
   if (filters.to) {
     where.push('e.local_date <= ?')
     bindings.push(filters.to)
+  }
+  // Every term, somewhere in the event's own words. The fields are joined by a newline,
+  // which no term can contain, so a phrase never matches across two of them. LIKE's
+  // wildcards are escaped rather than stripped: someone will search for "100%".
+  for (const term of searchTerms(filters.q)) {
+    where.push(`(${SEARCH_HAYSTACK}) LIKE ? ESCAPE '\\'`)
+    bindings.push(`%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`)
   }
 
   const sql = `${SELECT} WHERE ${where.join(' AND ')}

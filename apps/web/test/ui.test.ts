@@ -1135,3 +1135,86 @@ describeIfChrome('accounts on the calendar (real browser)', () => {
     }
   })
 })
+
+/**
+ * Search (the `q` filter). Typed into a real page, because the things that break are the
+ * debounce, the URL and the shared reset — none of which a unit test can see.
+ */
+describeIfChrome('search (real browser)', () => {
+  let browser: Browser
+  let page: Page
+  let server: Awaited<ReturnType<typeof startServer>>
+  const titles = () => page.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent!))
+  const settled = (q: string) => page.waitForFunction((want) => new URLSearchParams(location.search).get('q') === want, {}, q)
+
+  beforeAll(async () => {
+    server = await startServer()
+    browser = await puppeteer.launch({ executablePath: CHROME!, headless: true, args: ['--no-sandbox'] })
+    page = await browser.newPage()
+    await page.goto(server.url, { waitUntil: 'networkidle0' })
+  }, 60_000)
+  afterAll(async () => {
+    await browser?.close()
+    await server?.close()
+  })
+  beforeEach(async () => {
+    await page.evaluate(() => (window as unknown as { __clearAll(): void }).__clearAll())
+  })
+
+  it('narrows the list as you type, in any case, and puts the search in the URL', async () => {
+    await page.type('#q', 'PICKLEball')
+    await settled('PICKLEball')
+    const shown = await titles()
+    expect(shown.length).toBeGreaterThan(0)
+    expect(shown.every((t) => t === 'Pickleball Drop-in')).toBe(true)
+    expect(await page.$eval('#stats', (e) => e.textContent)).toContain(`${VISIBLE.filter((e) => e.title === 'Pickleball Drop-in').length} event`)
+    // An event link carries it, so "All events" comes back to the same search.
+    expect(await page.$eval('#list .event h3 a', (a) => a.getAttribute('href'))).toContain('q=PICKLEball')
+  })
+
+  it('needs every word, keeps a quoted phrase whole, and matches the town as well as the title', async () => {
+    const place = VISIBLE.find((e) => e.municipalityName)!.municipalityName!
+    await page.type('#q', `"fall fair" ${place.split(' ').at(-1)}`)
+    await page.waitForFunction(() => new URLSearchParams(location.search).has('q'))
+    const fairs = await titles()
+    expect(fairs.length).toBeGreaterThan(0)
+    expect(fairs.length).toBeLessThan(VISIBLE.filter((e) => e.title === 'Fall Fair').length)
+    expect(fairs.every((t) => t === 'Fall Fair')).toBe(true)
+
+    await page.evaluate(() => (window as unknown as { __clearAll(): void }).__clearAll())
+    await page.type('#q', '"fair fall"')
+    await settled('"fair fall"')
+    expect(await titles()).toEqual([])
+    expect(await page.$eval('#list .empty', (e) => e.textContent)).toContain('No events match')
+  })
+
+  it('shows the search as a pill, narrows the menu counts, and clears with everything else', async () => {
+    await page.type('#q', 'jazz')
+    await settled('jazz')
+    // Jazz Night is paid, so the default view has none; the pill and the box still say so.
+    expect(await page.$eval('#active .pill', (e) => e.textContent)).toContain('“jazz”')
+    await page.select('#cost', 'all')
+    await page.waitForFunction(() => document.querySelectorAll('#list .event').length > 0)
+    const counts = await page.$$eval('#f-category .menu [role="option"], #f-category .menu label', (els) => els.map((e) => e.textContent!.trim()).filter(Boolean))
+    expect(counts.some((c) => c.includes('Music'))).toBe(true)
+    expect(counts.some((c) => c.includes('Markets'))).toBe(false)
+
+    await page.click('#active .pill button[data-key="q"]')
+    await page.waitForFunction(() => !new URLSearchParams(location.search).has('q'))
+    expect(await page.$eval('#q', (i) => (i as HTMLInputElement).value)).toBe('')
+    await page.select('#cost', 'default')
+  })
+
+  it('opens on a search from the URL, box filled in', async () => {
+    const fresh = await browser.newPage()
+    try {
+      await fresh.goto(`${server.url}/?q=story+time`, { waitUntil: 'networkidle0' })
+      expect(await fresh.$eval('#q', (i) => (i as HTMLInputElement).value)).toBe('story time')
+      const shown = await fresh.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent))
+      expect(shown.length).toBeGreaterThan(0)
+      expect(shown.every((t) => t === 'Story Time')).toBe(true)
+    } finally {
+      await fresh.close()
+    }
+  })
+})
