@@ -1205,6 +1205,28 @@ describeIfChrome('search (real browser)', () => {
     await page.select('#cost', 'default')
   })
 
+  it('ignores accents and a phone’s curly quotes, the same way the server does', async () => {
+    const accented = await browser.newPage()
+    try {
+      await accented.setRequestInterception(true)
+      accented.on('request', (req: HTTPRequest) => {
+        if (new URL(req.url()).pathname !== '/api/events') return void req.continue()
+        const events = [{ ...VISIBLE[0]!, id: 'a1', shortCode: 'a1', title: 'Soirée Café Chantant' }, { ...VISIBLE[1]!, id: 'a2', shortCode: 'a2', title: 'Children’s Story Time' }]
+        void req.respond({ contentType: 'application/json', body: JSON.stringify({ count: events.length, events }) })
+      })
+      const shown = async (q: string) => {
+        await accented.goto(`${server.url}/?q=${encodeURIComponent(q)}`, { waitUntil: 'networkidle0' })
+        return accented.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent))
+      }
+      expect(await shown('cafe soiree')).toEqual(['Soirée Café Chantant'])
+      expect(await shown('CAFÉ')).toEqual(['Soirée Café Chantant'])
+      expect(await shown("children's")).toEqual(['Children’s Story Time'])
+      expect(await shown('“story time”')).toEqual(['Children’s Story Time'])
+    } finally {
+      await accented.close()
+    }
+  })
+
   it('opens on a search from the URL, box filled in', async () => {
     const fresh = await browser.newPage()
     try {
