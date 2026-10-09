@@ -48,6 +48,7 @@ export function describeSaved(query: string): string {
   const p = new URLSearchParams(query)
   const list = (key: string) => (p.get(key) ?? '').split(',').filter(Boolean)
   const parts = [
+    p.get('q') ? `“${p.get('q')}”` : null,
     list('m').map(placeLabel).join(', ') || 'Everywhere',
     list('cat').map(titleCase).join(', ') || null,
     COST_WORDS[p.get('cost') ?? ''] ?? null,

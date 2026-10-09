@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { UNPLACED, buildQuery, listUrlFrom, parseFilters } from '../src/query.ts'
+import {
+  MAX_EVENTS,
+  MAX_SEARCH_LENGTH,
+  UNPLACED,
+  buildQuery,
+  listUrlFrom,
+  matchesSearch,
+  parseFilters,
+  savedQueryFrom,
+  searchTerms,
+  selectEvents,
+  type PublicEvent,
+} from '../src/query.ts'
 
 const filtersFor = (query: string) => parseFilters(new URL(`https://example.invalid/api/events${query}`))
 const queryFor = (query: string) => buildQuery(filtersFor(query))
@@ -93,5 +105,69 @@ describe('cost filter', () => {
 
   it('carries paid back from an event page', () => {
     expect(listUrlFrom(new URL('https://x.invalid/e/abc?cost=paid'))).toBe('/?cost=paid')
+  })
+})
+
+describe('search', () => {
+  const event = (over: Partial<PublicEvent>): PublicEvent =>
+    ({ title: '', description: null, venueName: null, address: null, organizer: null, municipalityName: null, ...over }) as PublicEvent
+  const finds = (q: string, over: Partial<PublicEvent>) => matchesSearch(event(over), searchTerms(q))
+
+  it('splits a search into words and quoted phrases, each once, and stops at five', () => {
+    expect(searchTerms('  Pickleball   "Farmers Market" pickleball ')).toEqual(['pickleball', 'farmers market'])
+    expect(searchTerms('a b c d e f g')).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(searchTerms('""  "')).toEqual([])
+    expect(searchTerms(undefined)).toEqual([])
+  })
+
+  it('ignores case and accents, both ways round', () => {
+    expect(finds('cafe', { title: 'Café Concert' })).toBe(true)
+    expect(finds('CAFÉ', { title: 'cafe concert' })).toBe(true)
+    expect(finds('noel', { description: 'Marché de Noël' })).toBe(true)
+    expect(finds('MÉTIS', { title: 'Metis Nation gathering' })).toBe(true)
+  })
+
+  it('reads a phone’s curly quotes as straight ones, in the search and in the event', () => {
+    expect(finds("children's", { title: 'Children’s Story Time' })).toBe(true)
+    expect(finds('children’s', { title: "Children's Story Time" })).toBe(true)
+    // Smart quotes around a phrase still make it a phrase.
+    expect(searchTerms('“farmers market”')).toEqual(['farmers market'])
+  })
+
+  it('needs every term, keeps a phrase whole, and never matches across two fields', () => {
+    const fair = { title: 'Fall Fair', venueName: 'Fairgrounds', municipalityName: 'Township of Tay' }
+    expect(finds('fall tay', fair)).toBe(true)
+    expect(finds('fall barrie', fair)).toBe(false)
+    expect(finds('"fall fair"', fair)).toBe(true)
+    expect(finds('"fair fall"', fair)).toBe(false)
+    expect(finds('"fair fairgrounds"', fair)).toBe(false)
+  })
+
+  it('takes wildcard characters literally', () => {
+    expect(finds('100%', { title: '100% Local Market' })).toBe(true)
+    expect(finds('100%', { title: '1000 Islands' })).toBe(false)
+    expect(finds('a_b', { title: 'axb' })).toBe(false)
+  })
+
+  it('is left out of the SQL, which cannot fold accents, and applied to its results', async () => {
+    expect(queryFor('?q=cafe').sql).not.toMatch(/LIKE|cafe/)
+    const rows = ['Café Concert', 'Tea Dance', 'Cafe Crawl', 'Internet café night'].map((title, i) => ({ id: `e${i}`, title, listing_ids: '[]', source_slugs: '[]' }))
+    let limit = ''
+    const db = { prepare: (sql: string) => ((limit = /LIMIT (\d+)/.exec(sql)![1]!), { bind: () => ({ all: async () => ({ results: rows as never[] }) }) }) }
+    // The limit is applied to the matches, not to what the search reads.
+    expect((await selectEvents(db, filtersFor('?q=cafe'), 2)).map((e) => e.title)).toEqual(['Café Concert', 'Cafe Crawl'])
+    expect(limit).toBe(String(MAX_EVENTS))
+    await selectEvents(db, filtersFor(''), 2)
+    expect(limit).toBe('2')
+  })
+
+  it('adds nothing for an empty search, and caps a long one', () => {
+    expect(filtersFor('?q=+++').q).toBeUndefined()
+    expect(filtersFor(`?q=${'x'.repeat(300)}`).q).toHaveLength(MAX_SEARCH_LENGTH)
+  })
+
+  it('rides back from an event page and into a saved view, as typed', () => {
+    expect(listUrlFrom(new URL('https://x.invalid/e/abc?q=%20%20jazz%20%20night%20&m=tay'))).toBe('/?m=tay&q=jazz+night')
+    expect(savedQueryFrom(new URLSearchParams('q=  Café   Night &view=calendar&cat=music'))).toBe('cat=music&q=Caf%C3%A9+Night')
   })
 })

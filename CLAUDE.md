@@ -443,6 +443,25 @@ when it breaks, so nothing here is checked by eye.
   turns them back into its "All events" href through `listUrlFrom`. That function rebuilds
   the query from a whitelist rather than echoing it: the input is a stranger's text on its
   way into an href.
+- **Search is one more filter, `q`, and its rule exists twice.** The page already holds
+  every event it shows, descriptions included, so `app.js` filters in memory as you type
+  (`foldSearch`, `searchTerms`, `searchText`, `matchesSearch`): no request, no index, no
+  FTS table to keep in step with a dedup that rewrites every event every two hours. The
+  server has the same rule under the same names in `query.ts`, because `q` is part of the
+  filter language: it rides in the URL, back from an event page (`listUrlFrom`), into
+  `/calendar.ics`, a saved view (`savedQueryFrom`) and that view's digest. Words and
+  `"quoted phrases"` must **all** appear, as substrings of title, description, venue,
+  address, organizer or municipality name, joined by a newline so a phrase cannot span
+  two fields; at most five terms and 80 characters. Comparison is **without case, without
+  accents, and with curly quotes read as straight ones** (`foldSearch`: NFD, strip marks,
+  lowercase) — "cafe" finds "Café", and a phone's "children’s" finds "children's".
+  **SQLite cannot do that, so the server's search is not in the SQL**: `buildQuery`
+  ignores `q`, and `selectEvents` — the one function that reads events by filter — applies
+  it in JavaScript to what SQL returned, taking `limit` from the matches rather than the
+  rows. Call `buildQuery` directly and a search is silently ignored. Change the rule in
+  one file, change the other; measured on dev against real events (2026-10-09), seventeen
+  searches gave identical results from both. A search narrows the menu tallies, like a
+  date range.
 - **`m=unspecified` is not a municipality.** It is the sentinel for events no town could
   be resolved for, exported as `UNPLACED` from `apps/web/src/query.ts` and repeated in
   `public/app.js`. The query builder turns it into `municipality_slug IS NULL` and ORs it

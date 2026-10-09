@@ -1,7 +1,7 @@
 import type { AccountsDb } from '../auth/db.ts'
 import { MAIL_FROM, sendMail, type SendEmail } from '../mail.ts'
 import { formatDate, formatTime, localDateOf } from '../html.ts'
-import { buildQuery, parseFilters, rowToEvent, type PublicEvent, type Row } from '../query.ts'
+import { parseFilters, selectEvents, type PublicEvent } from '../query.ts'
 import { unsubscribeToken, userForUnsubscribeToken } from './calendar.ts'
 import { describeSaved } from './page.ts'
 import { listFilters, livePinnedEvents, type EventsDb } from './store.ts'
@@ -98,9 +98,8 @@ export async function composeDigest(env: DigestEnv, userId: string, start: strin
     if (from > to) continue
     params.set('from', from)
     params.set('to', to)
-    const { sql, bindings } = buildQuery(parseFilters(new URL(`https://x/?${params}`)), PER_VIEW + seen.size + 1)
-    const { results } = await env.DB.prepare(sql).bind(...bindings).all<Row>()
-    const fresh = results.map(rowToEvent).filter((e) => !seen.has(e.id))
+    const matches = await selectEvents(env.DB, parseFilters(new URL(`https://x/?${params}`)), PER_VIEW + seen.size + 1)
+    const fresh = matches.filter((e) => !seen.has(e.id))
     const shown = fresh.slice(0, PER_VIEW)
     shown.forEach((e) => seen.add(e.id))
     if (!shown.length) continue

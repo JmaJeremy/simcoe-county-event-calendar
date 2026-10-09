@@ -1,5 +1,5 @@
 import { MUNICIPALITIES, municipalityBySlug } from '@scec/core'
-import { UNPLACED, buildQuery, listUrlFrom, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
+import { UNPLACED, cleanSearch, listUrlFrom, selectEvents, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
 import { renderEventPage, renderNotFound, renderPlacePage, shareableImage } from './pages.ts'
 import { renderRobots, renderSitemap, type SitemapEntry } from './sitemap.ts'
@@ -91,12 +91,7 @@ const json = (data: unknown, cacheSeconds: number): Response =>
     },
   })
 
-async function queryEvents(env: Env, url: URL): Promise<PublicEvent[]> {
-  const { sql, bindings } = buildQuery(parseFilters(url))
-  const statement = env.DB.prepare(sql)
-  const { results } = await (bindings.length ? statement.bind(...bindings) : statement).all<Row>()
-  return results.map(rowToEvent)
-}
+const queryEvents = (env: Env, url: URL): Promise<PublicEvent[]> => selectEvents(env.DB, parseFilters(url))
 
 async function lookupEvent(env: Env, column: 'short_code' | 'id', value: string): Promise<Row | null> {
   // `column` is one of two literals, never user input; `value` is always bound.
@@ -584,6 +579,8 @@ function describeFilters(url: URL, events: PublicEvent[]): string {
   const cat = url.searchParams.get('cat')
   if (cat) parts.push(cat.split(',').map(titleCase).join(', '))
   if (url.searchParams.get('cost') === 'free') parts.push('free')
+  const q = cleanSearch(url.searchParams.get('q'))
+  if (q) parts.push(`“${q}”`)
   return parts.join(' — ')
 }
 
