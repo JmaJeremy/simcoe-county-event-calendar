@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { UNPLACED, buildQuery, listUrlFrom, parseFilters } from '../src/query.ts'
+import { MAX_SEARCH_LENGTH, UNPLACED, buildQuery, listUrlFrom, parseFilters, savedQueryFrom, searchTerms } from '../src/query.ts'
 
 const filtersFor = (query: string) => parseFilters(new URL(`https://example.invalid/api/events${query}`))
 const queryFor = (query: string) => buildQuery(filtersFor(query))
@@ -93,5 +93,39 @@ describe('cost filter', () => {
 
   it('carries paid back from an event page', () => {
     expect(listUrlFrom(new URL('https://x.invalid/e/abc?cost=paid'))).toBe('/?cost=paid')
+  })
+})
+
+describe('search', () => {
+  it('splits a search into words and quoted phrases, each once, and stops at five', () => {
+    expect(searchTerms('  pickleball   "farmers market" pickleball ')).toEqual(['pickleball', 'farmers market'])
+    expect(searchTerms('a b c d e f g')).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(searchTerms('""  "')).toEqual([])
+    expect(searchTerms(undefined)).toEqual([])
+  })
+
+  it('requires every term, bound and never interpolated, over the event’s own words', () => {
+    const { sql, bindings } = queryFor('?q=pickleball+%22drop+in%22')
+    expect(sql.match(/LIKE \? ESCAPE/g)).toHaveLength(2)
+    expect(sql).toContain("COALESCE(e.title, '') || char(10) || COALESCE(e.description, '')")
+    expect(sql).toContain("COALESCE(m.name, '')")
+    expect(bindings.slice(-2)).toEqual(['%pickleball%', '%drop in%'])
+    expect(sql).not.toContain('pickleball')
+  })
+
+  it('escapes LIKE’s wildcards instead of letting them match anything', () => {
+    expect(queryFor('?q=100%25').bindings.at(-1)).toBe('%100\\%%')
+    expect(queryFor('?q=a_b').bindings.at(-1)).toBe('%a\\_b%')
+    expect(queryFor('?q=a%5Cb').bindings.at(-1)).toBe('%a\\\\b%')
+  })
+
+  it('adds nothing for an empty search, and caps a long one', () => {
+    expect(queryFor('?q=+++').sql).not.toContain('LIKE')
+    expect(filtersFor(`?q=${'x'.repeat(300)}`).q).toHaveLength(MAX_SEARCH_LENGTH)
+  })
+
+  it('rides back from an event page and into a saved view, cleaned', () => {
+    expect(listUrlFrom(new URL('https://x.invalid/e/abc?q=%20%20jazz%20%20night%20&m=tay'))).toBe('/?m=tay&q=jazz+night')
+    expect(savedQueryFrom(new URLSearchParams('q=  Jazz   Night &view=calendar&cat=music'))).toBe('cat=music&q=Jazz+Night')
   })
 })
