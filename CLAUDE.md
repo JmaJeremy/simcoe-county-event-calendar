@@ -98,6 +98,9 @@ printf '%s' "$TICKETMASTER_CONSUMER_KEY" | npx wrangler secret put TICKETMASTER_
 for k in FETCH_PROXY_FUNCTION FETCH_PROXY_REGION FETCH_PROXY_ACCESS_KEY_ID FETCH_PROXY_SECRET_ACCESS_KEY; do
   printf '%s' "${(P)k}" | npx wrangler secret put "$k" --config apps/ingest/wrangler.jsonc   # zsh
 done
+for k in CONSOLE_HOST ACCESS_TEAM_DOMAIN ACCESS_AUD PUBLIC_ORIGIN; do
+  printf '%s' "${(P)k}" | npx wrangler secret put "$k" --config apps/ingest/wrangler.jsonc   # zsh
+done
 
 # Trigger a run by hand and read the summary
 curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TOKEN"
@@ -129,7 +132,8 @@ curl -X POST "https://scec-ingest.thejeremy-net.workers.dev/run?token=$INGEST_TO
 - Console: https://console.outinsimcoe.ca — the admin console for adding events by hand,
   served by the **ingest** worker on its own custom domain behind the Cloudflare Access
   application "outinsimcoe.ca console". `CONSOLE_HOST`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`
-  and `PUBLIC_ORIGIN` are plain vars in `apps/ingest/wrangler.jsonc`; none is a secret.
+  and `PUBLIC_ORIGIN` are worker secrets on the ingest worker (`wrangler secret put`, not in
+  `wrangler.jsonc`); `ACCESS_TEAM_DOMAIN` is `https://jerail.cloudflareaccess.com`.
   It also holds the suggestions inbox and an editor for any event (`/find`). Posters live in the private R2 bucket
   `scec-suggestion-posters`, bound as `POSTERS` on both workers; the web worker's
   `CONSOLE_ORIGIN` var is where the admin email's links point.

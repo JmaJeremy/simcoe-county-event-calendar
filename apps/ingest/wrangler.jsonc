@@ -12,14 +12,9 @@
   // this hostname, and the worker verifies the Access token itself as well: the same code
   // answers on workers.dev, which Access does not cover. See src/access.ts.
   "routes": [{ "pattern": "console.outinsimcoe.ca", "custom_domain": true }],
-  // Not secrets: the team domain and AUD tag identify the Access application, they do not
-  // unlock it. Tokens are checked against the team's published signing keys.
-  "vars": {
-    "CONSOLE_HOST": "console.outinsimcoe.ca",
-    "ACCESS_TEAM_DOMAIN": "https://hssj-website-pages.cloudflareaccess.com",
-    "ACCESS_AUD": "3ba2ddf9e9631c10b1309b83d3d4cb7ca7b32cfa9d34c23b3a65ed32cafd8b1f",
-    "PUBLIC_ORIGIN": "https://outinsimcoe.ca"
-  },
+  // CONSOLE_HOST, ACCESS_TEAM_DOMAIN, ACCESS_AUD and PUBLIC_ORIGIN are worker secrets, not
+  // vars: set them with `wrangler secret put` (see CLAUDE.md). ACCESS_TEAM_DOMAIN is the full
+  // URL, https://jerail.cloudflareaccess.com.
   // Posters uploaded with suggestions, read by the console to show them behind Access.
   // The web worker writes them.
   "r2_buckets": [{ "binding": "POSTERS", "bucket_name": "scec-suggestion-posters" }],
