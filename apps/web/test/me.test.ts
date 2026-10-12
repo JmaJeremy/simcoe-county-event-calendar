@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import worker, { type Env } from '../src/worker.ts'
 import { sha256hex } from '../src/auth/session.ts'
 import { safeNext } from '../src/auth/routes.ts'
@@ -18,6 +18,15 @@ const HOST = 'outinsimcoe.ca'
 const SITE = `https://${HOST}`
 const TOKEN = 'session-token-for-tests'
 const NOW = new Date('2026-10-01T16:00:00Z')
+
+// The fixtures are dated around NOW, but the pages decide upcoming vs past from the real clock.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(NOW)
+})
+afterAll(() => {
+  vi.useRealTimers()
+})
 
 interface EventRow {
   id: string; short_code: string; title: string; local_date: string; local_time: string; all_day: number
