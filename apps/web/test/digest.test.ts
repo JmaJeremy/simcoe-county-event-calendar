@@ -167,6 +167,34 @@ describe('what a digest says', () => {
     expect(w.sends()[0]!.event_count).toBe(2 + PER_VIEW)
   })
 
+  it('runs a saved search for real: every term, any case, wildcards literal, and the town counts', async () => {
+    const w = world()
+    w.event({ title: 'Pickleball Drop-in' })
+    w.event({ title: 'PICKLEBALL tournament', m: 'orillia' })
+    w.event({ title: 'Tennis social' })
+    w.event({ title: '100% Local Market' })
+    w.event({ title: '1000 Islands slideshow' })
+    w.event({ title: 'Soirée Café Chantant' })
+    w.user('reader')
+    w.view('reader', 'Pickleball', 'q=pickleball')
+    w.view('reader', 'Orillia pickleball', 'q=pickleball+orillia')
+    w.view('reader', 'Percent', 'q=100%25')
+    w.view('reader', 'Coffee', 'q=cafe+soiree')
+    await runDigests(w.env, NOW)
+    const text = w.mails[0]!.text
+    const section = (heading: string) => text.slice(text.indexOf(heading)).split('\n\n\n')[0]!
+    expect(section('PICKLEBALL (')).toContain('Pickleball Drop-in')
+    expect(section('PICKLEBALL (')).toContain('PICKLEBALL tournament')
+    expect(text).not.toContain('Tennis social')
+    // "orillia" is in no title: it matches the town's name. Both events were already listed
+    // above, so this view adds nothing and is left out — each event once.
+    expect(text).not.toContain('ORILLIA PICKLEBALL')
+    expect(section('PERCENT (')).toContain('100% Local Market')
+    expect(text).not.toContain('1000 Islands')
+    // Typed without accents, found with them.
+    expect(section('COFFEE (')).toContain('Soirée Café Chantant')
+  })
+
   it('carries a one-click unsubscribe the mail provider can POST to, and a link that does the same', async () => {
     const w = world()
     w.user('reader')

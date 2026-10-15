@@ -447,6 +447,46 @@ when it breaks, so nothing here is checked by eye.
   turns them back into its "All events" href through `listUrlFrom`. That function rebuilds
   the query from a whitelist rather than echoing it: the input is a stranger's text on its
   way into an href.
+- **Search is one more filter, `q`, and its rule exists twice.** The page already holds
+  every event it shows, descriptions included, so `app.js` filters in memory as you type
+  (`foldSearch`, `searchTerms`, `searchText`, `matchesSearch`): no request, no index, no
+  FTS table to keep in step with a dedup that rewrites every event every two hours. The
+  server has the same rule under the same names in `query.ts`, because `q` is part of the
+  filter language: it rides in the URL, back from an event page (`listUrlFrom`), into
+  `/calendar.ics`, a saved view (`savedQueryFrom`) and that view's digest. Words and
+  `"quoted phrases"` must **all** appear, as substrings of title, description, venue,
+  address, organizer or municipality name, joined by a newline so a phrase cannot span
+  two fields; at most five terms and 80 characters. Comparison is **without case, without
+  accents, and with curly quotes read as straight ones** (`foldSearch`: NFD, strip marks,
+  lowercase) — "cafe" finds "Café", and a phone's "children’s" finds "children's".
+  **SQLite cannot do that, so the server's search is not in the SQL**: `buildQuery`
+  ignores `q`, and `selectEvents` — the one function that reads events by filter — applies
+  it in JavaScript to what SQL returned, taking `limit` from the matches rather than the
+  rows. Call `buildQuery` directly and a search is silently ignored. Change the rule in
+  one file, change the other; measured on dev against real events (2026-10-09), seventeen
+  searches gave identical results from both. A search narrows the menu tallies, like a
+  date range.
+- **The home page loads the calendar in two halves, and the upcoming half comes first.**
+  It used to ask for everything in one request, oldest first, through `buildQuery`'s
+  `LIMIT 4000`. On 2026-10-09 the calendar held 6,225 events: the page had the oldest
+  4,000 — 1,814 already over — and nothing after 19 November, so 2,216 upcoming events,
+  the Santa Claus Parade among them, were on no list and in no search, with nothing on
+  screen to say so. Now `app.js` boots on `/api/events?…&since={yesterday}` (everything
+  **still running**: `local_date >= ? OR ends_at_utc >= ?`, so a festival that opened in
+  September is in it) and fetches `&before={yesterday}`, its exact complement, once, the
+  first time a view reaches into the past — the "Past events" box, a range starting before
+  today, or the calendar on this month or an earlier one (`needsPast`, `loadPast`). The
+  two are merged by id. `since`/`before` are transport, not part of a view: never saved,
+  never echoed into a link, and deliberately **not a default** — `/calendar.ics` keeps its
+  history, or every subscribed calendar would lose its past entries. `MAX_EVENTS` is
+  10,000, and the part that matters is that a read which hits it **says so**:
+  `selectEventPage` asks for one row more than it wants, `/api/events` answers
+  `truncated`, and the stats line then reads "some events could not be loaded". A cut
+  keeps the soonest events, so it costs the far future, never tomorrow. The upcoming half
+  was 4,509 events, 5.4MB raw and 1.05MB gzipped when measured — the same size the page
+  loaded before, since the 1,716 past events it dropped roughly match what it gained. If
+  that grows uncomfortable, trim the payload (descriptions are most of it, and search
+  reads them) before narrowing the dates.
 - **`m=unspecified` is not a municipality.** It is the sentinel for events no town could
   be resolved for, exported as `UNPLACED` from `apps/web/src/query.ts` and repeated in
   `public/app.js`. The query builder turns it into `municipality_slug IS NULL` and ORs it

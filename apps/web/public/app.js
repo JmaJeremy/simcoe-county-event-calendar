@@ -28,6 +28,10 @@ const state = {
   /** Date range, either end optional, 'YYYY-MM-DD'. An explicit range beats "upcoming". */
   from: '',
   to: '',
+  /** Free-text search, cleaned by cleanSearch. '' is none. */
+  q: '',
+  /** True when the server cut a response short; the stats line then says so. */
+  truncated: false,
   /** The reader, from /api/me: signed out until it answers, and if it never does. */
   me: { signedIn: false, pins: new Set(), filters: [] },
 }
@@ -90,6 +94,7 @@ function readUrl() {
   const date = (key) => (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(p.get(key) || '') ? p.get(key) : '')
   state.from = date('from')
   state.to = date('to')
+  state.q = cleanSearch(p.get('q'))
 }
 
 function writeUrl() {
@@ -102,6 +107,7 @@ function writeUrl() {
   if (state.showPast) p.set('past', '1')
   if (state.from) p.set('from', state.from)
   if (state.to) p.set('to', state.to)
+  if (state.q) p.set('q', state.q)
   if (state.view === 'calendar') {
     p.set('view', 'calendar')
     // Only pin the month if it is not the one the page would open on anyway, so a
@@ -126,6 +132,7 @@ function filterParams() {
   if (state.showCivic) p.set('civic', '1')
   if (state.from) p.set('from', state.from)
   if (state.to) p.set('to', state.to)
+  if (state.q) p.set('q', state.q)
   return p
 }
 
@@ -145,11 +152,64 @@ function matchesCost(e) {
   return e.cost !== 'paid'
 }
 
+/*
+ * ---------- search ----------
+ *
+ * Every event is already in memory, descriptions included, so search is a filter like the
+ * others: no request, no index. The rule is a copy of the server's (cleanSearch, searchTerms
+ * and buildQuery in src/query.ts), which is what a saved view's feed and digest run on —
+ * change one, change the other, or a view shows one set of events here and another there.
+ *
+ * Words and "quoted phrases" must ALL appear, as substrings, in the title, description,
+ * venue, address, organizer or town — compared without case, without accents, and with a
+ * phone's curly quotes read as straight ones (foldSearch), so "cafe" finds "Café". The
+ * fields are joined by a newline, which no term can contain, so a phrase cannot match
+ * across two of them.
+ */
+const MAX_SEARCH_LENGTH = 80
+const MAX_SEARCH_TERMS = 5
+
+const cleanSearch = (raw) => (raw ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_SEARCH_LENGTH).trim()
+
+const foldSearch = (text) =>
+  text
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+
+function searchTerms(q) {
+  const terms = []
+  for (const match of foldSearch(cleanSearch(q)).matchAll(/"([^"]+)"|(\S+)/g)) {
+    const term = (match[1] ?? match[2]).replace(/"/g, '').trim()
+    if (term && !terms.includes(term)) terms.push(term)
+    if (terms.length === MAX_SEARCH_TERMS) break
+  }
+  return terms
+}
+
+/** An event's searchable words, folded once and kept: 4,000 events on every keystroke. */
+const searchTexts = new WeakMap()
+function searchText(e) {
+  let text = searchTexts.get(e)
+  if (text === undefined) {
+    text = foldSearch([e.title, e.description, e.venueName, e.address, e.organizer, e.municipalityName].map((v) => v ?? '').join('\n'))
+    searchTexts.set(e, text)
+  }
+  return text
+}
+
+/** The terms of the current search, split once per render rather than once per event. */
+let activeTerms = []
+const matchesSearch = (e) => activeTerms.every((term) => searchText(e).includes(term))
+
 function matchesFilters(e) {
   if (!state.showCivic && e.category === 'civic-meeting') return false
   if (!matchesCost(e)) return false
   if (state.filters.m.size && !state.filters.m.has(e.municipalitySlug ?? UNPLACED)) return false
   if (state.filters.cat.size && !state.filters.cat.has(e.category)) return false
+  if (!matchesSearch(e)) return false
   return true
 }
 
@@ -340,7 +400,7 @@ function renderList() {
 
   if (!matching.length) {
     list.innerHTML = `<div class="empty">
-      <p>No events match these filters.</p>
+      <p>${state.q ? `No events match “${esc(state.q)}” with these filters.` : 'No events match these filters.'}</p>
       <button class="btn ghost" onclick="window.__clearAll()">Clear all filters</button>
     </div>`
     updateStats(0, 0)
@@ -698,7 +758,12 @@ function updateStats(rendered, matching) {
   const total = state.events.length
   const places = new Set(state.events.map((e) => e.municipalitySlug).filter(Boolean)).size
   const lead = matching > rendered ? `${matching} event${matching === 1 ? '' : 's'} match` : `${matching} event${matching === 1 ? '' : 's'} shown`
-  $('stats').textContent = `${lead} · ${total} tracked across ${places} municipalities`
+  const notes = [
+    pastState === 'loading' ? 'loading earlier events…' : '',
+    pastState === 'failed' ? 'earlier events could not be loaded' : '',
+    state.truncated ? 'some events could not be loaded' : '',
+  ].filter(Boolean)
+  $('stats').textContent = `${lead} · ${total} tracked across ${places} municipalities${notes.length ? ` · ${notes.join(' · ')}` : ''}`
 }
 
 /*
@@ -867,12 +932,14 @@ function renderActiveFilters() {
   for (const slug of state.filters.m) add('m', slug, shortPlaceName(slug))
   for (const cat of state.filters.cat) add('cat', cat, categoryLabel(cat))
   if (state.from || state.to) add('dates', 'range', rangeLabel())
+  if (state.q) add('q', state.q, `“${state.q}”`)
 
   const box = $('active')
   box.innerHTML = pills.length ? pills.join('') + `<button class="pill clear-all" type="button">Clear all</button>` : ''
   box.querySelectorAll('button[data-key]').forEach((b) => {
     b.onclick = () => {
       if (b.dataset.key === 'dates') return setRange('', '')
+      if (b.dataset.key === 'q') return setSearch('')
       state.filters[b.dataset.key].delete(b.dataset.value)
       refresh()
     }
@@ -886,8 +953,30 @@ window.__clearAll = () => {
   state.filters.cat.clear()
   state.from = ''
   state.to = ''
+  state.q = ''
+  $('q').value = ''
   refreshAll()
 }
+
+/** Set the search from anywhere but the box itself, and keep the box in step. */
+function setSearch(q) {
+  state.q = cleanSearch(q)
+  $('q').value = state.q
+  refreshAll()
+}
+
+// Typing filters as you go, a beat behind the keys so a fast typist renders once. The box
+// keeps exactly what was typed; only the cleaned form goes into state and the URL.
+let searchTimer = 0
+$('q').addEventListener('input', () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    const q = cleanSearch($('q').value)
+    if (q === state.q) return
+    state.q = q
+    refreshAll()
+  }, 150)
+})
 
 /* ---------- options derived from the data ---------- */
 
@@ -899,6 +988,8 @@ function optionsFor(getter) {
     if (!state.showCivic && e.category === 'civic-meeting') continue
     if (!matchesCost(e)) continue
     if (!inDateScope(e)) continue
+    // A search narrows the tallies too: "Barrie 3" beside pickleball is the useful number.
+    if (!matchesSearch(e)) continue
     const value = getter(e)
     if (value) counts.set(value, (counts.get(value) || 0) + 1)
   }
@@ -1061,6 +1152,10 @@ function rebuildMenus() {
 
 function refresh() {
   state.limit = PAGE_SIZE
+  activeTerms = searchTerms(state.q)
+  // Not awaited: the view renders with what it has, and again when the past arrives.
+  // Only the first view to need it starts the load, so one re-render follows, not several.
+  if (needsPast() && pastState === 'none') loadPast().then((arrived) => arrived && refreshAll())
   writeUrl()
   applyView()
   syncMenus()
@@ -1073,6 +1168,8 @@ function refresh() {
 
 /** The option lists themselves only change when the toggles do. */
 function refreshAll() {
+  // Before the menus, whose tallies a search narrows.
+  activeTerms = searchTerms(state.q)
   rebuildMenus()
   refresh()
 }
@@ -1089,6 +1186,7 @@ $('subscribe').onclick = () => {
 /** A name for the current view, as a starting point the reader can change. */
 function suggestedLabel() {
   const parts = [
+    state.q,
     [...state.filters.m].map((slug) => shortPlaceName(slug)).join(', '),
     [...state.filters.cat].map(categoryLabel).join(', '),
   ].filter(Boolean)
@@ -1267,6 +1365,66 @@ function takeReturnNote() {
   }
 }
 
+/*
+ * ---------- loading the calendar ----------
+ *
+ * In two halves, split at yesterday. The upcoming half — everything still running — is all
+ * most readers ever need, and is what boot loads. The past half is fetched once, the first
+ * time a view actually reaches into the past: the "Past events" box, a date range that
+ * starts before today, or the calendar on this month or an earlier one (whose first weeks
+ * are already over).
+ *
+ * It used to be one request for everything, oldest first, and the server caps a response.
+ * When the calendar outgrew the cap the page kept every finished event since August and
+ * silently lost everything after mid-November. Loading what is ahead first means the past
+ * can never again crowd out the future, and `truncated` means a cap can never again be
+ * hit without the page saying so.
+ */
+const EVENTS_API = '/api/events?cost=all&civic=1'
+/** Yesterday, not today: a day of slack for a reader whose clock or zone differs from ours. */
+const SPLIT_DATE = addDays(todayISO(), -1)
+
+/** 'none' → 'loading' → 'loaded', or 'failed' — said in the stats line, retried on reload. */
+let pastState = 'none'
+let pastRequest = null
+
+function needsPast() {
+  if (state.showPast) return true
+  // A range with no start runs back to the beginning.
+  if ((state.from || state.to) && (!state.from || state.from < todayISO())) return true
+  return state.view === 'calendar' && state.month <= thisMonth()
+}
+
+/** Merge a response into what is held: by id, since the two halves may overlap at the seam. */
+function addEvents(data) {
+  if (data.truncated) state.truncated = true
+  const known = new Set(state.events.map((e) => e.id))
+  state.events = [...state.events, ...data.events.filter((e) => !known.has(e.id))].sort((a, b) =>
+    a.startsAtUtc.localeCompare(b.startsAtUtc),
+  )
+}
+
+/** Fetch the past half once. Resolves true when new events arrived and a re-render is due. */
+function loadPast() {
+  if (pastState === 'loaded') return Promise.resolve(false)
+  if (pastRequest) return pastRequest
+  pastState = 'loading'
+  pastRequest = getJson(`${EVENTS_API}&before=${SPLIT_DATE}`)
+    .then((data) => {
+      addEvents(data)
+      pastState = 'loaded'
+      return true
+    })
+    .catch(() => {
+      // The upcoming calendar still works; say the rest is missing rather than fail the
+      // page. Not retried by itself: a render that retried a failing request would loop.
+      pastState = 'failed'
+      pastRequest = Promise.resolve(false)
+      return true
+    })
+  return pastRequest
+}
+
 /* ---------- boot ---------- */
 
 async function getJson(path, { retries = 1 } = {}) {
@@ -1309,13 +1467,15 @@ async function boot() {
   $('cost').value = state.cost
   $('show-civic').checked = state.showCivic
   $('show-past').checked = state.showPast
+  $('q').value = state.q
 
-  // Everything, including paid and civic, arrives once; the toggles filter in the browser.
-  const data = await getJson('/api/events?cost=all&civic=1')
+  // Paid and civic included, so those toggles filter in the browser. The upcoming half
+  // always; the past half with it only when this view opens on the past (see loadPast).
+  const [data] = await Promise.all([getJson(`${EVENTS_API}&since=${SPLIT_DATE}`), needsPast() ? loadPast() : null])
   const municipalities = await getJson('/api/municipalities').catch(() => [])
   const sources = await getJson('/api/sources').catch(() => [])
 
-  state.events = data.events
+  addEvents(data)
   for (const m of municipalities) state.municipalities.set(m.slug, m)
 
   if (sources.length) {

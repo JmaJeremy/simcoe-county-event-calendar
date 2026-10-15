@@ -1135,3 +1135,215 @@ describeIfChrome('accounts on the calendar (real browser)', () => {
     }
   })
 })
+
+/**
+ * Search (the `q` filter). Typed into a real page, because the things that break are the
+ * debounce, the URL and the shared reset — none of which a unit test can see.
+ */
+describeIfChrome('search (real browser)', () => {
+  let browser: Browser
+  let page: Page
+  let server: Awaited<ReturnType<typeof startServer>>
+  const titles = () => page.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent!))
+  const settled = (q: string) => page.waitForFunction((want) => new URLSearchParams(location.search).get('q') === want, {}, q)
+
+  beforeAll(async () => {
+    server = await startServer()
+    browser = await puppeteer.launch({ executablePath: CHROME!, headless: true, args: ['--no-sandbox'] })
+    page = await browser.newPage()
+    await page.goto(server.url, { waitUntil: 'networkidle0' })
+  }, 60_000)
+  afterAll(async () => {
+    await browser?.close()
+    await server?.close()
+  })
+  beforeEach(async () => {
+    await page.evaluate(() => (window as unknown as { __clearAll(): void }).__clearAll())
+  })
+
+  it('narrows the list as you type, in any case, and puts the search in the URL', async () => {
+    await page.type('#q', 'PICKLEball')
+    await settled('PICKLEball')
+    const shown = await titles()
+    expect(shown.length).toBeGreaterThan(0)
+    expect(shown.every((t) => t === 'Pickleball Drop-in')).toBe(true)
+    expect(await page.$eval('#stats', (e) => e.textContent)).toContain(`${VISIBLE.filter((e) => e.title === 'Pickleball Drop-in').length} event`)
+    // An event link carries it, so "All events" comes back to the same search.
+    expect(await page.$eval('#list .event h3 a', (a) => a.getAttribute('href'))).toContain('q=PICKLEball')
+  })
+
+  it('needs every word, keeps a quoted phrase whole, and matches the town as well as the title', async () => {
+    const place = VISIBLE.find((e) => e.municipalityName)!.municipalityName!
+    await page.type('#q', `"fall fair" ${place.split(' ').at(-1)}`)
+    await page.waitForFunction(() => new URLSearchParams(location.search).has('q'))
+    const fairs = await titles()
+    expect(fairs.length).toBeGreaterThan(0)
+    expect(fairs.length).toBeLessThan(VISIBLE.filter((e) => e.title === 'Fall Fair').length)
+    expect(fairs.every((t) => t === 'Fall Fair')).toBe(true)
+
+    await page.evaluate(() => (window as unknown as { __clearAll(): void }).__clearAll())
+    await page.type('#q', '"fair fall"')
+    await settled('"fair fall"')
+    expect(await titles()).toEqual([])
+    expect(await page.$eval('#list .empty', (e) => e.textContent)).toContain('No events match')
+  })
+
+  it('shows the search as a pill, narrows the menu counts, and clears with everything else', async () => {
+    await page.type('#q', 'jazz')
+    await settled('jazz')
+    // Jazz Night is paid, so the default view has none; the pill and the box still say so.
+    expect(await page.$eval('#active .pill', (e) => e.textContent)).toContain('“jazz”')
+    await page.select('#cost', 'all')
+    await page.waitForFunction(() => document.querySelectorAll('#list .event').length > 0)
+    const counts = await page.$$eval('#f-category .menu [role="option"], #f-category .menu label', (els) => els.map((e) => e.textContent!.trim()).filter(Boolean))
+    expect(counts.some((c) => c.includes('Music'))).toBe(true)
+    expect(counts.some((c) => c.includes('Markets'))).toBe(false)
+
+    await page.click('#active .pill button[data-key="q"]')
+    await page.waitForFunction(() => !new URLSearchParams(location.search).has('q'))
+    expect(await page.$eval('#q', (i) => (i as HTMLInputElement).value)).toBe('')
+    await page.select('#cost', 'default')
+  })
+
+  it('ignores accents and a phone’s curly quotes, the same way the server does', async () => {
+    const accented = await browser.newPage()
+    try {
+      await accented.setRequestInterception(true)
+      accented.on('request', (req: HTTPRequest) => {
+        if (new URL(req.url()).pathname !== '/api/events') return void req.continue()
+        const events = [{ ...VISIBLE[0]!, id: 'a1', shortCode: 'a1', title: 'Soirée Café Chantant' }, { ...VISIBLE[1]!, id: 'a2', shortCode: 'a2', title: 'Children’s Story Time' }]
+        void req.respond({ contentType: 'application/json', body: JSON.stringify({ count: events.length, events }) })
+      })
+      const shown = async (q: string) => {
+        await accented.goto(`${server.url}/?q=${encodeURIComponent(q)}`, { waitUntil: 'networkidle0' })
+        return accented.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent))
+      }
+      expect(await shown('cafe soiree')).toEqual(['Soirée Café Chantant'])
+      expect(await shown('CAFÉ')).toEqual(['Soirée Café Chantant'])
+      expect(await shown("children's")).toEqual(['Children’s Story Time'])
+      expect(await shown('“story time”')).toEqual(['Children’s Story Time'])
+    } finally {
+      await accented.close()
+    }
+  })
+
+  it('opens on a search from the URL, box filled in', async () => {
+    const fresh = await browser.newPage()
+    try {
+      await fresh.goto(`${server.url}/?q=story+time`, { waitUntil: 'networkidle0' })
+      expect(await fresh.$eval('#q', (i) => (i as HTMLInputElement).value)).toBe('story time')
+      const shown = await fresh.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent))
+      expect(shown.length).toBeGreaterThan(0)
+      expect(shown.every((t) => t === 'Story Time')).toBe(true)
+    } finally {
+      await fresh.close()
+    }
+  })
+})
+
+/**
+ * Loading the calendar in two halves. The fixture server splits its events the way the real
+ * one does, and each test counts the requests, because the bug this replaces was invisible
+ * on screen: the page simply held the wrong events.
+ */
+describeIfChrome('loading the calendar (real browser)', () => {
+  let browser: Browser
+  let server: Awaited<ReturnType<typeof startServer>>
+  const day = (offset: number) => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() + offset)
+    return d.toISOString().slice(0, 10)
+  }
+  /** A page whose /api/events answers from three events: one over, one running, one ahead. */
+  async function open(path: string, opts: { failPast?: boolean; truncated?: boolean } = {}) {
+    const page = await browser.newPage()
+    const asked: string[] = []
+    const base = VISIBLE[0]!
+    const events = [
+      { ...base, id: 'over', shortCode: 'over', title: 'Finished Fair', localDate: day(-10), startsAtUtc: `${day(-10)}T13:00:00.000Z`, endsAtUtc: null },
+      { ...base, id: 'running', shortCode: 'running', title: 'Long Festival', localDate: day(-20), startsAtUtc: `${day(-20)}T13:00:00.000Z`, endsAtUtc: `${day(5)}T21:00:00.000Z` },
+      { ...base, id: 'ahead', shortCode: 'ahead', title: 'Next Week Concert', localDate: day(7), startsAtUtc: `${day(7)}T23:00:00.000Z`, endsAtUtc: null },
+    ]
+    await page.setRequestInterception(true)
+    page.on('request', (req: HTTPRequest) => {
+      const url = new URL(req.url())
+      if (url.pathname !== '/api/events') return void req.continue()
+      asked.push(url.searchParams.has('since') ? 'since' : url.searchParams.has('before') ? 'before' : 'all')
+      if (url.searchParams.has('before')) {
+        if (opts.failPast) return void req.respond({ status: 500, body: 'no' })
+        return void req.respond({ contentType: 'application/json', body: JSON.stringify({ count: 1, truncated: false, events: [events[0]] }) })
+      }
+      void req.respond({ contentType: 'application/json', body: JSON.stringify({ count: 2, truncated: !!opts.truncated, events: events.slice(1) }) })
+    })
+    await page.goto(`${server.url}${path}`, { waitUntil: 'networkidle0' })
+    const titles = () => page.$$eval('#list .event h3 a', (els) => els.map((e) => e.textContent))
+    return { page, asked, titles }
+  }
+
+  beforeAll(async () => {
+    server = await startServer()
+    browser = await puppeteer.launch({ executablePath: CHROME!, headless: true, args: ['--no-sandbox'] })
+  }, 60_000)
+  afterAll(async () => {
+    await browser?.close()
+    await server?.close()
+  })
+
+  it('loads only what is still ahead, including a festival that began weeks ago', async () => {
+    const { page, asked, titles } = await open('/')
+    try {
+      expect(asked).toEqual(['since'])
+      expect(await titles()).toEqual(['Long Festival', 'Next Week Concert'])
+    } finally {
+      await page.close()
+    }
+  })
+
+  it('fetches the past once, the first time a view reaches into it', async () => {
+    const { page, asked, titles } = await open('/')
+    try {
+      await page.click('#show-past')
+      await page.waitForFunction(() => document.querySelectorAll('#list .event').length === 3)
+      // The fair, ten days gone, leads; the festival is filed under today, where it is running.
+      expect(await titles()).toEqual(['Finished Fair', 'Long Festival', 'Next Week Concert'])
+      await page.click('#show-past')
+      await page.click('#show-past')
+      await page.waitForFunction(() => document.querySelectorAll('#list .event').length === 3)
+      expect(asked).toEqual(['since', 'before'])
+    } finally {
+      await page.close()
+    }
+  })
+
+  it('fetches both halves at once when the link itself asks for the past', async () => {
+    for (const path of ['/?past=1', `/?from=${day(-30)}&to=${day(-1)}`, '/?view=calendar']) {
+      const { page, asked } = await open(path)
+      try {
+        expect([...asked].sort(), path).toEqual(['before', 'since'])
+      } finally {
+        await page.close()
+      }
+    }
+  })
+
+  it('still shows the upcoming calendar when the past cannot be loaded, and says so once', async () => {
+    const { page, asked, titles } = await open('/?past=1', { failPast: true })
+    try {
+      expect(await titles()).toEqual(['Long Festival', 'Next Week Concert'])
+      expect(await page.$eval('#stats', (e) => e.textContent)).toContain('earlier events could not be loaded')
+      // getJson retries a network error, never an HTTP one; either way it must not loop.
+      expect(asked.filter((a) => a === 'before').length).toBeLessThanOrEqual(2)
+    } finally {
+      await page.close()
+    }
+  })
+
+  it('says when the server cut the calendar short', async () => {
+    const { page } = await open('/', { truncated: true })
+    try {
+      expect(await page.$eval('#stats', (e) => e.textContent)).toContain('some events could not be loaded')
+    } finally {
+      await page.close()
+    }
+  })
+})
