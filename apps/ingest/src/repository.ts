@@ -98,6 +98,21 @@ export function reclassifyListingStatements(db: D1Like, items: Reclassification[
   )
 }
 
+/**
+ * A listing back from a missed run, or with only its status changed, but the same text:
+ * a full upsert would overwrite the description, price and poster enrichment added, and
+ * with the content hash unchanged nothing would ever read its page again.
+ */
+export function reviveListingStatements(db: D1Like, listings: Listing[], now: string): D1Statement[] {
+  return listings.map((l) =>
+    db
+      .prepare(
+        `UPDATE listings SET active = 1, removed_at = NULL, status = ?, category = ?, municipality_slug = ?, last_seen_at = ? WHERE id = ?`,
+      )
+      .bind(l.status, l.category, l.municipalitySlug, now, l.id),
+  )
+}
+
 const LISTING_COLUMNS = `
   id, source_slug, external_id, municipality_slug, title, description, category, source_categories,
   starts_at_utc, ends_at_utc, local_date, local_time, timezone, time_precision, all_day,

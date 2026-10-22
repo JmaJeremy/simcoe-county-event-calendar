@@ -338,6 +338,22 @@ describe('buildClusters', () => {
     expect(closed).toEqual(['gone'])
   })
 
+  it('gives each side of a split its own id, whatever order the listings arrive in', () => {
+    const news = { ...other, id: 'orilliamatters:9', clusterId: 'severn:1' }
+    const fair = { ...township, clusterId: 'severn:1' }
+    for (const listings of [[news, fair], [fair, news]]) {
+      const { events } = buildClusters({ listings, sameEdges: [], existingClusters: [{ id: 'severn:1', createdAt: '2026-09-01T00:00:00Z' }], priorityOf: priority })
+      expect(events.map((e) => e.id).sort()).toEqual(['orilliamatters:9', 'severn:1'])
+    }
+  })
+
+  it('never merges two listings on an empty link alone', () => {
+    const a = listing({ id: 'manual:a', sourceSlug: 'manual', title: 'Jazz Night at the Legion', url: '' })
+    const b = listing({ id: 'manual:b', sourceSlug: 'manual', title: 'Euchre Tournament', url: '' })
+    expect(scorePair(a, b).url).toBe(0)
+    expect(verdictByRules(scorePair(a, b))).not.toBe('same')
+  })
+
   it('never chains two placed municipalities together through an unplaced copy', () => {
     const barrie = listing({ id: 'barrie:1', sourceSlug: 'barrie', municipalitySlug: 'barrie', title: 'Sunrise Ceremony' })
     const penetang = listing({ id: 'penetanguishene:1', sourceSlug: 'penetanguishene', municipalitySlug: 'penetanguishene', title: 'National Day for Truth and Reconciliation' })

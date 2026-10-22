@@ -37,7 +37,7 @@ export interface PairScore {
 export const MERGE_THRESHOLD = 0.85
 export const DISTINCT_THRESHOLD = 0.45
 /** Bump when scoring changes: cached rule verdicts carry it and are recomputed when it differs. */
-export const RULES_VERSION = 'rule:v2'
+export const RULES_VERSION = 'rule:v3'
 
 /* ---------- text normalisation ---------- */
 
@@ -178,6 +178,8 @@ const canonicalUrl = (url: string): string =>
     .replace(/\/$/, '')
 
 export function urlMatch(a: Listing, b: Listing): number {
+  // A hand-entered event may have no link, and two empty links say nothing about each other.
+  if (!a.url || !b.url) return 0
   return canonicalUrl(a.url) === canonicalUrl(b.url) ? 1 : 0
 }
 
@@ -489,10 +491,12 @@ export function buildClusters(input: ClusterInput): ClusterOutput {
     const representative = pickRepresentative(members, input.priorityOf)
 
     // Sticky id: the oldest cluster any member already belonged to, if it is not yet
-    // claimed by another group this pass (a split leaves the id with one side).
+    // claimed by another group this pass (a split leaves the id with one side). An id that
+    // is some listing's own id stays with that listing's group, or after a split the other
+    // side could take it and then this group's representative fall back to the same id.
     const previous = members
       .map((m) => m.clusterId)
-      .filter((id): id is string => !!id && createdAt.has(id) && !used.has(id))
+      .filter((id): id is string => !!id && createdAt.has(id) && !used.has(id) && (!byId.has(id) || members.some((m) => m.id === id)))
       .sort((x, y) => createdAt.get(x)!.localeCompare(createdAt.get(y)!) || x.localeCompare(y))
     const id = previous[0] ?? representative.id
     used.add(id)
