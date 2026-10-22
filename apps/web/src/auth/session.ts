@@ -33,7 +33,7 @@ export async function sha256hex(value: string): Promise<string> {
 }
 
 export const sessionCookie = (token: string): string =>
-  `${SESSION_COOKIE}=${token}; Max-Age=${IDLE_DAYS * 24 * 60 * 60}; Path=/; Secure; HttpOnly; SameSite=Lax`
+  `${SESSION_COOKIE}=${token}; Max-Age=${ABSOLUTE_DAYS * 24 * 60 * 60}; Path=/; Secure; HttpOnly; SameSite=Lax`
 
 export const clearSessionCookie = (): string => `${SESSION_COOKIE}=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax`
 

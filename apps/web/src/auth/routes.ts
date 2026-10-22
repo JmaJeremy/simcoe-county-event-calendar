@@ -12,6 +12,7 @@ import {
   ACCOUNT_TURNSTILE_ACTION,
   accountPage,
   resetConfirmForm,
+  verifyForm,
   resetRequestForm,
   signInForm,
   signUpForm,
@@ -266,15 +267,8 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
       return new Response(null, { status: 303, headers })
     }
     if (path === '/account/verify') {
-      // A GET that changes state, knowingly: mail scanners prefetch links, and the only
-      // effect here is marking verified an address the link was delivered to — which is
-      // itself the proof the token exists to establish.
-      const userId = await consumeToken(env.ACCOUNTS, url.searchParams.get('token') ?? '', 'verify', now)
-      if (!userId) {
-        return page(accountPage({ title: 'Link expired', heading: 'That link has expired', origin, isError: true, notice: 'Confirmation links work once, for 24 hours. Sign in with your password to get a fresh one.', body: signInForm(undefined, !!google) }), 410)
-      }
-      await env.ACCOUNTS.prepare('UPDATE users SET email_verified_at = ?, updated_at = ? WHERE id = ? AND email_verified_at IS NULL').bind(now.toISOString(), now.toISOString(), userId).run()
-      return redirect('/account/signin?notice=verified')
+      const token = url.searchParams.get('token') ?? ''
+      return page(accountPage({ title: 'Confirm your address', heading: 'Confirm your address', origin, body: verifyForm(token) }))
     }
     return page(accountPage({ title: 'Not found', heading: 'No such page', origin, body: '<p class="account-links"><a href="/account">Your account</a></p>' }), 404)
   }
@@ -306,6 +300,15 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
       { secret: env.TURNSTILE_SECRET_KEY, remoteip: request.headers.get('CF-Connecting-IP'), hostname: url.hostname, action: ACCOUNT_TURNSTILE_ACTION },
     )
     return human.ok ? null : { error: human.error, status: human.status }
+  }
+
+  if (path === '/account/verify') {
+    const userId = await consumeToken(env.ACCOUNTS, form.token ?? '', 'verify', now)
+    if (!userId) {
+      return page(accountPage({ title: 'Link expired', heading: 'That link has expired', origin, isError: true, notice: 'Confirmation links work once, for 24 hours. Sign in with your password to get a fresh one.', body: signInForm(undefined, !!google) }), 410)
+    }
+    await env.ACCOUNTS.prepare('UPDATE users SET email_verified_at = ?, updated_at = ? WHERE id = ? AND email_verified_at IS NULL').bind(now.toISOString(), now.toISOString(), userId).run()
+    return redirect('/account/signin?notice=verified')
   }
 
   if (path === '/account/signup') {
@@ -354,8 +357,11 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     if (!result.ok) return formError('Sign in', 'Email or password did not match.', signInForm(email, !!google, safeNext(form.next) ?? ''))
     if (!user.email_verified_at) {
       // The right password proves it is the owner asking; the mail still only goes to the
-      // address itself.
-      await sendVerification(env, origin, user.id, user.email, now)
+      // address itself, and at most every 15 minutes, or repeated sign-ins mail a stranger.
+      const recent = await env.ACCOUNTS.prepare(
+        "SELECT 1 AS n FROM user_tokens WHERE user_id = ? AND purpose = 'verify' AND used_at IS NULL AND created_at > ?",
+      ).bind(user.id, new Date(now.getTime() - 15 * 60 * 1000).toISOString()).first()
+      if (!recent) await sendVerification(env, origin, user.id, user.email, now)
       return redirect('/account/signin?notice=unverified')
     }
     if (result.rehash) {
@@ -440,7 +446,8 @@ export async function handleAccount(request: Request, url: URL, env: AuthEnv, no
     if (!emailOk(email)) return formError('Reset your password', 'That does not look like an email address.', resetRequestForm())
     const refused = await checkTurnstile()
     if (refused) return formError('Reset your password', refused.error, resetRequestForm(email), refused.status)
-    if (await throttled(env.ACCOUNTS, ipHash, email, now))
+    // Its own key, or ten bad sign-ins would block the owner's way back in too.
+    if (await throttled(env.ACCOUNTS, ipHash, `reset:${email}`, now))
       return formError('Reset your password', 'Too many tries from here for now. Please wait an hour.', resetRequestForm(email), 429)
     const user = await userByEmail(env.ACCOUNTS, email)
     if (user) {
