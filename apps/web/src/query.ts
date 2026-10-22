@@ -285,9 +285,11 @@ export function buildQuery(filters: EventFilters, limit = 4000): { sql: string; 
     where.push(`(${filters.sources.map(() => `e.source_slugs LIKE ?`).join(' OR ')})`)
     bindings.push(...filters.sources.map((s) => `%"${s.replace(/[%_"]/g, '')}"%`))
   }
+  // A range takes in what is still running when it opens, as `since` does: "this weekend"
+  // must not drop the festival that opened in September and closes on Sunday.
   if (filters.from) {
-    where.push('e.local_date >= ?')
-    bindings.push(filters.from)
+    where.push('(e.local_date >= ? OR e.ends_at_utc >= ?)')
+    bindings.push(filters.from, `${filters.from}T00:00:00.000Z`)
   }
   if (filters.to) {
     where.push('e.local_date <= ?')

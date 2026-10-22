@@ -333,7 +333,8 @@ function listDate(e) {
  * the month on screen instead: someone who has deliberately paged back wants that month.
  */
 function inDateScope(e) {
-  if (state.from && e.localDate < state.from) return false
+  // Still running when the range opens counts, as on the server (buildQuery's `from`).
+  if (state.from && lastLocalDate(e) < state.from) return false
   if (state.to && e.localDate > state.to) return false
   if (state.view === 'calendar') return e.localDate.slice(0, 7) === state.month
   // A range the reader typed is a deliberate statement about which days they want, so it

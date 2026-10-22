@@ -41,7 +41,7 @@ describe('municipality filter', () => {
     const { sql, bindings } = queryFor(`?m=${UNPLACED},tay&cat=music&from=2026-01-01`)
     const order = [...sql.matchAll(/municipality_slug IN|e\.category IN|local_date >=/g)].map((m) => m[0])
     expect(order).toEqual(['municipality_slug IN', 'e.category IN', 'local_date >='])
-    expect(bindings).toEqual(['tay', 'music', '2026-01-01'])
+    expect(bindings).toEqual(['tay', 'music', '2026-01-01', '2026-01-01T00:00:00.000Z'])
   })
 
   it('leaves the municipality out of the query entirely when none is chosen', () => {
@@ -77,6 +77,14 @@ describe('the way back from an event page', () => {
     const href = back('?m=" onmouseover="alert(1)')
     expect(href).not.toContain('"')
     expect(href).not.toContain('<')
+  })
+})
+
+describe('date range', () => {
+  it('takes in what is still running when the range opens', () => {
+    const { sql, bindings } = queryFor('?from=2026-10-24&to=2026-10-25')
+    expect(sql).toContain('(e.local_date >= ? OR e.ends_at_utc >= ?)')
+    expect(bindings).toContain('2026-10-24T00:00:00.000Z')
   })
 })
 
