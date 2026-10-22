@@ -11,6 +11,7 @@ import {
   loadExisting,
   recordRun,
   reclassifyListingStatements,
+  reviveListingStatements,
   removeListingStatements,
   runBatched,
   upsertListingStatements,
@@ -69,9 +70,11 @@ async function ingestOne(env: Env, source: Source): Promise<SourceOutcome> {
   // A plan that aborted (the empty-response guard) writes nothing at all.
   if (result.ok && plan?.ok) {
     const now = new Date().toISOString()
+    const sameText = (u: (typeof plan.updates)[number]) => !u.changes.includes('content') && !u.changes.includes('startsAtUtc')
     await runBatched(env.DB, [
       ...upsertListingStatements(env.DB, plan.inserts, now),
-      ...upsertListingStatements(env.DB, plan.updates.map((u) => u.event), now),
+      ...upsertListingStatements(env.DB, plan.updates.filter((u) => !sameText(u)).map((u) => u.event), now),
+      ...reviveListingStatements(env.DB, plan.updates.filter(sameText).map((u) => u.event), now),
       ...removeListingStatements(env.DB, plan.removals, now),
       ...reclassifyListingStatements(env.DB, plan.reclassified),
     ])

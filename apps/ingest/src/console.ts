@@ -195,6 +195,10 @@ async function createEvent(env: ConsoleEnv, request: Request, publicOrigin: stri
   // Opened from a suggestion, or from a news draft: saving approves whichever it was.
   const suggestion = typeof form.from === 'string' && UUID.test(form.from) ? await loadSuggestion(db, form.from) : null
   const staged = typeof form.staged === 'string' && UUID.test(form.staged) ? await loadStaged(db, form.staged) : null
+  // Already saved as an event, from Back and resubmit or a stale tab: a second save would
+  // put a duplicate on the site, so show the one that exists instead.
+  if (suggestion?.handled_as === 'event') return redirect(`/suggestions/${suggestion.id}`)
+  if (staged?.handled_as === 'event') return redirect(`/staged/${staged.id}`)
   const parsed = parseEventForm(form)
   if (!parsed.ok) return page(formPage({ email, values: parsed.values, errors: parsed.errors, suggestion, staged }), 400)
 

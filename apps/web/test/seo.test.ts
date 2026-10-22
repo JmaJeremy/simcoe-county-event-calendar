@@ -129,6 +129,11 @@ describe('event descriptions with markdown', () => {
     expect(structured).not.toContain('**')
   })
 
+  it('starts an undated feed a month back, so the 10,000 cap never cuts the newest events', async () => {
+    const env = stubEnv({ 'e.ends_at_utc >= ?': [{ ...EVENT_ROW, title: 'Inside the window' }] })
+    expect(await (await get('/calendar.ics', APEX, env)).text()).toContain('Inside the window')
+  })
+
   it('strips it from the calendar feed', async () => {
     // Unfolded first: iCal wraps long lines, which can split a phrase across two.
     const ics = (await (await get('/calendar.ics', APEX, markdownEnv())).text()).replace(/\r\n[ \t]/g, '')
@@ -331,6 +336,11 @@ describe('municipality pages', () => {
     expect(body).toContain('571 upcoming events in Township of Tay')
     expect(body).toContain('Showing the next 1 of 571')
     expect(body).toContain('href="/?m=tay&amp;cost=all"')
+  })
+
+  it('lists a festival that opened before today and is still running', async () => {
+    const env = stubEnv({ 'e.ends_at_utc >= ?': [{ ...EVENT_ROW, title: 'Pumpkin Mania', local_date: '2026-09-19' }] })
+    expect(await (await get('/place/tay', APEX, env)).text()).toContain('Pumpkin Mania')
   })
 
   it('404s for a slug we do not cover, without touching the database', async () => {

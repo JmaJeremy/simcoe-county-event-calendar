@@ -42,6 +42,9 @@ function accountsFake(t: Tables) {
         const u = t.users.find((u) => u.id === s.user_id)!
         return { user_id: s.user_id, last_seen_at: s.last_seen_at, expires_at: s.expires_at, email: u.email, email_verified_at: u.email_verified_at, display_name: u.display_name }
       }
+      if (sql.includes("FROM user_tokens WHERE user_id = ? AND purpose = 'verify'")) {
+        return t.tokens.some((k) => k.user_id === v[0] && k.purpose === 'verify' && k.used_at === null && k.created_at > (v[1] as string)) ? { n: 1 } : null
+      }
       if (sql.includes('SELECT user_id FROM user_tokens')) {
         const row = t.tokens.find((k) => k.token_hash === v[0])
         return row ? { user_id: row.user_id } : null
@@ -180,7 +183,7 @@ const signUp = (email = 'reader@example.com', password = 'a fine passphrase') =>
 
 const verifyByMail = async () => {
   const token = linkToken(mails.at(-1)!.text, '/account/verify')
-  return request(`/account/verify?token=${token}`)
+  return request('/account/verify', { form: { token } })
 }
 
 const signIn = (email = 'reader@example.com', password = 'a fine passphrase') =>
@@ -240,16 +243,25 @@ describe('sign-up and verification', () => {
     expect(res.status).toBe(303)
     expect(res.headers.get('Location')).toBe('/account/signin?notice=unverified')
     expect(res.headers.get('Set-Cookie')).toBeNull()
+    // The sign-up mail is minutes old, so repeated sign-ins cannot mail the address again.
+    expect(mails).toHaveLength(1)
+    tables.tokens[0]!.created_at = new Date(Date.now() - 16 * 60 * 1000).toISOString()
+    await signIn()
     expect(mails).toHaveLength(2)
   })
 
   it('verifies through the mailed link exactly once', async () => {
     await signUp()
     const token = linkToken(mails[0]!.text, '/account/verify')
-    const first = await request(`/account/verify?token=${token}`)
+    // Opening the link, as a mail scanner does, changes nothing; the button does.
+    const opened = await request(`/account/verify?token=${token}`)
+    expect(opened.status).toBe(200)
+    expect(await opened.text()).toContain('action="/account/verify"')
+    expect(tables.users[0]!.email_verified_at).toBeNull()
+    const first = await request('/account/verify', { form: { token } })
     expect(first.status).toBe(303)
     expect(tables.users[0]!.email_verified_at).not.toBeNull()
-    const second = await request(`/account/verify?token=${token}`)
+    const second = await request('/account/verify', { form: { token } })
     expect(second.status).toBe(410)
   })
 
@@ -361,6 +373,15 @@ describe('limits and posture', () => {
     for (let i = 0; i < 10; i++) await signIn('reader@example.com', 'wrong')
     const res = await signIn()
     expect(res.status).toBe(429)
+    // A reset keeps working, or a stranger's bad guesses would lock the owner out of both.
+    const reset = await request('/account/reset', { form: { email: 'reader@example.com', 'cf-turnstile-response': 'tok' } })
+    expect(reset.headers.get('Location')).toBe('/account/check-email')
+  })
+
+  it('keeps the session cookie for the session\'s whole life; the database decides when it ends', async () => {
+    await signUp()
+    await verifyByMail()
+    expect((await signIn()).headers.get('Set-Cookie')).toContain(`Max-Age=${180 * 24 * 60 * 60}`)
   })
 
   it('303s to the canonical host from anywhere else, so there is one cookie jar', async () => {

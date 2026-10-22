@@ -32,7 +32,8 @@ function splitTrailing(url: string): [string, string] {
  * so no rule can read them as syntax, and swapped back at the end.
  */
 const ESCAPED = /\\([\\*_[\]()#+\-.!`])/g
-const hide = (text: string): string => text.replace(ESCAPED, (_, c: string) => String.fromCharCode(0xe000 + c.charCodeAt(0)))
+// Stand-ins a source sent itself become U+FFFD first, or unhide would turn U+E03C into a live "<".
+const hide = (text: string): string => text.replace(/[-]/g, '�').replace(ESCAPED,(_, c: string) => String.fromCharCode(0xe000 + c.charCodeAt(0)))
 const unhide = (text: string): string => text.replace(/[\ue000-\ue07f]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xe000))
 
 const BOLD_ITALIC = /\*\*\*(?=\S)(.+?)(?<=\S)\*\*\*/g

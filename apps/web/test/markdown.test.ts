@@ -38,6 +38,13 @@ describe('descriptionHtml', () => {
     expect(html).toContain('&lt;script&gt;')
   })
 
+  it('never turns a private-use character from the source into markup', () => {
+    const html = descriptionHtml('Hello img src=x onerror=y https://a.ca/onmouseover=y')
+    expect(html).not.toContain('<img')
+    expect(html).not.toContain('"onmouseover')
+    expect(descriptionText('a b')).toBe('a �b')
+  })
+
   it('cannot break out of an href', () => {
     expect(descriptionHtml('https://example.org/"onmouseover="x')).not.toContain('"onmouseover')
   })

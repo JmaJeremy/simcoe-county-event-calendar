@@ -1,4 +1,4 @@
-import { MUNICIPALITIES, municipalityBySlug } from '@scec/core'
+import { MUNICIPALITIES, municipalityBySlug, shiftDate } from '@scec/core'
 import { UNPLACED, cleanSearch, listUrlFrom, selectEventPage, selectEvents, parseFilters, rowToEvent, type PublicEvent, type Row } from './query.ts'
 import { SITE_NAME, escapeHtml, titleCase } from './html.ts'
 import { renderEventPage, renderNotFound, renderPlacePage, shareableImage } from './pages.ts'
@@ -258,7 +258,12 @@ export default {
 
       // The feature none of the upstream calendars offer: a subscribable feed.
       if (url.pathname === '/calendar.ics') {
-        const events = await queryEvents(env, url)
+        // With no dates asked for, start a month back: past events never go inactive, and
+        // the whole history would reach the 10,000 cap and cut the newest events first.
+        const dated = ['from', 'to', 'since', 'before'].some((k) => url.searchParams.has(k))
+        const feedUrl = new URL(url)
+        if (!dated) feedUrl.searchParams.set('since', shiftDate(todayLocal(), -30))
+        const events = await queryEvents(env, feedUrl)
         return new Response(renderFeed(events, describeFilters(url, events), origin), {
           headers: {
             'Content-Type': 'text/calendar; charset=utf-8',
@@ -607,6 +612,10 @@ async function placeResponse(
   }
 
   const today = todayLocal()
+  // Not over yet: dated today or later, or still running — a festival that opened in
+  // September is very much on in October. The two lists are exact complements.
+  const now = new Date().toISOString()
+  const onNow = '(e.local_date >= ? OR e.ends_at_utc >= ?)'
   /*
    * Deliberately not buildQuery: that applies the list's defaults, which hide paid events.
    * A page answering "what is on in this town" that silently dropped every ticketed
@@ -617,22 +626,22 @@ async function placeResponse(
        FROM events e LEFT JOIN municipalities m ON m.slug = e.municipality_slug
       WHERE e.municipality_slug = ? AND e.active = 1 AND e.category <> 'civic-meeting'`
   const upcoming = await env.DB.prepare(
-    `${select} AND e.local_date >= ? ORDER BY e.starts_at_utc ASC LIMIT 120`,
+    `${select} AND ${onNow} ORDER BY e.starts_at_utc ASC LIMIT 120`,
   )
-    .bind(slug, today)
+    .bind(slug, today, now)
     .all<Row>()
   // Counted separately, because the list stops at 120 and Essa alone has several hundred:
   // "120 upcoming events" at the top of that page would simply be false.
   const total = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM events e
-      WHERE e.municipality_slug = ? AND e.active = 1 AND e.category <> 'civic-meeting' AND e.local_date >= ?`,
+      WHERE e.municipality_slug = ? AND e.active = 1 AND e.category <> 'civic-meeting' AND ${onNow}`,
   )
-    .bind(slug, today)
+    .bind(slug, today, now)
     .first<{ n: number }>()
   const past = await env.DB.prepare(
-    `${select} AND e.local_date < ? ORDER BY e.starts_at_utc DESC LIMIT 12`,
+    `${select} AND e.local_date < ? AND (e.ends_at_utc IS NULL OR e.ends_at_utc < ?) ORDER BY e.starts_at_utc DESC LIMIT 12`,
   )
-    .bind(slug, today)
+    .bind(slug, today, now)
     .all<Row>()
 
   const others = MUNICIPALITIES.filter((m) => m.slug !== slug)

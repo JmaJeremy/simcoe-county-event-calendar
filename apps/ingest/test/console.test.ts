@@ -892,6 +892,17 @@ describe('the news drafts inbox', () => {
     expect(approve[0]!.batch).toBe(listing!.batch)
   })
 
+  it('writes nothing when a draft already saved as an event is submitted again', async () => {
+    const { db, executed } = fakeDb([], [], [], [stagedRow({ handled_at: '2099-01-01T00:00:00Z', handled_as: 'event' })])
+    const response = await handleConsole(
+      post('/events', { staged: STAGED_ID, title: 'Battle of Britain Commemoration', municipality: 'barrie', date: '2099-09-20', start_time: '11:00' }),
+      env(db),
+      keys,
+    )
+    expect(response.headers.get('Location')).toBe(`/staged/${STAGED_ID}`)
+    expect(executed.some((e) => e.sql.includes('INSERT INTO listings'))).toBe(false)
+  })
+
   it('writes nothing when the form comes back invalid, and keeps the draft on screen', async () => {
     const { db, executed } = fakeDb([], [], [], [stagedRow()])
     const response = await handleConsole(

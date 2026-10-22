@@ -97,6 +97,13 @@ ${turnstileWidget}
 </form>
 <p class="account-links"><a href="/account/signin">Back to sign in</a></p>`
 
+// A button, not the link itself: mail scanners open links, and verifying is what lets a
+// Google sign-in join the account, so a robot must not be able to do it.
+export const verifyForm = (token: string): string => `<form method="post" action="/account/verify" class="account-form">
+<input type="hidden" name="token" value="${escapeHtml(token)}">
+<button class="btn" type="submit">Confirm my address</button>
+</form>`
+
 export const resetConfirmForm = (token: string): string => `<form method="post" action="/account/reset/confirm" class="account-form">
 <input type="hidden" name="token" value="${escapeHtml(token)}">
 ${passwordField('New password (at least 8 characters)', 'new-password')}
